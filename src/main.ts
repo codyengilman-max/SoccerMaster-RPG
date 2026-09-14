@@ -1,35 +1,94 @@
 import catalogJson from "../content/catalog/provisional-u11.json";
+import { AUTOSAVE_SLOT, newSession, resumeSession, savedSummary, type Session } from "./app/session";
 import { APP_NAME, APP_VERSION } from "./app/version";
 import { createRuntime } from "./match/runtime";
+import { LocalStorageStore, SaveError } from "./save/save";
 import { U11_9V9 } from "./sim/rules";
 import { generateSquad } from "./sim/squad";
-import { ROLE_BY_NUMBER, ROLE_NUMBERS, type RoleNumber } from "./sim/types";
+import { ROLE_BY_NUMBER, ROLE_LABEL, ROLE_NUMBERS, type RoleNumber } from "./sim/types";
+import { continueScene } from "./story/flow";
 import { loadCatalog, type CatalogFile } from "./tactics/catalog";
 import { pacingFor } from "./tactics/recognition";
+import { recordFirstTouch } from "./training/record";
+import { mountCreateScreen } from "./ui/createScreen";
+import { mountDrillScreen } from "./ui/drillScreen";
+import { mountHubScreen } from "./ui/hubScreen";
 import { mountMatchScreen } from "./ui/matchScreen";
+import { mountSceneScreen } from "./ui/sceneScreen";
+import { mountStartScreen } from "./ui/startScreen";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("#app root missing");
 
 const catalog = loadCatalog(catalogJson as CatalogFile);
+const store = new LocalStorageStore();
 
-const ROLE_LABEL: Record<RoleNumber, string> = {
-  1: "Goalkeeper",
-  2: "Right back",
-  3: "Left back",
-  4: "Centre back",
-  6: "Defensive mid",
-  8: "Central mid",
-  7: "Right winger",
-  9: "Striker",
-  11: "Left winger",
-};
+// ------------------------------------------------------------------ campaign
 
 function showStart(): void {
+  mountStartScreen(root!, savedSummary(store), {
+    onContinue: () => {
+      try {
+        const s = resumeSession(store);
+        if (s) showCampaign(s);
+        else showStart();
+      } catch (e) {
+        if (!(e instanceof SaveError)) throw e;
+        window.alert(`This save can't be loaded (${e.code}). It has been left in place.`);
+        showStart();
+      }
+    },
+    onNew: () => showCreate(),
+    onQuickMatch: () => showQuickMatch(),
+  });
+}
+
+function showCreate(): void {
+  mountCreateScreen(root!, {
+    onCreate: (r) => {
+      store.remove(AUTOSAVE_SLOT);
+      showCampaign(newSession(store, { kind: r.kind, player: r.player }));
+    },
+    onBack: showStart,
+  });
+}
+
+/** Whatever the campaign is doing now: the current scene, or the hub between scenes. */
+function showCampaign(s: Session): void {
+  if (s.campaign.scene) {
+    mountSceneScreen(root!, s, {
+      onNext: () => showCampaign(s),
+      onActivity: (scene) => showActivity(s, scene.activity!),
+    });
+    return;
+  }
+  mountHubScreen(root!, s, { onScene: () => showCampaign(s), onExit: showStart });
+}
+
+function showActivity(s: Session, activityId: string): void {
+  if (activityId !== "first_touch") throw new Error(`unknown activity ${activityId}`);
+  const c = s.campaign;
+  const coach = c.roster.people.find((p) => p.id === "coach")?.name ?? "Coach";
+  mountDrillScreen(root!, {
+    seed: c.seed ^ c.day,
+    coachName: coach,
+    onDone: (summary) => {
+      recordFirstTouch(c, summary);
+      continueScene(c, s.scenes);
+      s.save();
+      showCampaign(s);
+    },
+  });
+}
+
+// --------------------------------------------------------------- quick match
+
+function showQuickMatch(): void {
+  root!.className = "";
   root!.innerHTML = `
     <section class="start">
       <h1>${APP_NAME}</h1>
-      <p>Build ${APP_VERSION} — first playable milestone in progress.</p>
+      <p>Build ${APP_VERSION} — quick match (debug).</p>
       <div class="card">
         <h2>Quick match</h2>
         <p class="muted">Pick the position you'll play. It stays locked for the whole match; the rest of the team is AI.</p>
@@ -38,6 +97,7 @@ function showStart(): void {
         </div>
         <label class="seed">Seed <input type="number" value="${Math.floor(Math.random() * 1000)}" min="0" step="1" /></label>
         <p class="muted small">U11 9v9 · provisional rules and tactical content, not coach-reviewed.</p>
+        <div class="actions"><button type="button" class="link back">Back</button></div>
       </div>
     </section>`;
   const seedInput = root!.querySelector<HTMLInputElement>(".seed input");
@@ -48,6 +108,7 @@ function showStart(): void {
       startMatch(seed, role);
     });
   }
+  root!.querySelector<HTMLButtonElement>("button.back")?.addEventListener("click", showStart);
 }
 
 function startMatch(seed: number, role: RoleNumber): void {
@@ -67,7 +128,7 @@ function startMatch(seed: number, role: RoleNumber): void {
     catalog,
     { pacing: pacingFor(ROLE_BY_NUMBER[role]) },
   );
-  mountMatchScreen(root!, runtime, showStart);
+  mountMatchScreen(root!, runtime, showQuickMatch);
 }
 
 showStart();

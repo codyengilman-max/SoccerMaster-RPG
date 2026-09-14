@@ -67,6 +67,8 @@ export interface CampaignState {
   progression: Progression;
   /** Reports for matches the user played, in order. */
   reports: MatchReport[];
+  /** Scene currently on screen (null when the campaign is at the hub / between scenes). */
+  scene: string | null;
 }
 
 export interface CreateOptions {
@@ -163,6 +165,7 @@ export function createCampaign(opts: CreateOptions): CampaignState {
     story: createStoryState(),
     progression: createProgression(),
     reports: [],
+    scene: null,
   };
   return state;
 }
@@ -181,6 +184,23 @@ export function joinClub(c: CampaignState, clubId: string): ReturnType<typeof jo
   const r = joinRoster(c.roster, PLAYER_ID, clubId, c.ageGroup);
   if (r.ok) touch(c);
   return r;
+}
+
+export const JOIN_FLAG_PREFIX = "join:";
+
+/**
+ * Story effects cannot reach the roster, so a choice raises a `join:<clubId>` flag and this applies
+ * it. Idempotent: a flag for the club the user already belongs to is a no-op.
+ */
+export function syncStoryFlags(c: CampaignState): string[] {
+  const joined: string[] = [];
+  for (const f of c.story.flags) {
+    if (!f.startsWith(JOIN_FLAG_PREFIX)) continue;
+    const clubId = f.slice(JOIN_FLAG_PREFIX.length);
+    if (playerClubId(c) === clubId) continue;
+    if (joinClub(c, clubId).ok) joined.push(clubId);
+  }
+  return joined;
 }
 
 /**
@@ -254,6 +274,7 @@ export function advanceDays(c: CampaignState, days: number): DayAdvance {
   c.day = to;
   const missed = advanceTo(c.schedule, to);
   const fired = processDue(storyContext(c));
+  syncStoryFlags(c);
   const unlocked = refreshUnlocks(c.progression);
   touch(c);
   return { from, to, missed, fired, unlocked };

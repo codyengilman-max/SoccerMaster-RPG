@@ -11,7 +11,7 @@ import { adjustRelationship, adjustTrack, refreshUnlocks, type Progression, type
 export type FactValue = string | number | boolean;
 
 export type Condition =
-  | { type: "fact"; id: string; equals?: FactValue; exists?: boolean }
+  | { type: "fact"; id: string; equals?: FactValue; not?: FactValue; exists?: boolean }
   | { type: "relationship"; personId: string; min?: number; max?: number }
   | { type: "track"; track: Track; min?: number; max?: number }
   | { type: "day"; min?: CampaignDay; max?: CampaignDay }
@@ -118,6 +118,7 @@ export function holds(ctx: StoryContext, c: Condition): boolean {
       const v = story.facts[c.id];
       if (c.exists !== undefined) return (v !== undefined) === c.exists;
       if (c.equals !== undefined) return v === c.equals;
+      if (c.not !== undefined) return v !== c.not;
       return v !== undefined;
     }
     case "relationship": {

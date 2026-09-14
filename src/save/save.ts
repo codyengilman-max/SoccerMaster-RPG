@@ -71,7 +71,7 @@ const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object
 function validate(file: Record<string, unknown>): SaveFile {
   const c = file.campaign;
   if (!isObj(c)) throw new SaveError("missing campaign", "invalid_shape");
-  const need: (keyof CampaignState)[] = ["id", "seed", "kind", "player", "ageGroup", "day", "revision", "schedule", "competitions", "roster", "story", "progression", "reports"];
+  const need: (keyof CampaignState)[] = ["id", "seed", "kind", "player", "ageGroup", "day", "revision", "schedule", "competitions", "roster", "story", "progression", "reports", "scene"];
   for (const k of need) if (!(k in c)) throw new SaveError(`campaign.${k} missing`, "invalid_shape");
   if (typeof file.savedAt !== "string" || typeof file.slot !== "string") throw new SaveError("bad header", "invalid_shape");
   return { version: SAVE_VERSION, savedAt: file.savedAt, slot: file.slot, campaign: c as unknown as CampaignState };

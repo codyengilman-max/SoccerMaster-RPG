@@ -1,4 +1,5 @@
-import type { CampaignDay } from "../calendar/date";
+import type { CampaignDay, Weekday } from "../calendar/date";
+import type { CommitmentKind, Slot } from "../calendar/schedule";
 import { allHold, knows, type Choice, type Condition, type StoryContext, type StoryState } from "./consequences";
 
 /**
@@ -37,6 +38,12 @@ export interface Scene {
   choices: SceneChoice[];
   /** Scene to continue into when there are no choices (or after a choice without its own `next`). */
   next: string | null;
+  /** The scene happens on the next such weekday; entering it moves the campaign forward. */
+  weekday?: Weekday;
+  /** Playable activity run after the lines and before `next` (spec §4 step 7). */
+  activity?: string;
+  /** One-off calendar commitment the scene represents (e.g. the Thursday visit); attended on entry. */
+  commitment?: { kind: CommitmentKind; slot: Slot; title: string; minutes: number };
   /** Once-only scenes are recorded as `scene:<id>` in `story.applied`. */
   once: boolean;
   reviewStatus: "proposal" | "reviewed";

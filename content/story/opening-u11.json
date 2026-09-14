@@ -1,0 +1,594 @@
+{
+  "reviewStatus": "proposal",
+  "note": "U11 opening (spec §4). Scenes with the same id in a campaign list replace the shared one. Text is a placeholder draft for the owner to review; every effect is data (spec §20). Variables: {player} {friend} {parent} {coach} {position} {club}.",
+  "shared": [
+    {
+      "id": "open.invite",
+      "title": "The invitation",
+      "location": "park",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        { "speaker": "friend", "text": "Okay. Serious question. You know I'm at {club} now, right?" },
+        { "speaker": "friend", "text": "Thursday training. Coach said I could bring someone. I said I know exactly one person who can actually receive a pass." },
+        { "speaker": null, "text": "{friend} is trying very hard to look casual about it." },
+        { "speaker": "friend", "text": "So? Thursday. You'd just come and train. Nobody signs anything." }
+      ],
+      "choices": [
+        {
+          "id": "open.invite.curious",
+          "label": "\"What's it actually like? Like — proper coaching?\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "first_feeling", "value": "curious" },
+            { "type": "learn", "personId": "friend", "factId": "first_feeling" },
+            { "type": "relationship", "personId": "friend", "delta": 3 }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "friend", "text": "Proper. Coach Code yells, but he yells useful things. You'll see. Thursday, four-thirty." }
+          ],
+          "next": null
+        },
+        {
+          "id": "open.invite.unsure",
+          "label": "\"I don't know. Rec is fine. Everyone there is better than me.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "first_feeling", "value": "unsure" },
+            { "type": "learn", "personId": "friend", "factId": "first_feeling" },
+            { "type": "relationship", "personId": "friend", "delta": 2 }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "friend", "text": "Half of them can't do what you just did with that first touch. Come once. If you hate it, I'll never mention it again. Probably." }
+          ],
+          "next": null
+        },
+        {
+          "id": "open.invite.ambition",
+          "label": "\"Finally. I've wanted to play for a real club for a year.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "first_feeling", "value": "ambition" },
+            { "type": "learn", "personId": "friend", "factId": "first_feeling" },
+            { "type": "relationship", "personId": "friend", "delta": 2 }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "friend", "text": "A year? You could've said something! Okay. Thursday. Bring shin pads, Coach checks." }
+          ],
+          "next": null
+        },
+        {
+          "id": "open.invite.together",
+          "label": "\"If you're there, I'm there.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "first_feeling", "value": "together" },
+            { "type": "learn", "personId": "friend", "factId": "first_feeling" },
+            { "type": "relationship", "personId": "friend", "delta": 4 }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "friend", "text": "That's what I told Coach you'd say. Thursday. Don't be late, he does this thing with his whistle." }
+          ],
+          "next": null
+        }
+      ],
+      "next": "open.parent",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "open.arrive",
+      "title": "Thursday, 4:25 pm",
+      "location": "training_field",
+      "tone": "everyday",
+      "weekday": "Thu",
+      "commitment": { "kind": "visit", "slot": "afternoon", "title": "Training visit at FC Batavia", "minutes": 90 },
+      "eligibility": [{ "type": "fact", "id": "visit_allowed", "equals": true }],
+      "lines": [
+        { "speaker": null, "text": "The fields sit behind a middle school, three of them in a row, sprinklers still ticking off on the far one. The light is the colour of orange soda." },
+        { "speaker": null, "text": "{friend} is waiting at the edge of the parking lot, ball under one arm, already in the training top." },
+        { "speaker": "friend", "text": "You came. Okay. Okay okay okay. Rules: when he blows the whistle, you stop and look at him. That's it. That's the whole secret." },
+        { "speaker": "friend", "text": "Also I told him you play {position}. Was that right? Too late, it's right now." }
+      ],
+      "choices": [],
+      "next": "open.coach",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "open.coach",
+      "title": "Coach Code",
+      "location": "training_field",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        { "speaker": null, "text": "A whistle, sharp enough to make the far field flinch. A man with a clipboard he never looks at walks over, sun behind him." },
+        { "speaker": "coach", "text": "You're {player}. {friend} has been telling me about you for two weeks, which is two weeks longer than I've heard about anything else." },
+        { "speaker": "coach", "text": "Rec soccer, couple of years, plays {position}. Good. Here's what I care about tonight: not how fast you are, not whether you score. Whether you look before the ball arrives." },
+        { "speaker": "coach", "text": "Shin pads? Show me. — Good. Water over there. Go stand with the ball-hog." },
+        { "speaker": "friend", "text": "He means me. It's a compliment. It's mostly a compliment." }
+      ],
+      "choices": [],
+      "next": "open.activity",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "open.activity",
+      "title": "Receive and go",
+      "location": "training_field",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        { "speaker": "coach", "text": "Simple. I play you the ball. Someone comes to take it. Three gates. Your first touch takes the ball through the gate that's AWAY from the pressure." },
+        { "speaker": "coach", "text": "Look before it gets to you. Where's the defender coming from? Then touch. One touch, through a gate. Go." }
+      ],
+      "activity": "first_touch",
+      "choices": [],
+      "next": "open.debrief",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "open.debrief",
+      "title": "After the whistle",
+      "location": "training_field",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        { "speaker": null, "text": "The other group finishes. Coach Code waves everyone in with the clipboard." },
+        { "speaker": "coach", "text": "You looked. Every time, you checked where the pressure was before the ball got there. That's the thing I can't teach in a week.", "requiresKnown": ["intro_reads"], "when": [{ "type": "fact", "id": "intro_reads", "equals": "sharp" }] },
+        { "speaker": "coach", "text": "Sometimes you looked, sometimes you guessed. The guesses are the ones that got taken off you. Look first. Always.", "requiresKnown": ["intro_reads"], "when": [{ "type": "fact", "id": "intro_reads", "equals": "mixed" }] },
+        { "speaker": "coach", "text": "You rushed it. Ball's coming and your head is down. Not a crime, everyone does it here at first. But it's the whole game.", "requiresKnown": ["intro_reads"], "when": [{ "type": "fact", "id": "intro_reads", "equals": "rushed" }] },
+        { "speaker": "coach", "text": "And the touch was clean. Weight of it, direction. Rec did something right.", "requiresKnown": ["intro_touch"], "when": [{ "type": "fact", "id": "intro_touch", "equals": "clean" }] },
+        { "speaker": "coach", "text": "Touch was heavy. You'll fix that with a wall and a hundred boring evenings. I'll give you the boring evenings.", "requiresKnown": ["intro_touch"], "when": [{ "type": "fact", "id": "intro_touch", "equals": "loose" }] },
+        { "speaker": "coach", "text": "{friend}. Stop grinning. You're not the one who did it." },
+        { "speaker": "friend", "text": "Told you.", "requiresKnown": ["intro_reads"] },
+        { "speaker": "coach", "text": "Go home. Talk to your family. If you want to come back, Tuesday, same time. If you don't, that's fine too, you'll be a better rec player than you were an hour ago." }
+      ],
+      "choices": [],
+      "next": "open.join",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "open.decide",
+      "title": "Sunday",
+      "location": "home",
+      "tone": "everyday",
+      "weekday": "Sun",
+      "eligibility": [{ "type": "fact", "id": "undecided", "equals": true }],
+      "lines": [
+        { "speaker": null, "text": "Sunday afternoon. The ball has been sitting by the door since Thursday like it's waiting for an answer too." },
+        { "speaker": "parent", "text": "So. Tuesday's the day. What are we doing?" }
+      ],
+      "choices": [
+        {
+          "id": "open.decide.join",
+          "label": "\"I want to do it.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "clear_fact", "id": "undecided" },
+            { "type": "set_fact", "id": "joined_batavia", "value": true },
+            { "type": "flag", "id": "join:batavia" },
+            { "type": "learn", "personId": "parent", "factId": "joined_batavia" },
+            { "type": "relationship", "personId": "parent", "delta": 3 }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "parent", "text": "Then we do it properly. Bag packed Monday night. And you tell {friend} yourself, not me." }],
+          "next": null
+        },
+        {
+          "id": "open.decide.trial",
+          "label": "\"Can we try it for a month first?\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "clear_fact", "id": "undecided" },
+            { "type": "set_fact", "id": "joined_batavia", "value": true },
+            { "type": "set_fact", "id": "trial_month", "value": true },
+            { "type": "flag", "id": "join:batavia" },
+            { "type": "learn", "personId": "parent", "factId": "trial_month" },
+            { "type": "relationship", "personId": "parent", "delta": 5 }
+          ],
+          "delayed": [
+            { "id": "review", "afterDays": 28, "effects": [{ "type": "queue_scene", "sceneId": "u11.trial_review", "onDay": null }] }
+          ],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "parent", "text": "A month. That's a grown-up answer. A month, and then we talk honestly — both of us." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "boys": [
+    {
+      "id": "open.kickabout",
+      "title": "After school",
+      "location": "park",
+      "tone": "everyday",
+      "weekday": "Tue",
+      "eligibility": [],
+      "lines": [
+        { "speaker": null, "text": "The park behind the strip mall has one goal with no net and a patch of grass the sprinklers actually reach. It has been yours and {friend}'s since second grade." },
+        { "speaker": null, "text": "{friend} pings the ball at you from way too far, the way he always does, and yells 'ONE TOUCH' before it has even landed." },
+        { "speaker": "friend", "text": "See, that! That thing you do where it just sticks to your foot. Nobody on my team can do that. Owen definitely can't, and he's the keeper." },
+        { "speaker": "friend", "text": "Dev tried it last week and the ball ended up in the parking lot." }
+      ],
+      "choices": [],
+      "next": "open.invite",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "open.parent",
+      "title": "The car",
+      "location": "car",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        { "speaker": null, "text": "Dad picks you up late, still in his work shirt, radio on the traffic station he never listens to." },
+        { "speaker": "parent", "text": "Mateo's mom texted me. Something about Thursday?" },
+        { "speaker": null, "text": "He is doing the thing where he watches the road very carefully." },
+        { "speaker": "parent", "text": "Club soccer is a lot, bud. It's three nights a week, it's weekends, and it's not free. I'm not saying no. I'm saying I want to know what you're asking for." }
+      ],
+      "choices": [
+        {
+          "id": "open.parent.one_visit",
+          "label": "\"It's just one training. I want to see what it's like.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "visit_allowed", "value": true },
+            { "type": "set_fact", "id": "parent_answer", "value": "one_visit" },
+            { "type": "learn", "personId": "parent", "factId": "wants_to_visit" },
+            { "type": "relationship", "personId": "parent", "delta": 2 }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "parent", "text": "One training I can do. I'll move my shift. But we talk after — properly, not 'it was fine'." }
+          ],
+          "next": null
+        },
+        {
+          "id": "open.parent.school_first",
+          "label": "\"School comes first. I promise. I'll show you.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "visit_allowed", "value": true },
+            { "type": "set_fact", "id": "parent_answer", "value": "school_first" },
+            { "type": "promise", "id": "school_first", "by": "player", "text": "School comes first" },
+            { "type": "learn", "personId": "parent", "factId": "wants_to_visit" },
+            { "type": "relationship", "personId": "parent", "delta": 4 }
+          ],
+          "delayed": [
+            {
+              "id": "check_in",
+              "afterDays": 21,
+              "effects": [{ "type": "queue_scene", "sceneId": "u11.school_check_in", "onDay": null }]
+            }
+          ],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "parent", "text": "That's a promise, not a sentence. I'm going to remember it. Thursday, then." }
+          ],
+          "next": null
+        },
+        {
+          "id": "open.parent.ride",
+          "label": "\"Mateo's mom said she can drive. You wouldn't have to do anything.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "visit_allowed", "value": true },
+            { "type": "set_fact", "id": "parent_answer", "value": "ride" },
+            { "type": "learn", "personId": "parent", "factId": "wants_to_visit" },
+            { "type": "relationship", "personId": "parent", "delta": -2 }
+          ],
+          "delayed": [
+            {
+              "id": "wants_to_be_there",
+              "afterDays": 7,
+              "effects": [{ "type": "set_fact", "id": "parent_missed_first_visit", "value": true }],
+              "unless": [{ "type": "relationship", "personId": "parent", "min": 5 }]
+            }
+          ],
+          "repair": [
+            {
+              "id": "invite_parent",
+              "label": "Ask Dad to come anyway",
+              "when": [],
+              "effects": [{ "type": "relationship", "personId": "parent", "delta": 4 }],
+              "cancels": ["wants_to_be_there"],
+              "withinDays": 2
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "parent", "text": "..." },
+            { "speaker": "parent", "text": "'Wouldn't have to do anything.' Right. Okay. Go Thursday. Tell Mateo's mom thank you." }
+          ],
+          "next": null
+        }
+      ],
+      "next": "open.arrive",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "open.join",
+      "title": "Dinner",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        { "speaker": null, "text": "Grass stains, a bruise you don't remember getting, and a plate of something Dad reheated twice." },
+        { "speaker": "parent", "text": "Well?" },
+        { "speaker": "parent", "text": "I watched a bit from the fence. The loud one — that's the coach? He seemed to like you.", "when": [{ "type": "fact", "id": "parent_answer", "equals": "one_visit" }] },
+        { "speaker": "parent", "text": "Mateo's mom said you looked like you belonged there. Her words.", "when": [{ "type": "fact", "id": "parent_answer", "equals": "ride" }, { "type": "fact", "id": "intro_touch", "not": "loose" }] },
+        { "speaker": "parent", "text": "Mateo's mom said the coach spent more time on you than anyone. She meant it nicely. I think.", "when": [{ "type": "fact", "id": "parent_answer", "equals": "ride" }, { "type": "fact", "id": "intro_touch", "equals": "loose" }] },
+        { "speaker": "parent", "text": "Homework first, then you tell me. Deal's a deal.", "when": [{ "type": "fact", "id": "parent_answer", "equals": "school_first" }] },
+        { "speaker": null, "text": "Your phone buzzes. Mateo: 'well??????' Seven question marks." }
+      ],
+      "choices": [
+        {
+          "id": "open.join.yes",
+          "label": "\"I want to join. Tuesday.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "joined_batavia", "value": true },
+            { "type": "flag", "id": "join:batavia" },
+            { "type": "learn", "personId": "parent", "factId": "joined_batavia" },
+            { "type": "learn", "personId": "friend", "factId": "joined_batavia" },
+            { "type": "relationship", "personId": "friend", "delta": 5 },
+            { "type": "relationship", "personId": "parent", "delta": 2 }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "parent", "text": "Okay. Then here's the deal: I'll figure out the money. You figure out the eight o'clock alarm." },
+            { "speaker": null, "text": "You text back one word. Mateo replies with a photo of himself already asleep in his training top." }
+          ],
+          "next": null
+        },
+        {
+          "id": "open.join.think",
+          "label": "\"Can I think about it over the weekend?\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "undecided", "value": true },
+            { "type": "learn", "personId": "parent", "factId": "undecided" },
+            { "type": "relationship", "personId": "parent", "delta": 3 }
+          ],
+          "delayed": [
+            { "id": "sunday", "afterDays": 3, "effects": [{ "type": "queue_scene", "sceneId": "open.decide", "onDay": null }], "unless": [{ "type": "fact", "id": "joined_batavia", "equals": true }] },
+            { "id": "friend_waits", "afterDays": 2, "effects": [{ "type": "relationship", "personId": "friend", "delta": -2 }, { "type": "learn", "personId": "friend", "factId": "undecided" }], "unless": [{ "type": "fact", "id": "told_friend", "equals": true }] }
+          ],
+          "repair": [
+            {
+              "id": "tell_friend",
+              "label": "Text Mateo that you need the weekend",
+              "when": [],
+              "effects": [{ "type": "set_fact", "id": "told_friend", "value": true }, { "type": "learn", "personId": "friend", "factId": "undecided" }, { "type": "relationship", "personId": "friend", "delta": 1 }],
+              "cancels": ["friend_waits"],
+              "withinDays": 1
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "parent", "text": "You can. That's a good answer, actually. Sunday we decide, together." }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "girls": [
+    {
+      "id": "open.kickabout",
+      "title": "After school",
+      "location": "park",
+      "tone": "everyday",
+      "weekday": "Tue",
+      "eligibility": [],
+      "lines": [
+        { "speaker": null, "text": "The cul-de-sac ends in a wall that has taken ten thousand passes. Someone painted a goal on it years ago; you and {friend} have been arguing about whether the crossbar counts since kindergarten." },
+        { "speaker": null, "text": "{friend} has her notebook open on the kerb — actual diagrams — and is trying to get you to run a pattern she saw on TV." },
+        { "speaker": "friend", "text": "No, you go and THEN I play it. If I play it first you're just standing there like a lamp." },
+        { "speaker": "friend", "text": "...okay, that one was good. That was really good. Zoe can't do that and she scores every week." }
+      ],
+      "choices": [],
+      "next": "open.invite",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "open.parent",
+      "title": "Kitchen table",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        { "speaker": null, "text": "Mom is on her laptop at the kitchen table, the one with the wobbly leg, doing two things at once and listening anyway." },
+        { "speaker": "parent", "text": "Nia's club. Thursday. I heard about it from Nia's dad before I heard about it from you, which — noted." },
+        { "speaker": "parent", "text": "I looked at their site. It's a lot of driving, and it's not cheap, and your brother has band on Thursdays. I'm not saying no. Tell me why." }
+      ],
+      "choices": [
+        {
+          "id": "open.parent.one_visit",
+          "label": "\"It's one training. I just want to see it.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "visit_allowed", "value": true },
+            { "type": "set_fact", "id": "parent_answer", "value": "one_visit" },
+            { "type": "learn", "personId": "parent", "factId": "wants_to_visit" },
+            { "type": "relationship", "personId": "parent", "delta": 2 }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "parent", "text": "One training. I'll swap with your brother's carpool. And you'll tell me what you actually thought — not 'it was fine'." }
+          ],
+          "next": null
+        },
+        {
+          "id": "open.parent.school_first",
+          "label": "\"School stays first. I promise. Check my planner whenever you want.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "visit_allowed", "value": true },
+            { "type": "set_fact", "id": "parent_answer", "value": "school_first" },
+            { "type": "promise", "id": "school_first", "by": "player", "text": "School comes first" },
+            { "type": "learn", "personId": "parent", "factId": "wants_to_visit" },
+            { "type": "relationship", "personId": "parent", "delta": 4 }
+          ],
+          "delayed": [
+            {
+              "id": "check_in",
+              "afterDays": 21,
+              "effects": [{ "type": "queue_scene", "sceneId": "u11.school_check_in", "onDay": null }]
+            }
+          ],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "parent", "text": "I will check the planner. That's not a threat, it's a promise back. Thursday." }
+          ],
+          "next": null
+        },
+        {
+          "id": "open.parent.ride",
+          "label": "\"Nia's dad can drive. You don't have to change anything.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "visit_allowed", "value": true },
+            { "type": "set_fact", "id": "parent_answer", "value": "ride" },
+            { "type": "learn", "personId": "parent", "factId": "wants_to_visit" },
+            { "type": "relationship", "personId": "parent", "delta": -2 }
+          ],
+          "delayed": [
+            {
+              "id": "wants_to_be_there",
+              "afterDays": 7,
+              "effects": [{ "type": "set_fact", "id": "parent_missed_first_visit", "value": true }],
+              "unless": [{ "type": "relationship", "personId": "parent", "min": 5 }]
+            }
+          ],
+          "repair": [
+            {
+              "id": "invite_parent",
+              "label": "Ask Mom to come anyway",
+              "when": [],
+              "effects": [{ "type": "relationship", "personId": "parent", "delta": 4 }],
+              "cancels": ["wants_to_be_there"],
+              "withinDays": 2
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "parent", "text": "'Don't have to change anything.'" },
+            { "speaker": "parent", "text": "Fine. Go Thursday. Say thank you to Nia's dad. Loudly." }
+          ],
+          "next": null
+        }
+      ],
+      "next": "open.arrive",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "open.join",
+      "title": "Late",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        { "speaker": null, "text": "Your brother is practising the same four bars of trombone through the wall. Mom closes the laptop, which she never does." },
+        { "speaker": "parent", "text": "So?" },
+        { "speaker": "parent", "text": "I stayed by the car. The coach shouts a lot. But he shouted your name like he'd already decided something.", "when": [{ "type": "fact", "id": "parent_answer", "equals": "one_visit" }] },
+        { "speaker": "parent", "text": "Nia's dad said you were the only one who looked up before the ball came. He notices things like that.", "when": [{ "type": "fact", "id": "parent_answer", "equals": "ride" }, { "type": "fact", "id": "intro_reads", "equals": "sharp" }] },
+        { "speaker": "parent", "text": "Nia's dad said the coach kept saying your name. He didn't say what about. He notices things like that.", "when": [{ "type": "fact", "id": "parent_answer", "equals": "ride" }, { "type": "fact", "id": "intro_reads", "not": "sharp" }] },
+        { "speaker": "parent", "text": "Planner first. Then soccer. I'm listening while you get it.", "when": [{ "type": "fact", "id": "parent_answer", "equals": "school_first" }] },
+        { "speaker": null, "text": "Your phone lights up on the counter. Nia: a photo of her notebook. A new page. It has your name on it." }
+      ],
+      "choices": [
+        {
+          "id": "open.join.yes",
+          "label": "\"I want to join. Tuesday.\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "joined_batavia", "value": true },
+            { "type": "flag", "id": "join:batavia" },
+            { "type": "learn", "personId": "parent", "factId": "joined_batavia" },
+            { "type": "learn", "personId": "friend", "factId": "joined_batavia" },
+            { "type": "relationship", "personId": "friend", "delta": 5 },
+            { "type": "relationship", "personId": "parent", "delta": 2 }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "parent", "text": "Then we're doing it. I'll work out the driving with Nia's dad. You work out how to fall asleep before ten." },
+            { "speaker": null, "text": "You text Nia one word. She sends back a diagram with two stick figures and an arrow. The arrow is you." }
+          ],
+          "next": null
+        },
+        {
+          "id": "open.join.think",
+          "label": "\"Can I think about it over the weekend?\"",
+          "eligibility": [],
+          "immediate": [
+            { "type": "set_fact", "id": "undecided", "value": true },
+            { "type": "learn", "personId": "parent", "factId": "undecided" },
+            { "type": "relationship", "personId": "parent", "delta": 3 }
+          ],
+          "delayed": [
+            { "id": "sunday", "afterDays": 3, "effects": [{ "type": "queue_scene", "sceneId": "open.decide", "onDay": null }], "unless": [{ "type": "fact", "id": "joined_batavia", "equals": true }] },
+            { "id": "friend_waits", "afterDays": 2, "effects": [{ "type": "relationship", "personId": "friend", "delta": -2 }, { "type": "learn", "personId": "friend", "factId": "undecided" }], "unless": [{ "type": "fact", "id": "told_friend", "equals": true }] }
+          ],
+          "repair": [
+            {
+              "id": "tell_friend",
+              "label": "Text Nia that you need the weekend",
+              "when": [],
+              "effects": [{ "type": "set_fact", "id": "told_friend", "value": true }, { "type": "learn", "personId": "friend", "factId": "undecided" }, { "type": "relationship", "personId": "friend", "delta": 1 }],
+              "cancels": ["friend_waits"],
+              "withinDays": 1
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            { "speaker": "parent", "text": "Yes. And I'd rather you took the weekend than said yes to make Nia happy. Sunday, we decide." }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ]
+}

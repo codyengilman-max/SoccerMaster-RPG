@@ -19,6 +19,18 @@ export const ROLE_BY_NUMBER: Record<RoleNumber, RoleId> = {
   11: "LW",
 };
 
+export const ROLE_LABEL: Record<RoleNumber, string> = {
+  1: "Goalkeeper",
+  2: "Right back",
+  3: "Left back",
+  4: "Centre back",
+  6: "Defensive mid",
+  8: "Central mid",
+  7: "Right winger",
+  9: "Striker",
+  11: "Left winger",
+};
+
 /** 0–100 scales. */
 export interface Attributes {
   pace: number;
