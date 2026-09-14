@@ -35,7 +35,13 @@ export interface MatchScreenHandle {
 const MAX_FRAME_MS = 100;
 const TICKER_LINES = 5;
 
-export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExit: () => void): MatchScreenHandle {
+export interface MatchScreenOptions {
+  /** Label of the button under the full-time summary. */
+  exitLabel?: string;
+}
+
+/** `onExit` is called once the user leaves the full-time summary; the runtime holds the finished state and records. */
+export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExit: (runtime: MatchRuntime) => void, opts: MatchScreenOptions = {}): MatchScreenHandle {
   root.classList.add("in-match");
   root.innerHTML = `
     <section class="match">
@@ -324,10 +330,10 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       <p class="muted">Reads: strong ${rep.decisions.strong} · acceptable ${rep.decisions.acceptable} · weak ${rep.decisions.weak} · timed out ${rep.decisions.timeout} · unavailable ${rep.decisions.intent_unavailable}</p>
       ${rep.shortfalls.length ? `<p class="muted">Coverage shortfalls: ${escapeHtml(rep.shortfalls.join("; "))}</p>` : ""}
       <div class="table-wrap"><table><thead><tr><th>Time</th><th>Situation</th><th>Choice</th><th>Read</th><th>Execution</th><th>Outcome</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <button type="button" class="primary exit">Back to start</button>`;
+      <button type="button" class="primary exit">${escapeHtml(opts.exitLabel ?? "Back to start")}</button>`;
     summary.querySelector<HTMLButtonElement>("button.exit")?.addEventListener("click", () => {
       handle.destroy();
-      onExit();
+      onExit(runtime);
     });
     root.querySelector(".match")?.appendChild(summary);
   };

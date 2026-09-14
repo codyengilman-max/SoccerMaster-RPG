@@ -12,7 +12,8 @@ export type AgeGroup = "U11" | "U12" | "U13" | "U14" | "U15" | "U16";
 export const AGE_GROUPS: readonly AgeGroup[] = ["U11", "U12", "U13", "U14", "U15", "U16"];
 export const ageIndex = (a: AgeGroup): number => AGE_GROUPS.indexOf(a);
 
-export type FixtureKind = "league" | "tournament";
+/** Friendlies count for nothing but the match itself: standings and eligibility ignore them. */
+export type FixtureKind = "league" | "tournament" | "friendly";
 export type FixtureSource = "generated" | "imported";
 
 export interface FixtureResult {

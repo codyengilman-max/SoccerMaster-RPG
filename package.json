@@ -15,7 +15,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tools/tsconfig.json",
     "sim:headless": "tsx tools/headless.ts",
     "catalog:build": "tsx tools/authorCatalog.ts",
-    "sim:tactics": "tsx tools/headlessTactics.ts"
+    "sim:tactics": "tsx tools/headlessTactics.ts",
+    "sim:training": "tsx tools/headlessSmallSided.ts",
+    "smoke:week": "tsx tools/smokeWeek.ts"
   },
   "devDependencies": {
     "@types/node": "20.19.43",

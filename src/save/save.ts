@@ -1,3 +1,4 @@
+import { slotsFor } from "../calendar/schedule";
 import type { CampaignState } from "../campaign/campaign";
 
 /**
@@ -7,7 +8,7 @@ import type { CampaignState } from "../campaign/campaign";
  * one code path.
  */
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export interface SaveFile {
   version: number;
@@ -35,8 +36,17 @@ export interface SaveStore {
 
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
-/** Index i migrates version i → i+1. Version 1 is the first shipped schema, so the list is empty. */
-export const MIGRATIONS: readonly Migration[] = [];
+const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
+
+/** Index i migrates version i+1 → i+2. Version 1 was the first shipped schema. */
+export const MIGRATIONS: readonly Migration[] = [
+  // 1 → 2: the regular week added a slot pointer and a resumable pending activity.
+  (raw) => {
+    const c = isObj(raw.campaign) ? raw.campaign : {};
+    const day = typeof c.day === "number" ? c.day : 0;
+    return { ...raw, campaign: { ...c, slot: c.slot ?? slotsFor(day)[0]!, pending: c.pending ?? null } };
+  },
+];
 
 export class SaveError extends Error {
   constructor(
@@ -66,12 +76,10 @@ export function migrate(raw: Record<string, unknown>): Record<string, unknown> {
   return cur;
 }
 
-const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
-
 function validate(file: Record<string, unknown>): SaveFile {
   const c = file.campaign;
   if (!isObj(c)) throw new SaveError("missing campaign", "invalid_shape");
-  const need: (keyof CampaignState)[] = ["id", "seed", "kind", "player", "ageGroup", "day", "revision", "schedule", "competitions", "roster", "story", "progression", "reports", "scene"];
+  const need: (keyof CampaignState)[] = ["id", "seed", "kind", "player", "ageGroup", "day", "revision", "schedule", "competitions", "roster", "story", "progression", "reports", "scene", "slot", "pending"];
   for (const k of need) if (!(k in c)) throw new SaveError(`campaign.${k} missing`, "invalid_shape");
   if (typeof file.savedAt !== "string" || typeof file.slot !== "string") throw new SaveError("bad header", "invalid_shape");
   return { version: SAVE_VERSION, savedAt: file.savedAt, slot: file.slot, campaign: c as unknown as CampaignState };

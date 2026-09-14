@@ -783,3 +783,79 @@ button {
     flex-basis: 100%;
   }
 }
+
+/* ------------------------------------------------------------ week hub */
+
+.hub .card.now h2 {
+  margin-bottom: 0.25rem;
+}
+
+.hub .choice b {
+  display: block;
+}
+
+.hub .table-wrap {
+  margin: 0.5rem 0 0;
+}
+
+.hub table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.hub th,
+.hub td {
+  padding: 0.3rem 0.45rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(125, 230, 255, 0.1);
+  white-space: nowrap;
+}
+
+.hub th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.hub table.week td {
+  border-left: 1px solid rgba(125, 230, 255, 0.08);
+}
+
+.hub table.week tr.past td,
+.hub table.week td.past {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.hub table.week td.current {
+  background: rgba(47, 211, 255, 0.18);
+  color: var(--cyan-300);
+  font-weight: 700;
+  opacity: 1;
+}
+
+.hub table.week td.attended {
+  color: var(--cyan-300);
+}
+
+.hub table.week td.missed {
+  color: var(--amber);
+  text-decoration: line-through;
+}
+
+.hub table.week td.off {
+  background: rgba(6, 16, 31, 0.35);
+}
+
+.hub tr.me td {
+  color: var(--cyan-300);
+  font-weight: 700;
+}
+
+.home .facts {
+  color: var(--text);
+}
+
+.home a {
+  color: var(--cyan-300);
+}
