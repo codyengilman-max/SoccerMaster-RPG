@@ -1,6 +1,6 @@
 import { createCampaign, type CampaignState, type CreateOptions } from "../campaign/campaign";
 import { loadCampaign, saveCampaign, type SaveStore, type SaveSummary } from "../save/save";
-import { openingScenes, startOpening } from "../story/flow";
+import { campaignScenes, startOpening } from "../story/flow";
 import type { Scene } from "../story/scenes";
 
 /**
@@ -34,7 +34,7 @@ export function resumeSession(store: SaveStore, slot = AUTOSAVE_SLOT): Session |
 function wrap(store: SaveStore, campaign: CampaignState, slot: string): Session {
   const s: Session = {
     campaign,
-    scenes: openingScenes(campaign.kind),
+    scenes: campaignScenes(campaign.kind),
     save: () => saveCampaign(store, slot, campaign),
   };
   s.save();

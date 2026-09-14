@@ -6,7 +6,7 @@ import { isWeekend, weekday, type CampaignDay } from "./date";
  */
 
 export type Slot = "morning" | "school" | "afternoon" | "evening";
-const WEEKDAY_SLOTS: readonly Slot[] = ["morning", "school", "afternoon", "evening"];
+export const WEEKDAY_SLOTS: readonly Slot[] = ["morning", "school", "afternoon", "evening"];
 const WEEKEND_SLOTS: readonly Slot[] = ["morning", "afternoon", "evening"];
 
 export const slotsFor = (day: CampaignDay): readonly Slot[] => (isWeekend(day) ? WEEKEND_SLOTS : WEEKDAY_SLOTS);

@@ -16,8 +16,8 @@ import {
   type League,
   type Tournament,
 } from "../calendar/competitions";
-import { dayOfIso, isWeekend, nextWeekday, weekday, type CampaignDay } from "../calendar/date";
-import { addCommitment, advanceTo, createSchedule, type Commitment, type Schedule } from "../calendar/schedule";
+import { dayOfIso, isWeekend, mondayOf, nextWeekday, weekday, type CampaignDay } from "../calendar/date";
+import { addCommitment, advanceTo, createSchedule, slotsFor, type Commitment, type Schedule, type Slot } from "../calendar/schedule";
 import type { MatchReport } from "../match/report";
 import { createRosterState, joinRoster, squadFor, type Club, type Person, type RosterState } from "../roster/roster";
 import type { SquadPlayer } from "../sim/engine";
@@ -69,7 +69,17 @@ export interface CampaignState {
   reports: MatchReport[];
   /** Scene currently on screen (null when the campaign is at the hub / between scenes). */
   scene: string | null;
+  /** Slot of `day` the player is in (spec §7: the week is lived slot by slot). */
+  slot: Slot;
+  /** A playable activity launched from the week and not yet completed; resumed on load (spec §22). */
+  pending: PendingActivity | null;
 }
+
+export type PendingActivity =
+  | { kind: "training"; commitmentId: string; activity: "1v1" | "2v2" | "3v2" }
+  | { kind: "match"; commitmentId: string; fixtureId: string }
+  | { kind: "crossbar" }
+  | { kind: "home_skill"; assignmentId: string };
 
 export interface CreateOptions {
   kind: CampaignKind;
@@ -166,6 +176,8 @@ export function createCampaign(opts: CreateOptions): CampaignState {
     progression: createProgression(),
     reports: [],
     scene: null,
+    slot: "morning",
+    pending: null,
   };
   return state;
 }
@@ -182,8 +194,53 @@ export function playerClubId(c: CampaignState): string | null {
 /** Join FC Batavia (or another club). Roster capacity is enforced by the roster module. */
 export function joinClub(c: CampaignState, clubId: string): ReturnType<typeof joinRoster> {
   const r = joinRoster(c.roster, PLAYER_ID, clubId, c.ageGroup);
-  if (r.ok) touch(c);
+  if (r.ok) {
+    addPreseasonFriendlies(c, clubId);
+    scheduleWeek(c, mondayOf(c.day));
+    const monday = nextWeekday(c.day, "Mon");
+    for (const q of [
+      { sceneId: "week.start", onDay: monday },
+      { sceneId: "week.lunch", onDay: monday + 2 },
+    ]) {
+      if (!c.story.queuedScenes.some((x) => x.sceneId === q.sceneId)) c.story.queuedScenes.push(q);
+    }
+    touch(c);
+  }
   return r;
+}
+
+/**
+ * Preseason friendlies (OPEN_QUESTIONS #25): the first league match is weeks after the opening, so
+ * every Saturday between joining and the first league fixture gets a friendly against a league
+ * club. Deterministic for the campaign seed; idempotent by fixture id.
+ */
+export function addPreseasonFriendlies(c: CampaignState, clubId: string): Fixture[] {
+  const league = [...c.competitions.leagues].sort((a, b) => a.startDay - b.startDay).find((l) => l.endDay >= c.day);
+  if (!league) return [];
+  const others = league.clubIds.filter((id) => id !== clubId);
+  if (!others.length) return [];
+  const firstLeagueDay = Math.min(...c.competitions.fixtures.filter((f) => f.competitionId === league.id).map((f) => f.day));
+  const added: Fixture[] = [];
+  let i = 0;
+  for (let sat = nextWeekday(c.day, "Sat"); sat < firstLeagueDay; sat += 7, i++) {
+    const id = `friendly-${clubId}-${sat}`;
+    if (c.competitions.fixtures.some((f) => f.id === id)) continue;
+    const opponent = others[(hashSeed(`${c.seed}:${id}`) + i) % others.length]!;
+    const home = i % 2 === 0;
+    const fx: Fixture = {
+      id,
+      kind: "friendly",
+      competitionId: "preseason",
+      day: sat,
+      homeClubId: home ? clubId : opponent,
+      awayClubId: home ? opponent : clubId,
+      source: "generated",
+      result: null,
+    };
+    c.competitions.fixtures.push(fx);
+    added.push(fx);
+  }
+  return added;
 }
 
 export const JOIN_FLAG_PREFIX = "join:";
@@ -212,10 +269,11 @@ export function scheduleWeek(c: CampaignState, monday: CampaignDay): Commitment[
   const clubId = playerClubId(c);
   const added: Commitment[] = [];
   const put = (x: Commitment) => {
+    if (x.day === c.day && slotsFor(c.day).indexOf(x.slot) <= slotsFor(c.day).indexOf(c.slot)) return;
     const r = addCommitment(c.schedule, x);
     if (r.ok && r.commitment === x) added.push(x);
   };
-  for (let d = monday; d < monday + 7; d++) {
+  for (let d = Math.max(monday, c.day); d < monday + 7; d++) {
     const w = weekday(d);
     if (!isWeekend(d)) {
       put({ id: `school-${d}`, day: d, slot: "school", kind: "school", title: "School", mandatory: true, refId: null, minutes: 390, status: "scheduled" });
@@ -230,8 +288,8 @@ export function scheduleWeek(c: CampaignState, monday: CampaignDay): Commitment[
           id: `${fx.kind}-${fx.id}`,
           day: d,
           slot: "morning",
-          kind: fx.kind === "league" ? "match" : "tournament",
-          title: fx.kind === "league" ? "League match" : "Tournament match",
+          kind: fx.kind === "tournament" ? "tournament" : "match",
+          title: fx.kind === "league" ? "League match" : fx.kind === "friendly" ? "Friendly" : "Tournament match",
           mandatory: true,
           refId: fx.id,
           minutes: 120,
@@ -272,6 +330,7 @@ export function advanceDays(c: CampaignState, days: number): DayAdvance {
   const to = from + days;
   for (let d = from + 1; d <= to; d++) if (weekday(d) === "Mon") scheduleWeek(c, d);
   c.day = to;
+  c.slot = slotsFor(to)[0]!;
   const missed = advanceTo(c.schedule, to);
   const fired = processDue(storyContext(c));
   syncStoryFlags(c);

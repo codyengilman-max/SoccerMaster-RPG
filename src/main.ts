@@ -1,6 +1,9 @@
 import catalogJson from "../content/catalog/provisional-u11.json";
 import { AUTOSAVE_SLOT, newSession, resumeSession, savedSummary, type Session } from "./app/session";
 import { APP_NAME, APP_VERSION } from "./app/version";
+import { FRIEND_ID, PLAYER_ID, type PendingActivity } from "./campaign/campaign";
+import { campaignMatchConfig, fixtureById, reportFromRuntime } from "./campaign/match";
+import { abandonPending, cancelPending, completeCrossbar, completeHomeSkill, completeMatch, completeTraining, isTired, type Completion } from "./campaign/week";
 import { createRuntime } from "./match/runtime";
 import { LocalStorageStore, SaveError } from "./save/save";
 import { U11_9V9 } from "./sim/rules";
@@ -11,10 +14,13 @@ import { loadCatalog, type CatalogFile } from "./tactics/catalog";
 import { pacingFor } from "./tactics/recognition";
 import { recordFirstTouch } from "./training/record";
 import { mountCreateScreen } from "./ui/createScreen";
+import { mountCrossbarScreen } from "./ui/crossbarScreen";
 import { mountDrillScreen } from "./ui/drillScreen";
+import { mountHomeSkillScreen } from "./ui/homeSkillScreen";
 import { mountHubScreen } from "./ui/hubScreen";
 import { mountMatchScreen } from "./ui/matchScreen";
 import { mountSceneScreen } from "./ui/sceneScreen";
+import { mountSmallSidedScreen } from "./ui/smallSidedScreen";
 import { mountStartScreen } from "./ui/startScreen";
 
 const root = document.querySelector<HTMLDivElement>("#app");
@@ -62,7 +68,71 @@ function showCampaign(s: Session): void {
     });
     return;
   }
-  mountHubScreen(root!, s, { onScene: () => showCampaign(s), onExit: showStart });
+  mountHubScreen(root!, s, { onScene: () => showCampaign(s), onLaunch: (p) => showPending(s, p), onExit: showStart });
+}
+
+const nameOf = (s: Session, id: string, fallback: string): string => s.campaign.roster.people.find((p) => p.id === id)?.name ?? fallback;
+
+/** Run the playable activity the week module launched; its `complete*` moves the calendar, evidence and story. */
+function showPending(s: Session, p: PendingActivity): void {
+  const c = s.campaign;
+  const after = (_: Completion): void => {
+    s.save();
+    showCampaign(s);
+  };
+  switch (p.kind) {
+    case "training": {
+      const myClub = c.roster.people.find((y) => y.id === PLAYER_ID)?.clubId ?? null;
+      const teammates = c.roster.people.filter((x) => x.id !== PLAYER_ID && x.role === "player" && x.clubId === myClub);
+      const friendFirst = [...teammates].sort((a, b) => (a.id === FRIEND_ID ? -1 : b.id === FRIEND_ID ? 1 : 0));
+      mountSmallSidedScreen(root!, {
+        activity: p.activity,
+        seed: c.seed ^ (c.day * 31),
+        names: { user: c.player.name, teammates: friendFirst.slice(0, 2).map((x) => x.name) },
+        coachName: nameOf(s, "coach", "Coach"),
+        windowScale: isTired(c) ? 0.7 : 1,
+        onDone: (summary) => after(completeTraining(c, summary)),
+        onQuit: () => {
+          abandonPending(c);
+          s.save();
+          showCampaign(s);
+        },
+      });
+      return;
+    }
+    case "crossbar":
+      mountCrossbarScreen(root!, {
+        seed: c.seed ^ (c.day * 17),
+        friendName: nameOf(s, FRIEND_ID, "Friend"),
+        onDone: (summary) => after(completeCrossbar(c, summary)),
+      });
+      return;
+    case "home_skill":
+      mountHomeSkillScreen(root!, {
+        campaign: c,
+        assignmentId: p.assignmentId,
+        coachName: nameOf(s, "coach", "Coach"),
+        onDone: (effects) => after(completeHomeSkill(c, effects)),
+        onBack: () => {
+          cancelPending(c);
+          s.save();
+          showCampaign(s);
+        },
+      });
+      return;
+    case "match": {
+      const fixture = fixtureById(c, p.fixtureId);
+      const cfg = campaignMatchConfig(c, fixture);
+      const runtime = createRuntime(cfg, catalog, { pacing: pacingFor(ROLE_BY_NUMBER[c.player.position]) });
+      mountMatchScreen(
+        root!,
+        runtime,
+        (rt) => after(completeMatch(c, reportFromRuntime(rt, fixture))),
+        { exitLabel: "Back to the week" },
+      );
+      return;
+    }
+  }
 }
 
 function showActivity(s: Session, activityId: string): void {

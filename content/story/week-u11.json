@@ -1,0 +1,1150 @@
+{
+  "reviewStatus": "proposal",
+  "note": "Regular-week scenes for U11 (spec §7, §12, §13). All lines are proposals for owner review. Every claim about a match is gated on facts derived from the MatchReport (src/campaign/match.ts) and on what the speaker knows; nothing here reads live match state.",
+  "shared": [
+    {
+      "id": "week.missed_followup",
+      "title": "Before training",
+      "location": "training_field",
+      "tone": "adversity",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "missed_training_recent",
+          "equals": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{coach} is setting out cones and doesn't look up straight away."
+        },
+        {
+          "speaker": "coach",
+          "text": "You weren't here {missed_day}. Everything alright?",
+          "requiresKnown": [
+            "missed_training_recent"
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "week.missed.honest",
+          "label": "\"I skipped it. No excuse.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "clear_fact",
+              "id": "missed_training_recent"
+            },
+            {
+              "type": "set_fact",
+              "id": "honest_about_missing",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "honest_about_missing"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": -1
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Okay. I'd rather hear that than a story. Three sessions a week is the deal — if it's too much, we talk about it, we don't just not show."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.missed.excuse",
+          "label": "\"I wasn't feeling great.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "clear_fact",
+              "id": "missed_training_recent"
+            },
+            {
+              "type": "set_fact",
+              "id": "excused_missing",
+              "value": true
+            }
+          ],
+          "delayed": [
+            {
+              "id": "pattern",
+              "afterDays": 10,
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "coach",
+                  "delta": -2
+                },
+                {
+                  "type": "set_fact",
+                  "id": "coach_doubts_excuses",
+                  "value": true
+                },
+                {
+                  "type": "learn",
+                  "personId": "coach",
+                  "factId": "coach_doubts_excuses"
+                }
+              ],
+              "unless": [
+                {
+                  "type": "fact",
+                  "id": "trainings_missed",
+                  "max": 1
+                }
+              ]
+            }
+          ],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Then rest up. If it happens again I'll want to hear about it before, not after."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.missed.tired",
+          "label": "\"I was wiped. I needed the rest.\"",
+          "eligibility": [
+            {
+              "type": "fact",
+              "id": "fatigue",
+              "min": 4
+            }
+          ],
+          "immediate": [
+            {
+              "type": "clear_fact",
+              "id": "missed_training_recent"
+            },
+            {
+              "type": "set_fact",
+              "id": "told_coach_tired",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "told_coach_tired"
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "That's a real reason. Tired players get hurt. Tell me before next time and we'll make it a light one."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "week.postgame",
+      "title": "The drive home",
+      "location": "car",
+      "tone": "everyday",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "last_result",
+          "exists": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The car smells like orange slices and wet grass. Nobody says anything for the first two turns."
+        },
+        {
+          "speaker": "parent",
+          "text": "That was a good watch. {score} against {opponent}.",
+          "requiresKnown": [
+            "last_result",
+            "last_score"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "win"
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Fair result, I thought. {score}. They had spells, you had spells.",
+          "requiresKnown": [
+            "last_result",
+            "last_score"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "draw"
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Tough one. {score}. Heads went down a bit at the end.",
+          "requiresKnown": [
+            "last_result",
+            "last_score"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "loss"
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "And you scored. Don't pretend you're not smiling.",
+          "requiresKnown": [
+            "last_my_goals"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_my_goals",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "{friend} took that goal well.",
+          "requiresKnown": [
+            "last_friend_played"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_friend_played",
+              "equals": true
+            },
+            {
+              "type": "fact",
+              "id": "last_friend_goals",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Shame {friend} wasn't out there with you.",
+          "requiresKnown": [
+            "last_friend_played"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_friend_played",
+              "equals": false
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "week.postgame.own_game",
+          "label": "Talk about how you played",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "last_match_reads"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "player",
+              "text": "I knew what I wanted before the ball got to me. Most of the time.",
+              "when": [
+                {
+                  "type": "fact",
+                  "id": "last_match_reads",
+                  "equals": "sharp"
+                }
+              ]
+            },
+            {
+              "speaker": "player",
+              "text": "Some of it I saw early. Some of it I just… hit and hoped.",
+              "when": [
+                {
+                  "type": "fact",
+                  "id": "last_match_reads",
+                  "equals": "mixed"
+                }
+              ]
+            },
+            {
+              "speaker": "player",
+              "text": "It was fast. I kept getting the ball and the picture was already gone.",
+              "when": [
+                {
+                  "type": "fact",
+                  "id": "last_match_reads",
+                  "equals": "rushed"
+                }
+              ]
+            },
+            {
+              "speaker": "player",
+              "text": "I did what the game asked. Mostly. I'm not sure I ever really had to choose.",
+              "when": [
+                {
+                  "type": "fact",
+                  "id": "last_match_reads",
+                  "equals": "none"
+                }
+              ]
+            },
+            {
+              "speaker": "parent",
+              "text": "That's the most you've said about a game since you were six. Keep doing that."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.postgame.ask_friend",
+          "label": "Ask about {friend}",
+          "eligibility": [
+            {
+              "type": "fact",
+              "id": "last_friend_played",
+              "equals": true
+            }
+          ],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Ask them yourself — your phone's been buzzing since the whistle."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.postgame.ref",
+          "label": "\"It was the ref.\"",
+          "eligibility": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "loss"
+            }
+          ],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "blamed_ref",
+              "value": true
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": -1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Was it."
+            },
+            {
+              "speaker": null,
+              "text": "The radio gets turned up slightly."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.postgame.quiet",
+          "label": "Say nothing. Watch the road.",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "That's allowed too. The houses go past. Your legs are heavy in a good way."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "week.tired",
+      "title": "Late",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "fatigue",
+          "min": 7
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "You fall asleep on the couch with one shin pad still on."
+        },
+        {
+          "speaker": "parent",
+          "text": "You're dragging. Early night, or are we going to argue about it?"
+        }
+      ],
+      "choices": [
+        {
+          "id": "week.tired.sleep",
+          "label": "Early night.",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "fatigue",
+              "value": 3
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Good. Shin pad."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.tired.fine",
+          "label": "\"I'm fine.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "ignored_tiredness",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Mm."
+            },
+            {
+              "speaker": null,
+              "text": "Your legs will have an opinion tomorrow."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "boys": [
+    {
+      "id": "week.start",
+      "title": "Monday",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Dad has stuck the club schedule to the fridge with a magnet shaped like a taco."
+        },
+        {
+          "speaker": "parent",
+          "text": "Tuesday, Thursday, Friday. Match Saturday. I've moved what I can. What I can't move, you'll be getting a ride from Mateo's mom."
+        },
+        {
+          "speaker": "parent",
+          "text": "And school, bud. That part doesn't move."
+        }
+      ],
+      "choices": [
+        {
+          "id": "week.start.plan",
+          "label": "\"I've got it. I'll pack my bag the night before.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "owns_schedule",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "owns_schedule"
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "We'll see. I'm not going to remind you."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.start.help",
+          "label": "\"Can you remind me the night before? Just this week.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "parent_reminders",
+              "value": true
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "This week. Then it's yours."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "week.lunch",
+      "title": "Lunch",
+      "location": "lunch_spot",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Mateo eats standing up so he can talk with his hands."
+        },
+        {
+          "speaker": "friend",
+          "text": "Saturday. First one. You nervous? I was nervous. I'm not now. I was."
+        }
+      ],
+      "choices": [
+        {
+          "id": "week.lunch.nervous",
+          "label": "\"Kind of, honestly.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "told_friend_nervous",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "told_friend_nervous"
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Good. Nervous means you care. First pass, just give it to me, I'll give it back. Then you're in it."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.lunch.ready",
+          "label": "\"Nope. Ready.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "told_friend_ready",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Sure you are. Give me the first pass anyway."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "week.friend_after_match",
+      "title": "Mateo, texting",
+      "location": "home",
+      "tone": "reward",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "last_friend_played",
+          "equals": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Four texts arrive at once, then a fifth that's just a soccer ball emoji."
+        },
+        {
+          "speaker": "friend",
+          "text": "WE WON. we won. did you see coach's face",
+          "requiresKnown": [
+            "last_result"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "win"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "draw is fine. draw is FINE. it's not fine",
+          "requiresKnown": [
+            "last_result"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "draw"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "ok that one hurt. we were better than that. next week",
+          "requiresKnown": [
+            "last_result"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "loss"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "also YOU SCORED. in your first game. i'm never hearing the end of this",
+          "requiresKnown": [
+            "last_my_goals"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_my_goals",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "and mine was decent right. RIGHT",
+          "requiresKnown": [
+            "last_friend_goals"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_friend_goals",
+              "min": 1
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "week.friendtext.gg",
+          "label": "\"gg. you were good.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "i know. you too. actually."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.friendtext.crossbar",
+          "label": "\"crossbar challenge tomorrow. loser buys slushies.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "crossbar_dare",
+              "value": true
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "you're on. blue raspberry. start saving."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "girls": [
+    {
+      "id": "week.start",
+      "title": "Monday",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Mom has the club schedule open on her laptop next to three spreadsheets and a cold coffee."
+        },
+        {
+          "speaker": "parent",
+          "text": "Tuesday, Thursday, Friday, and Saturday's the match. I can do Tuesday and Saturday. Thursday and Friday I've asked Nia's dad. Okay?"
+        },
+        {
+          "speaker": "parent",
+          "text": "Homework still happens. Before, not after — after you're a zombie."
+        }
+      ],
+      "choices": [
+        {
+          "id": "week.start.plan",
+          "label": "\"I've got it. Bag packed the night before, homework before training.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "owns_schedule",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "owns_schedule"
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Said with confidence. I'll believe it on Friday."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.start.help",
+          "label": "\"Can you remind me the night before? Just this week.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "parent_reminders",
+              "value": true
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "One week of reminders. Then you're running your own calendar, like a person."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "week.lunch",
+      "title": "Lunch",
+      "location": "lunch_spot",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Nia has her notebook open on the table: a pitch drawn in pen, arrows everywhere."
+        },
+        {
+          "speaker": "friend",
+          "text": "Saturday. You're starting, obviously. Coach said. So — how are we feeling about that."
+        }
+      ],
+      "choices": [
+        {
+          "id": "week.lunch.nervous",
+          "label": "\"Kind of nervous, honestly.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "told_friend_nervous",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "told_friend_nervous"
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Good. That means you'll actually look before you pass. Here —"
+            },
+            {
+              "speaker": null,
+              "text": "She draws a small arrow from the 8 to your position. \"That's the first ball. Every time.\""
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.lunch.ready",
+          "label": "\"Ready.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "told_friend_ready",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Noted."
+            },
+            {
+              "speaker": null,
+              "text": "She writes something in the notebook and won't show you."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "week.friend_after_match",
+      "title": "Nia, texting",
+      "location": "home",
+      "tone": "reward",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "last_friend_played",
+          "equals": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "One text. Then, a minute later, a photo of a notebook page."
+        },
+        {
+          "speaker": "friend",
+          "text": "Win. Notebook says we pressed well in the first half and stopped in the second. Notebook is right.",
+          "requiresKnown": [
+            "last_result"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "win"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Draw. Notebook says we should have won. Notebook is annoyed.",
+          "requiresKnown": [
+            "last_result"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "draw"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Loss. Notebook has one word on the page and I'm not typing it.",
+          "requiresKnown": [
+            "last_result"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "loss"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Also: your goal. Notebook has a star next to it. Notebook doesn't do stars.",
+          "requiresKnown": [
+            "last_my_goals"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_my_goals",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Mine's in there too. Smaller star. Being modest.",
+          "requiresKnown": [
+            "last_friend_goals"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_friend_goals",
+              "min": 1
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "week.friendtext.gg",
+          "label": "\"You were good today.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "I know. So were you. Notebook agrees."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.friendtext.crossbar",
+          "label": "\"Crossbar challenge tomorrow. Loser buys slushies.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "crossbar_dare",
+              "value": true
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Bring money."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    }
+  ]
+}

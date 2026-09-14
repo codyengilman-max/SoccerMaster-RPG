@@ -1,6 +1,7 @@
 import openingFile from "../../content/story/opening-u11.json";
+import weekFile from "../../content/story/week-u11.json";
 import { nextWeekday, weekday } from "../calendar/date";
-import { addCommitment, markAttended } from "../calendar/schedule";
+import { addCommitment, markAttended, slotsFor } from "../calendar/schedule";
 import {
   advanceDays,
   playerClubId,
@@ -22,22 +23,38 @@ import { fill, markSeen, sceneEligible, visibleLines, type Line, type Scene, typ
  * turns story flags into campaign facts (joining a club).
  */
 
-interface OpeningFile {
+interface SceneFile {
   shared: Scene[];
   boys: Scene[];
   girls: Scene[];
 }
 
-const opening = openingFile as unknown as OpeningFile;
+const opening = openingFile as unknown as SceneFile;
+const week = weekFile as unknown as SceneFile;
 
 export const OPENING_START = "open.kickabout";
 
 /** Scenes for one campaign: shared scenes, overridden by same-id campaign scenes. */
-export function openingScenes(kind: CampaignKind): Scene[] {
+function merge(file: SceneFile, kind: CampaignKind): Scene[] {
   const byId = new Map<string, Scene>();
-  for (const s of opening.shared) byId.set(s.id, s);
-  for (const s of opening[kind]) byId.set(s.id, s);
+  for (const s of file.shared) byId.set(s.id, s);
+  for (const s of file[kind]) byId.set(s.id, s);
   return [...byId.values()];
+}
+
+export const openingScenes = (kind: CampaignKind): Scene[] => merge(opening, kind);
+export const weekScenes = (kind: CampaignKind): Scene[] => merge(week, kind);
+
+/** Everything authored for a campaign: opening plus regular-week scenes. */
+export const campaignScenes = (kind: CampaignKind): Scene[] => [...openingScenes(kind), ...weekScenes(kind)];
+
+/**
+ * Choice ids are the consequence reducer's idempotency keys. A repeatable scene (`once: false`,
+ * e.g. the postgame car ride) must be answerable every time it plays, so its choices are keyed by
+ * the day they are taken.
+ */
+export function scopedChoice(scene: Scene, choice: SceneChoice, day: number): SceneChoice {
+  return scene.once ? choice : { ...choice, id: `${choice.id}@${day}` };
 }
 
 export function sceneById(scenes: readonly Scene[], id: string): Scene {
@@ -50,6 +67,10 @@ export function sceneById(scenes: readonly Scene[], id: string): Scene {
 export function sceneVars(c: CampaignState): Record<string, string> {
   const name = (id: string): string => c.roster.people.find((p) => p.id === id)?.name ?? id;
   const club = c.roster.clubs.find((k) => k.id === "batavia");
+  const factText = (id: string): string => {
+    const v = c.story.facts[id];
+    return v === undefined ? `{${id}}` : String(v);
+  };
   return {
     player: c.player.name,
     friend: name("friend"),
@@ -57,6 +78,9 @@ export function sceneVars(c: CampaignState): Record<string, string> {
     coach: name("coach"),
     position: ROLE_LABEL[c.player.position].toLowerCase(),
     club: club?.name ?? "the club",
+    score: factText("last_score"),
+    opponent: factText("last_opponent"),
+    missed_day: factText("missed_training_day"),
   };
 }
 
@@ -94,6 +118,8 @@ function attend(c: CampaignState, scene: Scene): void {
     status: "scheduled",
   });
   if (c.schedule.commitments.some((x) => x.id === id && x.status === "scheduled")) markAttended(c.schedule, id);
+  const slots = slotsFor(c.day);
+  if (slots.indexOf(spec.slot) > slots.indexOf(c.slot)) c.slot = spec.slot;
 }
 
 export function startOpening(c: CampaignState): EnterResult {
@@ -115,7 +141,7 @@ export function viewScene(c: CampaignState, scenes: readonly Scene[]): SceneView
   const ctx = storyContext(c);
   const vars = sceneVars(c);
   const lines = visibleLines(ctx, scene.lines).map((l) => ({ ...l, text: fill(l.text, vars) }));
-  const choices = scene.choices.filter((ch) => choiceEligible(ctx, ch));
+  const choices = scene.choices.filter((ch) => choiceEligible(ctx, scopedChoice(scene, ch, c.day)));
   return { scene, lines, choices, vars };
 }
 
@@ -129,7 +155,7 @@ export function chooseInScene(c: CampaignState, scenes: readonly Scene[], choice
   const scene = sceneById(scenes, c.scene);
   const choice = scene.choices.find((ch) => ch.id === choiceId);
   if (!choice) return { ok: false, reason: "unknown_choice" };
-  const result = applyChoice(storyContext(c), choice);
+  const result = applyChoice(storyContext(c), scopedChoice(scene, choice, c.day));
   if (!result.ok) return { ok: false, reason: result.reason };
   syncStoryFlags(c);
   const vars = sceneVars(c);
