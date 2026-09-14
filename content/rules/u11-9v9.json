@@ -1,0 +1,21 @@
+{
+  "id": "u11-9v9",
+  "label": "U11 9v9 (provisional)",
+  "reviewStatus": "unverified",
+  "note": "Every value below is a proposal pending verification from current primary sources (spec §15). Do not present as accurate until 'source' fields cite a rulebook and reviewStatus is 'verified'.",
+  "playersPerSide": 9,
+  "field": { "length": 70, "width": 45, "source": "unverified" },
+  "goal": { "width": 6.4, "height": 2.13, "source": "unverified" },
+  "goalArea": { "depth": 5, "width": 15, "source": "unverified" },
+  "penaltyArea": { "depth": 12, "width": 30, "source": "unverified" },
+  "penaltySpotDistance": { "value": 9, "source": "unverified" },
+  "centerCircleRadius": { "value": 7, "source": "unverified" },
+  "buildOutLine": { "enabled": true, "source": "unverified" },
+  "offside": { "enabled": true, "source": "unverified" },
+  "headingAllowed": { "value": false, "source": "unverified" },
+  "halves": 2,
+  "halfLengthMinutes": { "value": 30, "source": "unverified" },
+  "ballSize": { "value": 4, "source": "unverified" },
+  "substitutions": { "unlimited": true, "reentryAllowed": true, "source": "unverified" },
+  "goalkeeperPuntAllowed": { "value": false, "source": "unverified" }
+}

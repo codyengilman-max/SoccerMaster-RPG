@@ -1,0 +1,27 @@
+{
+  "name": "soccermaster-rpg",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tools/tsconfig.json",
+    "sim:headless": "tsx tools/headless.ts",
+    "catalog:build": "tsx tools/authorCatalog.ts",
+    "sim:tactics": "tsx tools/headlessTactics.ts"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.43",
+    "tsx": "4.23.12",
+    "typescript": "5.9.3",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  }
+}

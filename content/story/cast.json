@@ -1,0 +1,77 @@
+{
+  "reviewStatus": "proposal",
+  "note": "Recurring cast (spec §5, OPEN_QUESTIONS #3, #5). Names and biographies are placeholders for the owner to replace. 'friend' and 'parent' are resolved per campaign. Ids of players are the ids used on the field.",
+  "shared": [
+    {
+      "id": "coach",
+      "name": "Coach Code",
+      "role": "coach",
+      "clubId": "batavia",
+      "shirt": null,
+      "bio": "Strict, loud, passionate, demanding, detail-oriented and compassionate; funny; listens; admits mistakes; no grudges when players leave.",
+      "reviewStatus": "proposal"
+    }
+  ],
+  "campaigns": {
+    "boys": {
+      "friend": {
+        "id": "friend",
+        "name": "Mateo Aldana",
+        "role": "player",
+        "clubId": "batavia",
+        "shirt": 8,
+        "bio": "Best friend since second grade. Already at FC Batavia; talks fast, passes early, hates losing at anything.",
+        "reviewStatus": "proposal"
+      },
+      "parent": {
+        "id": "parent",
+        "name": "Dad",
+        "role": "parent",
+        "clubId": null,
+        "shirt": null,
+        "bio": "Works shifts; supportive but careful about money and time. Wants school to come first.",
+        "reviewStatus": "proposal"
+      },
+      "teammates": [
+        { "id": "bat-owen", "name": "Owen Petrakis", "role": "player", "clubId": "batavia", "shirt": 1, "bio": "Quiet keeper who wants to play outfield.", "reviewStatus": "proposal" },
+        { "id": "bat-dev", "name": "Dev Ramaswamy", "role": "player", "clubId": "batavia", "shirt": 2, "bio": "Fast, brave, forgets to look inside.", "reviewStatus": "proposal" },
+        { "id": "bat-luis", "name": "Luis Ortega", "role": "player", "clubId": "batavia", "shirt": 3, "bio": "Left-footed, plays the whole match at one speed.", "reviewStatus": "proposal" },
+        { "id": "bat-cal", "name": "Cal Whitfield", "role": "player", "clubId": "batavia", "shirt": 4, "bio": "Tallest on the team, talks a lot, organises without being asked.", "reviewStatus": "proposal" },
+        { "id": "bat-sam", "name": "Sam Okafor", "role": "player", "clubId": "batavia", "shirt": 6, "bio": "Reads the game early; nervous in front of goal.", "reviewStatus": "proposal" },
+        { "id": "bat-jonah", "name": "Jonah Reyes", "role": "player", "clubId": "batavia", "shirt": 7, "bio": "Tricks first, decisions later; the team's joker.", "reviewStatus": "proposal" },
+        { "id": "bat-theo", "name": "Theo Lindqvist", "role": "player", "clubId": "batavia", "shirt": 9, "bio": "Scores in training, freezes in matches; older brother plays for Sonoran.", "reviewStatus": "proposal" },
+        { "id": "bat-ari", "name": "Ari Novak", "role": "player", "clubId": "batavia", "shirt": 11, "bio": "New to the area; lives near the training field.", "reviewStatus": "proposal" }
+      ]
+    },
+    "girls": {
+      "friend": {
+        "id": "friend",
+        "name": "Nia Okonkwo",
+        "role": "player",
+        "clubId": "batavia",
+        "shirt": 8,
+        "bio": "Best friend since kindergarten. Already at FC Batavia; competitive, dry sense of humour, keeps a notebook of set plays.",
+        "reviewStatus": "proposal"
+      },
+      "parent": {
+        "id": "parent",
+        "name": "Mom",
+        "role": "parent",
+        "clubId": null,
+        "shirt": null,
+        "bio": "Runs a small business; drives a lot; worries about schoolwork and burnout.",
+        "reviewStatus": "proposal"
+      },
+      "teammates": [
+        { "id": "bat-rosa", "name": "Rosa Delgado", "role": "player", "clubId": "batavia", "shirt": 1, "bio": "Keeper by choice; loudest voice on the field.", "reviewStatus": "proposal" },
+        { "id": "bat-kai", "name": "Kai Tanaka", "role": "player", "clubId": "batavia", "shirt": 2, "bio": "Fast, brave, forgets to look inside.", "reviewStatus": "proposal" },
+        { "id": "bat-maya", "name": "Maya Brennan", "role": "player", "clubId": "batavia", "shirt": 3, "bio": "Left-footed, plays the whole match at one speed.", "reviewStatus": "proposal" },
+        { "id": "bat-imani", "name": "Imani Carter", "role": "player", "clubId": "batavia", "shirt": 4, "bio": "Tallest on the team; organises without being asked.", "reviewStatus": "proposal" },
+        { "id": "bat-sofia", "name": "Sofia Marquez", "role": "player", "clubId": "batavia", "shirt": 6, "bio": "Reads the game early; nervous in front of goal.", "reviewStatus": "proposal" },
+        { "id": "bat-lena", "name": "Lena Kowalski", "role": "player", "clubId": "batavia", "shirt": 7, "bio": "Tricks first, decisions later; the team's joker.", "reviewStatus": "proposal" },
+        { "id": "bat-zoe", "name": "Zoe Haddad", "role": "player", "clubId": "batavia", "shirt": 9, "bio": "Scores in training, freezes in matches; older sister plays for Sonoran.", "reviewStatus": "proposal" },
+        { "id": "bat-june", "name": "June Park", "role": "player", "clubId": "batavia", "shirt": 11, "bio": "New to the area; lives near the training field.", "reviewStatus": "proposal" }
+      ]
+    }
+  }
+}
