@@ -1,0 +1,19 @@
+{
+  "reviewStatus": "proposal",
+  "note": "U11 season calendar (spec §17; OPEN_QUESTIONS #12, #13). Dates are ISO; the code converts them to campaign days. Thresholds are proposals.",
+  "season": { "ageGroup": "U11", "startDate": "2026-08-03", "tryoutsDate": "2027-05-15" },
+  "leagues": [
+    { "id": "fall-u11", "name": "Valley Youth League — Fall", "term": "fall", "startDate": "2026-09-05", "endDate": "2026-11-21" },
+    { "id": "spring-u11", "name": "Valley Youth League — Spring", "term": "spring", "startDate": "2027-02-06", "endDate": "2027-04-24" }
+  ],
+  "tournaments": [
+    { "id": "valley-rising", "name": "Valley Rising Cup", "minAge": "U11", "requirement": "open", "major": false, "date": "2026-10-10", "cutoffDate": "2026-09-12", "matches": 3 },
+    { "id": "presidential", "name": "Presidential Cup", "minAge": "U11", "requirement": "open", "major": false, "date": "2026-12-05", "cutoffDate": "2026-11-07", "matches": 3 },
+    { "id": "royal-holiday", "name": "Royal Holiday Classic", "minAge": "U11", "requirement": "record_500", "major": false, "date": "2026-12-19", "cutoffDate": "2026-11-21", "matches": 3 },
+    { "id": "tuzona", "name": "Tuzona Challenge", "minAge": "U11", "requirement": "record_500", "major": false, "date": "2027-01-16", "cutoffDate": "2026-12-19", "matches": 3 },
+    { "id": "pacific-wave", "name": "Pacific Wave Cup", "minAge": "U13", "requirement": "record_500", "major": true, "date": "2027-02-20", "cutoffDate": "2027-01-23", "matches": 4 },
+    { "id": "desert-rush", "name": "Desert Rush Invitational", "minAge": "U11", "requirement": "record_500", "major": false, "date": "2027-03-13", "cutoffDate": "2027-02-13", "matches": 3 },
+    { "id": "lone-star", "name": "Lone Star International Cup", "minAge": "U13", "requirement": "record_500", "major": true, "date": "2027-03-27", "cutoffDate": "2027-02-27", "matches": 4 },
+    { "id": "state", "name": "State Championships", "minAge": "U11", "requirement": "state_qualification", "major": false, "date": "2027-05-08", "cutoffDate": "2027-04-01", "matches": 3 }
+  ]
+}
