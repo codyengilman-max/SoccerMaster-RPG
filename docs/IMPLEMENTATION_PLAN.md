@@ -97,18 +97,32 @@ depend only on `sim` types. Nothing depends on `ui`.
 
 ### 3.2 One moment, three records (§10, §11, §13)
 
-`TacticalMoment { id, situationId, roleId, trigger, options[], chosen, gesture, decision, execution, outcome }`.
-Choice and drawing are one moment. `decision.quality` is fixed at commit from the option set;
-`execution.quality` comes from attributes, pressure, timing and gesture accuracy relative to the
-*intent*; `outcome` is what the simulation resolved. A shaky line can lower execution, never
-decision quality.
+`TacticalMoment { id, entryId, role, playerId, cues, options[], difficulty, read }` plus one
+`MomentRecord { moment, decision, execution, outcome }` (see `src/tactics/moments.ts`).
+Choice and drawing are one moment. `decision.quality` is fixed at commit by re-scoring the
+option set against the *current* field (`grading.rescoreAtCommit`); `execution.quality` comes
+from gesture accuracy, pressure and fatigue, replaced by the sim's own kick error once the
+pass/shot event exists; `outcome` is read from the event stream in a short window after commit
+(`grading.resolveOutcome`). A shaky line can lower execution, never decision quality.
+
+Lifecycle (`src/tactics/session.ts`): `observe` → `recognize` forms a moment from a live
+eligible state and suspends the controlled player's AI (`engine.suspendDecisions`); the user
+chooses (and draws) while the sim keeps moving; `commit` re-instantiates the intent
+(`intents.instantiateIntent`), grades, and issues one command with the gesture accuracy;
+`timeout` applies a role default and is recorded as `timeout`; an intent the field has taken
+away is recorded as `intent_unavailable`. Pacing (`recognition.allowance`) spreads moments over
+the match — on-ball ones are taken whenever they appear, up to the band; off-ball/defending/
+transition ones are metered — and `coverage.coverageReport` lists shortfalls.
 
 ### 3.3 Catalog as content (§16)
 
 Situations live in `content/catalog/*.json`, validated against a schema at test time. The
-engine reads triggers and option templates; it does not hard-code situations. Each entry has
-`reviewStatus: "provisional" | "reviewed"`; the UI shows a small "provisional" marker while any
-provisional content is active. The first milestone ships a small provisional set only.
+engine reads triggers (`{ all, any }` conditions over `features.FieldRead`) and option
+templates; it does not hard-code situations. Each entry has
+`review.status: "provisional" | "reviewed" | "approved"`; the UI shows a small "provisional"
+marker while any provisional content is active. The first milestone ships a small provisional
+set only, authored in `tools/authorCatalog.ts` (`npm run catalog:build`) and validated by
+`catalog.validateCatalog` at test time, including each entry's own positive/negative states.
 
 ### 3.4 Story consequences (§20)
 

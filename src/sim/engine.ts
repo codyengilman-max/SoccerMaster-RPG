@@ -97,6 +97,7 @@ export function createMatch(cfg: MatchConfig): MatchState {
     offsideSnapshot: null,
     controlled: cfg.controlled ?? null,
     commands: {},
+    awaiting: null,
     decisionTimers: {},
     eventSeq: 0,
     pendingShot: null,
@@ -116,9 +117,19 @@ export function isFinished(state: MatchState): boolean {
   return state.phase.kind === "full_time";
 }
 
-/** Queue an external command for a player (consumed at their next decision). */
-export function issueCommand(state: MatchState, playerId: string, cmd: PlayerCommand): void {
-  state.commands[playerId] = cmd;
+/** Queue an external command for a player (consumed at their next decision). `accuracy` is the intent precision (0..1). */
+export function issueCommand(state: MatchState, playerId: string, cmd: PlayerCommand, accuracy = 1): void {
+  state.commands[playerId] = { command: cmd, accuracy: clamp(accuracy, 0, 1) };
+  if (state.awaiting === playerId) state.awaiting = null;
+}
+
+/** Suspend AI decisions for a player until a command is issued (or `resumeDecisions` is called). */
+export function suspendDecisions(state: MatchState, playerId: string): void {
+  state.awaiting = playerId;
+}
+
+export function resumeDecisions(state: MatchState): void {
+  state.awaiting = null;
 }
 
 /** Advance the simulation one tick (TICK_MS of simulated time). Mutates and returns state. */
@@ -268,11 +279,14 @@ function stepPlayers(state: MatchState, rng: Rng): void {
     const external = state.commands[p.id];
     const onBall = ball.status === "controlled" && ball.owner === p.id && state.phase.kind === "open_play";
 
+    const suspended = state.awaiting === p.id;
     if (onBall) {
       if (external) {
         delete state.commands[p.id];
         state.decisionTimers[p.id] = 0;
-        executeOnBall(state, p, external, rng, 1);
+        executeOnBall(state, p, external.command, rng, external.accuracy);
+      } else if (suspended) {
+        // keep carrying toward the current target while the decision is pending
       } else if (timer >= DECISION_INTERVAL_TICKS) {
         const committed = state.clock.tick < p.commitUntilTick;
         const pressed = committed && pressureAt(p.pos, opponents(state, p.side)) > 0.9;
@@ -282,10 +296,11 @@ function stepPlayers(state: MatchState, rng: Rng): void {
         }
       }
     } else if (state.phase.kind === "open_play" && p.stunned === 0) {
-      if (external && (external.type === "move" || external.type === "press" || external.type === "screen" || external.type === "hold")) {
+      const cmd = external?.command;
+      if (cmd && (cmd.type === "move" || cmd.type === "press" || cmd.type === "screen" || cmd.type === "hold")) {
         delete state.commands[p.id];
-        applyOffBall(state, p, external, rng);
-      } else if (timer >= 3) {
+        applyOffBall(state, p, cmd, rng);
+      } else if (!suspended && timer >= 3) {
         state.decisionTimers[p.id] = 0;
         applyOffBall(state, p, decideOffBall(state, p), rng);
       }
@@ -367,7 +382,7 @@ function executeOnBall(state: MatchState, p: PlayerState, cmd: PlayerCommand, rn
       ball.passTarget = receiver;
       ball.passFrom = p.id;
       snapshotOffside(state, p.side);
-      emit(state, { type: "pass", from: p.id, to: receiver, target: cmd.target, side: p.side });
+      emit(state, { type: "pass", from: p.id, to: receiver, target: cmd.target, side: p.side, error: k.error });
       break;
     }
     case "shoot": {
@@ -376,7 +391,7 @@ function executeOnBall(state: MatchState, p: PlayerState, cmd: PlayerCommand, rn
       ball.passTarget = null;
       ball.passFrom = p.id;
       const onTarget = shotOnTarget(state, p.side, p.pos, k.velocity);
-      emit(state, { type: "shot", player: p.id, target: cmd.target, onTarget, side: p.side });
+      emit(state, { type: "shot", player: p.id, target: cmd.target, onTarget, side: p.side, error: k.error });
       state.pendingShot = { shooter: p.id, side: p.side, onTarget };
       break;
     }
@@ -525,7 +540,7 @@ function stepBall(state: MatchState, rng: Rng): void {
 
   const passer = ball.passFrom ? playerById(state, ball.passFrom) : null;
   const isInterception = ball.lastTouchSide !== null && receiver.side !== ball.lastTouchSide;
-  const cmd = state.commands[receiver.id];
+  const cmd = state.commands[receiver.id]?.command;
   const touchDir = cmd && cmd.type === "first_touch" ? cmd.direction : receiver.moveTarget ? sub(receiver.moveTarget, receiver.pos) : null;
   if (cmd && cmd.type === "first_touch") delete state.commands[receiver.id];
 

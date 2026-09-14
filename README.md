@@ -34,6 +34,9 @@ npm ci            # install
 npm run dev       # local dev server
 npm test          # unit + acceptance tests (Vitest)
 npm run typecheck # strict TypeScript
+npm run sim:headless -- 5        # AI-vs-AI match report for seed 5
+npm run sim:tactics -- 5 CM random  # controlled CM, scripted user; prints tactical coverage
+npm run catalog:build            # regenerate content/catalog/provisional-u11.json
 npm run build     # static build → dist/
 ```
 

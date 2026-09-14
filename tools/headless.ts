@@ -4,7 +4,6 @@ import { U11_9V9 } from "../src/sim/rules";
 import { generateSquad } from "../src/sim/squad";
 import type { MatchEventType } from "../src/sim/types";
 
-declare const process: { argv: string[] };
 
 const seed = Number(process.argv[2] ?? 42);
 const cfg: MatchConfig = {

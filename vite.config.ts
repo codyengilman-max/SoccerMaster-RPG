@@ -8,5 +8,7 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts"],
+    // full-match headless runs (~2 s each) back several tactical tests
+    testTimeout: 30_000,
   },
 });

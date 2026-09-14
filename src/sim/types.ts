@@ -95,10 +95,10 @@ export interface Clock {
 
 export type MatchEvent =
   | { id: string; tick: number; type: "kickoff"; side: Side }
-  | { id: string; tick: number; type: "pass"; from: PlayerId; to: PlayerId | null; target: Vec2; side: Side }
+  | { id: string; tick: number; type: "pass"; from: PlayerId; to: PlayerId | null; target: Vec2; side: Side; error: number }
   | { id: string; tick: number; type: "receive"; player: PlayerId; from: PlayerId | null; clean: boolean }
   | { id: string; tick: number; type: "carry"; player: PlayerId; from: Vec2; to: Vec2 }
-  | { id: string; tick: number; type: "shot"; player: PlayerId; target: Vec2; onTarget: boolean; side: Side }
+  | { id: string; tick: number; type: "shot"; player: PlayerId; target: Vec2; onTarget: boolean; side: Side; error: number }
   | { id: string; tick: number; type: "save"; keeper: PlayerId; shooter: PlayerId }
   | { id: string; tick: number; type: "goal"; scorer: PlayerId; side: Side; assist: PlayerId | null }
   | { id: string; tick: number; type: "interception"; player: PlayerId; from: PlayerId | null }
@@ -130,6 +130,12 @@ export type PlayerCommand =
   | { type: "press"; target: PlayerId }
   | { type: "screen"; from: PlayerId; to: PlayerId };
 
+export interface QueuedCommand {
+  command: PlayerCommand;
+  /** 0..1 how precisely the intent was expressed (gesture quality); 1 = perfect. */
+  accuracy: number;
+}
+
 export interface MatchState {
   matchId: string;
   rules: Rules;
@@ -151,7 +157,9 @@ export interface MatchState {
   /** The user's locked role (spec §3). null for headless AI-vs-AI runs. */
   controlled: { side: Side; playerId: PlayerId } | null;
   /** Pending commands by player id; consumed at the player's next decision. */
-  commands: Record<PlayerId, PlayerCommand | undefined>;
+  commands: Record<PlayerId, QueuedCommand | undefined>;
+  /** Player whose AI decisions are suspended while an external decision is pending (tactical moment). */
+  awaiting: PlayerId | null;
   /** Ticks since each player last made an AI decision. */
   decisionTimers: Record<PlayerId, number>;
   eventSeq: number;
