@@ -84,10 +84,8 @@ export function commit(session: TacticalSession, state: MatchState, optionId: st
 
   const inst = instantiateIntent(state, p, option.intent);
   if (!inst) {
-    const decision = gradeDecision(state, session.catalog, moment, null);
-    decision.band = "intent_unavailable";
+    const decision = unavailableDecision(session, state, moment, `${option.label} was no longer available when committed: the field had moved.`);
     decision.chosenOptionId = option.id;
-    decision.explanation = [`${option.label} was no longer available when committed: the field had moved.`, ...decision.explanation];
     const issued = continuationDefault(state, moment);
     finishActive(session, state, decision, null);
     return { status: "intent_unavailable", decision, committed: null, issued };
@@ -107,6 +105,26 @@ export function timeout(session: TacticalSession, state: MatchState): CommitResu
   const issued = continuationDefault(state, moment);
   finishActive(session, state, decision, null);
   return { status: "timeout", decision, committed: null, issued };
+}
+
+/**
+ * The situation ended before a choice landed (ball out, whistle): nothing is issued and the record
+ * is `intent_unavailable` — the field moved, the player is not marked down for it.
+ */
+export function abandon(session: TacticalSession, state: MatchState, why: string): CommitResult {
+  const moment = session.active;
+  if (!moment) throw new Error("no active moment");
+  const decision = unavailableDecision(session, state, moment, why);
+  finishActive(session, state, decision, null);
+  return { status: "intent_unavailable", decision, committed: null, issued: null };
+}
+
+function unavailableDecision(session: TacticalSession, state: MatchState, moment: TacticalMoment, why: string): DecisionRecord {
+  const decision = gradeDecision(state, session.catalog, moment, null);
+  decision.band = "intent_unavailable";
+  const best = moment.options.find((o) => o.id === decision.bestOptionId);
+  decision.explanation = best ? [why, `${best.label} read best as the situation stood.`] : [why];
+  return decision;
 }
 
 /** The user cancelled the gesture: the moment stays active (they can pick again) — nothing is committed. */

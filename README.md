@@ -40,6 +40,11 @@ npm run catalog:build            # regenerate content/catalog/provisional-u11.js
 npm run build     # static build → dist/
 ```
 
+`npm run dev` opens the quick-match screen: pick a position and seed, then play one U11 9v9
+match. Tactical moments slow the field (it keeps moving) and list readable options; drawn
+options preview while the pointer is down and commit on release — drag back to the start to
+cancel, or toggle **Tap targets** to aim with a tap instead (window extended 1.5×).
+
 ### Cloudflare Pages
 
 Static site, no server functions required.
