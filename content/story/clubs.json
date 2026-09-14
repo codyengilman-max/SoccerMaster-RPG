@@ -1,0 +1,60 @@
+{
+  "reviewStatus": "proposal",
+  "note": "Six fictional clubs in an unnamed desert metro (spec §18, OPEN_QUESTIONS #14). Names, attractions and quality are proposals.",
+  "clubs": [
+    {
+      "id": "batavia",
+      "name": "FC Batavia",
+      "shortName": "BAT",
+      "attraction": "A new team with a coach who teaches the game and gives young players real minutes.",
+      "quality": 48,
+      "colors": { "primary": "#0b2545", "secondary": "#4fd1ff" },
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "sonoran",
+      "name": "Sonoran United",
+      "shortName": "SON",
+      "attraction": "The strongest youth program in the valley: tournament wins, exposure and a full-time technical staff.",
+      "quality": 63,
+      "colors": { "primary": "#8b1e1e", "secondary": "#f2c14e" },
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "camelback",
+      "name": "Camelback Athletic",
+      "shortName": "CAM",
+      "attraction": "Superb individual technical coaching; every player leaves a better dribbler.",
+      "quality": 58,
+      "colors": { "primary": "#1f6f43", "secondary": "#ffffff" },
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "mesaverde",
+      "name": "Mesa Verde SC",
+      "shortName": "MVS",
+      "attraction": "A family club with the best facilities in the east valley and a calm, patient culture.",
+      "quality": 53,
+      "colors": { "primary": "#3a2d7a", "secondary": "#e0d6ff" },
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "saguaro",
+      "name": "Saguaro Rangers",
+      "shortName": "SAG",
+      "attraction": "Play everyone, travel little, and win more than people expect.",
+      "quality": 50,
+      "colors": { "primary": "#3d6b2a", "secondary": "#f7f3d0" },
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "redrock",
+      "name": "Red Rock FC",
+      "shortName": "RRF",
+      "attraction": "A goalkeeper-first academy whose coaches once played in the professional game.",
+      "quality": 46,
+      "colors": { "primary": "#b24a1a", "secondary": "#1a1a1a" },
+      "reviewStatus": "proposal"
+    }
+  ]
+}
