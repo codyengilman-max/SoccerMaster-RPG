@@ -14,6 +14,7 @@ import {
   type CampaignState,
   type PendingActivity,
 } from "../campaign/campaign";
+import { chooseHobby, hobbyView } from "../campaign/hobbies";
 import { seasonPhase, seasonSummary, tournamentViews, type SeasonPhase, type TournamentView } from "../campaign/season";
 import { acceptOffer, declineOffer, tryoutsView, type ClubTryoutView, type TryoutPhase, type TryoutsView } from "../campaign/tryouts";
 import { currentCommitment, fatigue, inRegularWeek, skipToNextEvent, slotActions, takeAction, weekView, type ActionId } from "../campaign/week";
@@ -21,6 +22,7 @@ import { ROLE_LABEL } from "../sim/types";
 import { CENTRAL_QUESTION } from "../story/arc";
 import { openRepairs, openingStatus, personName, takeQueuedScene, takeRepair } from "../story/flow";
 import { TRACKS, TRACK_INFO, unlockViews, type Grant, type Requirement } from "../story/progression";
+import { JUGGLING_FACTS, JUGGLING_MILESTONES } from "../training/record";
 import { escapeHtml } from "./html";
 
 export interface HubHandlers {
@@ -130,6 +132,9 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
   const tryouts = tryoutsView(c);
   const showTryouts = tryouts.phase !== "before" || phase === "postseason";
   const people = Object.entries(c.progression.relationships).filter(([id]) => id !== "player");
+  const life = hobbyView(c);
+  const jugglingBest = typeof c.story.facts[JUGGLING_FACTS.best] === "number" ? (c.story.facts[JUGGLING_FACTS.best] as number) : 0;
+  const jugglingNext = JUGGLING_MILESTONES.find((m) => m.touches > jugglingBest);
   const reqLabel = (q: Requirement): string => (q.track ? TRACK_INFO[q.track].label : personName(c, q.personId));
   const oppOf = (f: { homeClubId: string; awayClubId: string }): string => clubNameOf(c, f.homeClubId === club ? f.awayClubId : f.homeClubId);
 
@@ -141,7 +146,7 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
         <h2>${formatDay(c.day)} · ${SLOT_LABEL[c.slot]}</h2>
         <p class="muted small">Energy: ${energyText(tired)}${c.story.pending.length ? ` · ${c.story.pending.length} consequence${c.story.pending.length === 1 ? "" : "s"} still to land` : ""}</p>
         <div class="choices">
-          ${actions.map((a) => `<button type="button" class="choice action" data-id="${a.id}"${a.clubId ? ` data-club="${escapeHtml(a.clubId)}"` : ""}><b>${fill(a.label)}</b>${a.detail ? `<span class="muted small"> — ${fill(a.detail)}</span>` : ""}</button>`).join("")}
+          ${actions.map((a) => `<button type="button" class="choice action" data-id="${a.id}"${a.clubId ?? a.hobbyId ? ` data-ref="${escapeHtml(a.clubId ?? a.hobbyId ?? "")}"` : ""}><b>${fill(a.label)}</b>${a.detail ? `<span class="muted small"> — ${fill(a.detail)}</span>` : ""}</button>`).join("")}
           ${canSkip ? `<button type="button" class="choice skip-ahead"><b>Let the days pass</b><span class="muted small"> — until the next training, match or moment</span></button>` : ""}
         </div>
       </div>
@@ -183,6 +188,23 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
             ? `<h4>Things you could still put right</h4><div class="choices">${repairs
                 .map((r, i) => `<button type="button" class="choice repair" data-i="${i}"><b>${escapeHtml(r.label)}</b><span class="muted small"> — until ${formatDay(r.untilDay)}</span></button>`)
                 .join("")}</div>`
+            : ""
+        }
+      </div>
+      <div class="card life">
+        <h3>Away from the pitch</h3>
+        <p class="muted small">Energy ${tired}/10 · rest takes 3 off, a quiet hobby 1, sleep 1; training adds 2, a match 3. Tired legs (7+) mean slower reads at training.</p>
+        <p><b>Juggling</b> · ${jugglingBest ? `record ${jugglingBest}` : "no record yet"}${jugglingNext ? ` <span class="muted small">· next moment at ${jugglingNext.touches}</span>` : ""}</p>
+        <p><b>Hobby</b> · ${
+          life.hobby
+            ? `${escapeHtml(life.hobby.label)} · ${life.sessions} session${life.sessions === 1 ? "" : "s"}${life.next ? ` <span class="muted small">· next moment at ${life.next.sessions}</span>` : ""}`
+            : `<span class="muted">none yet — try one in a free afternoon or evening</span>`
+        }</p>
+        ${
+          life.hobby && life.others.length
+            ? `<details class="small"><summary class="muted">Change hobby (milestones start over)</summary><div class="choices">${life.others
+                .map((h) => `<button type="button" class="choice hobby-switch" data-hobby="${escapeHtml(h.id)}"><b>${escapeHtml(h.label)}</b><span class="muted small"> — ${escapeHtml(h.detail)}</span></button>`)
+                .join("")}</div></details>`
             : ""
         }
       </div>
@@ -233,7 +255,7 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
 
   for (const b of root.querySelectorAll<HTMLButtonElement>("button.action")) {
     b.addEventListener("click", () => {
-      const r = takeAction(c, b.dataset["id"] as ActionId, b.dataset["club"]);
+      const r = takeAction(c, b.dataset["id"] as ActionId, b.dataset["ref"]);
       session.save();
       if (!r.ok) {
         mountHubScreen(root, session, h);
@@ -247,6 +269,13 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
         h.onScene();
         return;
       }
+      mountHubScreen(root, session, h);
+    });
+  }
+  for (const b of root.querySelectorAll<HTMLButtonElement>("button.hobby-switch")) {
+    b.addEventListener("click", () => {
+      chooseHobby(c, b.dataset["hobby"] ?? "");
+      session.save();
       mountHubScreen(root, session, h);
     });
   }

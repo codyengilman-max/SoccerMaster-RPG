@@ -10,6 +10,7 @@ import {
   commit,
   createDrill,
   current,
+  hasGoal,
   isKeeper,
   liveAnchor,
   me,
@@ -51,6 +52,8 @@ const CUES: Record<Activity, string[]> = {
   "1v1": ["Which side is the defender leaning?", "Are they rushing in or waiting?", "Draw your carry or shot — or hold"],
   "2v2": ["Is the pass lane open?", "Is your teammate marked tight or loose?", "Draw a pass, a carry or a shot"],
   "3v2": ["Who is free?", "Play early while you have numbers", "Draw the ball to the free player"],
+  rondo: ["Who is the presser closing?", "Play away from the pressure", "Is the split lane open — or is a body in it?"],
+  transition: ["You've just won it — where is the runner?", "Is the last defender set, or still retreating?", "Release early, or drive before they recover"],
 };
 
 /**
@@ -276,24 +279,35 @@ export function mountSmallSidedScreen(root: HTMLElement, opts: SmallSidedScreenO
     ctx.strokeStyle = "rgba(255,255,255,0.7)";
     ctx.lineWidth = 2;
     ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
-    // beat line + goal
-    const bl1 = toScreen({ x: BEAT_LINE_X, y: 0 });
-    const bl2 = toScreen({ x: BEAT_LINE_X, y: AREA.width });
-    ctx.setLineDash([8, 8]);
-    ctx.strokeStyle = "rgba(255,255,255,0.45)";
-    ctx.beginPath();
-    ctx.moveTo(bl1.x, bl1.y);
-    ctx.lineTo(bl2.x, bl2.y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    const g1 = toScreen({ x: GOAL.center.x, y: GOAL.center.y - GOAL.halfWidth });
-    const g2 = toScreen({ x: GOAL.center.x, y: GOAL.center.y + GOAL.halfWidth });
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(g1.x, g1.y);
-    ctx.lineTo(g2.x, g2.y);
-    ctx.stroke();
+    if (hasGoal(d.activity)) {
+      // beat line + goal
+      const bl1 = toScreen({ x: BEAT_LINE_X, y: 0 });
+      const bl2 = toScreen({ x: BEAT_LINE_X, y: AREA.width });
+      ctx.setLineDash([8, 8]);
+      ctx.strokeStyle = "rgba(255,255,255,0.45)";
+      ctx.beginPath();
+      ctx.moveTo(bl1.x, bl1.y);
+      ctx.lineTo(bl2.x, bl2.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const g1 = toScreen({ x: GOAL.center.x, y: GOAL.center.y - GOAL.halfWidth });
+      const g2 = toScreen({ x: GOAL.center.x, y: GOAL.center.y + GOAL.halfWidth });
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(g1.x, g1.y);
+      ctx.lineTo(g2.x, g2.y);
+      ctx.stroke();
+    } else {
+      // rondo square
+      const s1 = toScreen({ x: 10, y: AREA.width / 2 - 5 });
+      const s2 = toScreen({ x: 20, y: AREA.width / 2 + 5 });
+      ctx.setLineDash([8, 8]);
+      ctx.strokeStyle = "rgba(255,255,255,0.45)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(s1.x, s1.y, s2.x - s1.x, s2.y - s1.y);
+      ctx.setLineDash([]);
+    }
     if (slow > 0.02) {
       const g = ctx.createRadialGradient(w / 2, hgt / 2, Math.min(w, hgt) * 0.35, w / 2, hgt / 2, Math.max(w, hgt) * 0.75);
       g.addColorStop(0, "rgba(6,16,31,0)");

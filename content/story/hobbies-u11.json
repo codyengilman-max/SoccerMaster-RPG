@@ -1,0 +1,444 @@
+{
+  "reviewStatus": "proposal",
+  "note": "Life away from the pitch (spec §4 hobbies and minigames, §19 rest and friendship as real choices). Juggling moments are queued by src/training/record.ts when a verified personal best crosses 10, 25 and 50 touches; hobby moments by src/campaign/hobbies.ts at the 3rd and 7th session of the current hobby. Scenes read the facts and never create them. Speakers are the shared cast (parent, friend); tones counted by tools/storyTones.ts. All text is proposal status.",
+  "shared": [
+    {
+      "id": "hobby.juggle_ten",
+      "title": "Ten",
+      "location": "home",
+      "tone": "reward",
+      "eligibility": [{ "type": "fact", "id": "juggling_best", "min": 10 }],
+      "lines": [
+        { "speaker": null, "text": "Ten. The ball drops and you let it, because you're not going to spoil ten by chasing eleven." },
+        { "speaker": "parent", "text": "I counted from the kitchen. That was ten.", "requiresKnown": ["juggling_best"] },
+        { "speaker": null, "text": "The window is open. Of course it was." }
+      ],
+      "choices": [
+        {
+          "id": "hobby.juggle_ten.again",
+          "label": "\"Watch — I'll do it again\"",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "parent", "delta": 1 }, { "type": "track", "track": "wellbeing", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": null, "text": "You get six. {parent} claps anyway, which is worse and better at the same time." }],
+          "next": null
+        },
+        {
+          "id": "hobby.juggle_ten.shrug",
+          "label": "\"It's only ten\"",
+          "eligibility": [],
+          "immediate": [],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "parent", "text": "Last month it was three. Only ten." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "hobby.juggle_twenty_five",
+      "title": "Twenty-five",
+      "location": "home",
+      "tone": "reward",
+      "eligibility": [{ "type": "fact", "id": "juggling_best", "min": 25 }],
+      "lines": [
+        { "speaker": null, "text": "Twenty-five, and the last five were ugly — knee, shin, a shoulder that shouldn't count. You count it." },
+        { "speaker": null, "text": "Your phone is on the step. {friend}'s record, according to {friend}, is 'like thirty'." }
+      ],
+      "choices": [
+        {
+          "id": "hobby.juggle_twenty_five.challenge",
+          "label": "Text {friend}: '25. your turn'",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "friend", "delta": 1 }, { "type": "set_fact", "id": "juggling_challenge", "value": true }, { "type": "learn", "personId": "friend", "factId": "juggling_best" }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": null, "text": "Three dots for a long time. Then: 'video or it didn't happen'." }],
+          "next": null
+        },
+        {
+          "id": "hobby.juggle_twenty_five.quiet",
+          "label": "Keep it to yourself for now",
+          "eligibility": [],
+          "immediate": [{ "type": "track", "track": "wellbeing", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": null, "text": "Some numbers are nicer before anyone else knows them." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "hobby.juggle_fifty",
+      "title": "Fifty",
+      "location": "home",
+      "tone": "reward",
+      "eligibility": [{ "type": "fact", "id": "juggling_best", "min": 50 }],
+      "lines": [
+        { "speaker": null, "text": "Fifty. You catch it on the way down and stand there holding it like it might argue." },
+        { "speaker": "parent", "text": "Was that the whole time I was on the phone?", "requiresKnown": ["juggling_best"] },
+        { "speaker": null, "text": "It was. Twenty minutes of the same small thing, over and over, and something in you that used to wobble doesn't." }
+      ],
+      "choices": [
+        {
+          "id": "hobby.juggle_fifty.tell_friend",
+          "label": "Tell {friend} — this one deserves a video",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "friend", "delta": 2 }, { "type": "learn", "personId": "friend", "factId": "juggling_best" }, { "type": "track", "track": "wellbeing", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": null, "text": "'FIFTY??' Then, a minute later, quieter: 'ok teach me'." }],
+          "next": null
+        },
+        {
+          "id": "hobby.juggle_fifty.parent",
+          "label": "\"Twenty minutes. Same as last week, and the week before\"",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "parent", "delta": 2 }, { "type": "track", "track": "responsibility", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "parent", "text": "That's the bit I'm proud of. Not the fifty." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "hobby.drawing.noticed",
+      "title": "The sketchbook",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [{ "type": "fact", "id": "hobby", "equals": "drawing" }],
+      "lines": [
+        { "speaker": null, "text": "The sketchbook is on the table when you come down. Open. Not where you left it." },
+        { "speaker": "parent", "text": "I wasn't snooping. It was open. The one of the goalposts in the rain is good.", "requiresKnown": ["hobby"] }
+      ],
+      "choices": [
+        {
+          "id": "hobby.drawing.noticed.show",
+          "label": "Show {parent} the others",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "parent", "delta": 2 }, { "type": "track", "track": "wellbeing", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": null, "text": "Twenty minutes go by. Nobody mentions soccer once, which is its own kind of rest." }],
+          "next": null
+        },
+        {
+          "id": "hobby.drawing.noticed.close",
+          "label": "Close it and take it upstairs",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "parent", "delta": -1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "parent", "text": "Fair enough. It's yours." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "hobby.drawing.share",
+      "title": "Draw me",
+      "location": "lunch_spot",
+      "tone": "everyday",
+      "eligibility": [{ "type": "fact", "id": "hobby", "equals": "drawing" }],
+      "lines": [
+        { "speaker": "friend", "text": "You're always drawing at lunch now. Draw me. Make me look fast." },
+        { "speaker": null, "text": "Half the table is watching. This could go two ways." }
+      ],
+      "choices": [
+        {
+          "id": "hobby.drawing.share.draw",
+          "label": "Draw {friend} — fast, ears and all",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "friend", "delta": 2 }, { "type": "track", "track": "wellbeing", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "friend", "text": "The ears are slander. I'm keeping it." }],
+          "next": null
+        },
+        {
+          "id": "hobby.drawing.share.no",
+          "label": "\"Not here\"",
+          "eligibility": [],
+          "immediate": [],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "friend", "text": "Later then. I'm holding you to it." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "hobby.reading.noticed",
+      "title": "Lights out",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [{ "type": "fact", "id": "hobby", "equals": "reading" }],
+      "lines": [
+        { "speaker": "parent", "text": "It's twenty past. That's the third night I've seen the light under the door.", "requiresKnown": ["hobby"] },
+        { "speaker": null, "text": "Two chapters left. The dragon has just done the thing you knew it would do." }
+      ],
+      "choices": [
+        {
+          "id": "hobby.reading.noticed.stop",
+          "label": "Bookmark it. Tomorrow.",
+          "eligibility": [],
+          "immediate": [{ "type": "track", "track": "responsibility", "delta": 1 }, { "type": "relationship", "personId": "parent", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "parent", "text": "Thank you. I want to know what the dragon does too, for the record." }],
+          "next": null
+        },
+        {
+          "id": "hobby.reading.noticed.finish",
+          "label": "\"Two chapters. Ten minutes.\"",
+          "eligibility": [],
+          "immediate": [{ "type": "track", "track": "wellbeing", "delta": 1 }, { "type": "relationship", "personId": "parent", "delta": -1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": null, "text": "It was twenty-five minutes. Training tomorrow will know." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "hobby.reading.share",
+      "title": "Same series",
+      "location": "lunch_spot",
+      "tone": "everyday",
+      "eligibility": [{ "type": "fact", "id": "hobby", "equals": "reading" }],
+      "lines": [
+        { "speaker": null, "text": "The book is face-down on the table when someone from the other end of the team bench sits opposite and says the name of the dragon." },
+        { "speaker": null, "text": "You have never spoken to this teammate about anything but throw-ins." }
+      ],
+      "choices": [
+        {
+          "id": "hobby.reading.share.talk",
+          "label": "Argue about which book is best until the bell",
+          "eligibility": [],
+          "immediate": [{ "type": "track", "track": "wellbeing", "delta": 1 }, { "type": "track", "track": "school", "delta": 1 }, { "type": "set_fact", "id": "reading_teammate", "value": true }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": null, "text": "You lose the argument and gain a person to sit with. Fair trade." }],
+          "next": null
+        },
+        {
+          "id": "hobby.reading.share.friend",
+          "label": "Wave {friend} over instead",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "friend", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "friend", "text": "Is this the dragon thing? Can we not." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "hobby.guitar.noticed",
+      "title": "Through the wall",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [{ "type": "fact", "id": "hobby", "equals": "guitar" }],
+      "lines": [
+        { "speaker": null, "text": "The fourth chord is still the problem. Your fingers know where it is; they just won't all go at once." },
+        { "speaker": "parent", "text": "That was nearly it. Through the wall, it was nearly a song.", "requiresKnown": ["hobby"] }
+      ],
+      "choices": [
+        {
+          "id": "hobby.guitar.noticed.play",
+          "label": "Play it through, badly, with the door open",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "parent", "delta": 2 }, { "type": "track", "track": "wellbeing", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": null, "text": "{parent} hums the bit you got wrong. Neither of you mentions it." }],
+          "next": null
+        },
+        {
+          "id": "hobby.guitar.noticed.not_yet",
+          "label": "\"When it's ready\"",
+          "eligibility": [],
+          "immediate": [{ "type": "track", "track": "wellbeing", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "parent", "text": "Nothing's ever ready. Play it anyway one day." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "hobby.guitar.share",
+      "title": "Four chords",
+      "location": "park",
+      "tone": "everyday",
+      "eligibility": [{ "type": "fact", "id": "hobby", "equals": "guitar" }],
+      "lines": [
+        { "speaker": "friend", "text": "You brought it. You actually brought it to the park." },
+        { "speaker": null, "text": "The ball is under {friend}'s foot and the case is across your knees, and for once the ball waits." }
+      ],
+      "choices": [
+        {
+          "id": "hobby.guitar.share.play",
+          "label": "Play the song. All four chords.",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "friend", "delta": 2 }, { "type": "track", "track": "wellbeing", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "friend", "text": "That was... a song. That was an actual song. Do it again, I'm filming." }],
+          "next": null
+        },
+        {
+          "id": "hobby.guitar.share.ball",
+          "label": "Put it down and play the ball instead",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "friend", "delta": 1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "friend", "text": "Coward. Fine. First to ten." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "hobby.games.noticed",
+      "title": "The blue light",
+      "location": "home",
+      "tone": "adversity",
+      "eligibility": [{ "type": "fact", "id": "hobby", "equals": "games" }],
+      "lines": [
+        { "speaker": "parent", "text": "Third night this week the screen's still on when I come up. Your teacher sent a note about the reading log.", "requiresKnown": ["hobby"] },
+        { "speaker": null, "text": "One more match would take eight minutes. You know exactly how long it would take." }
+      ],
+      "choices": [
+        {
+          "id": "hobby.games.noticed.cutoff",
+          "label": "Agree a cut-off: off by eight on school nights",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "parent", "delta": 2 }, { "type": "track", "track": "responsibility", "delta": 1 }, { "type": "set_fact", "id": "games_cutoff", "value": true }, { "type": "promise", "id": "promise.games_cutoff", "by": "player", "text": "Screens off by eight on school nights" }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "parent", "text": "Eight. I'm not going to check. That's the point." }],
+          "next": null
+        },
+        {
+          "id": "hobby.games.noticed.push",
+          "label": "\"Everyone on the team plays this late\"",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "parent", "delta": -2 }, { "type": "set_fact", "id": "games_cutoff", "value": false }],
+          "delayed": [
+            {
+              "id": "reading_log",
+              "afterDays": 5,
+              "effects": [{ "type": "track", "track": "school", "delta": -2 }, { "type": "set_fact", "id": "reading_log_missed", "value": true }],
+              "unless": [{ "type": "fact", "id": "games_cutoff", "equals": true }]
+            }
+          ],
+          "repair": [
+            {
+              "id": "agree_late",
+              "label": "Agree the cut-off after all",
+              "when": [],
+              "withinDays": 4,
+              "cancels": ["reading_log"],
+              "effects": [{ "type": "relationship", "personId": "parent", "delta": 1 }, { "type": "set_fact", "id": "games_cutoff", "value": true }, { "type": "track", "track": "responsibility", "delta": 1 }]
+            }
+          ],
+          "expiresDay": null,
+          "response": [{ "speaker": "parent", "text": "Everyone on the team isn't my job. Goodnight." }, { "speaker": null, "text": "The reading log is still blank. It won't fill itself." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "hobby.games.share",
+      "title": "The level everyone is stuck on",
+      "location": "lunch_spot",
+      "tone": "everyday",
+      "eligibility": [{ "type": "fact", "id": "hobby", "equals": "games" }],
+      "lines": [
+        { "speaker": null, "text": "Half the table is stuck on the same level. You got past it on Tuesday." },
+        { "speaker": "friend", "text": "Don't say it. Don't say you did it. Fine. Say it." }
+      ],
+      "choices": [
+        {
+          "id": "hobby.games.share.help",
+          "label": "Walk them through it, no gloating",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "friend", "delta": 1 }, { "type": "track", "track": "wellbeing", "delta": 1 }, { "type": "set_fact", "id": "games_table", "value": true }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": null, "text": "By the bell there's a plan on a napkin and three people who owe you." }],
+          "next": null
+        },
+        {
+          "id": "hobby.games.share.gloat",
+          "label": "Gloat. Just a little.",
+          "eligibility": [],
+          "immediate": [{ "type": "relationship", "personId": "friend", "delta": -1 }],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [{ "speaker": "friend", "text": "Unbelievable. Unbearable. Show me anyway." }],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "boys": [],
+  "girls": []
+}

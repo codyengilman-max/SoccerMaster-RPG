@@ -1,7 +1,7 @@
 import { newSession } from "../src/app/session";
 import { fixturesFor, playerClubId, type CreateOptions } from "../src/campaign/campaign";
 import { campaignMatchConfig } from "../src/campaign/match";
-import { completeCrossbar, completeHomeSkill, completeMatch, completeTraining, fatigue, slotActions, takeAction, weekView } from "../src/campaign/week";
+import { completeCrossbar, completeHomeSkill, completeJuggling, completeMatch, completeTraining, fatigue, slotActions, takeAction, weekView } from "../src/campaign/week";
 import { buildReport } from "../src/match/report";
 import { isPoolPlayer } from "../src/roster/roster";
 import { runHeadless as runMatch } from "../src/sim/engine";
@@ -9,6 +9,7 @@ import { MemoryStore } from "../src/save/save";
 import { chooseInScene, continueScene, viewScene } from "../src/story/flow";
 import { createChallenge, friendShoots, shoot, summarize as sumCrossbar } from "../src/training/crossbar";
 import { createDrill as createFT, runHeadless as runFT, summarize as sumFT } from "../src/training/firstTouch";
+import { createJuggle, runHeadless as runJuggleHeadless, summarize as summarizeJuggle } from "../src/training/juggling";
 import { assignmentById, practised, report, revisit, stageOf, watchDemonstration } from "../src/training/homeSkill";
 import { recordFirstTouch } from "../src/training/record";
 import { createDrill, runHeadless, summarize } from "../src/training/smallSided";
@@ -41,7 +42,7 @@ for (let step = 0; step < 60 && c.day < 30; step++) {
     continue;
   }
   const actions = slotActions(c);
-  const pick = actions.find((a) => a.id === "train") ?? actions.find((a) => a.id === "play_match") ?? actions.find((a) => a.id === "friend_crossbar") ?? actions[0]!;
+  const pick = actions.find((a) => a.id === "train") ?? actions.find((a) => a.id === "play_match") ?? actions.find((a) => a.id === "friend_crossbar") ?? actions.find((a) => a.id === "juggle") ?? actions.find((a) => a.id === "hobby") ?? actions[0]!;
   console.log(`day ${c.day} ${c.slot} fatigue ${fatigue(c)} -> ${pick.id} [${actions.map((a) => a.id).join(",")}]`);
   const r = takeAction(c, pick.id);
   if (!r.ok) throw new Error(r.reason);
@@ -64,6 +65,11 @@ for (let step = 0; step < 60 && c.day < 30; step++) {
       completeCrossbar(c, sumCrossbar(ch));
     } else if (r.launch.kind === "tryout") {
       throw new Error("tryouts do not fall in the smoke weeks");
+    } else if (r.launch.kind === "juggling") {
+      const j = runJuggleHeadless(createJuggle(c.seed ^ c.day), (i) => (i % 9 === 8 ? 0.2 : 0.02));
+      const sum = summarizeJuggle(j);
+      completeJuggling(c, sum);
+      console.log("  juggling best", sum.best, "runs", sum.runs);
     } else {
       const id = r.launch.assignmentId;
       const stage = stageOf(c, id);

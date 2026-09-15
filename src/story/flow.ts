@@ -1,3 +1,4 @@
+import hobbiesFile from "../../content/story/hobbies-u11.json";
 import openingFile from "../../content/story/opening-u11.json";
 import seasonFile from "../../content/story/season-u11.json";
 import tryoutsFile from "../../content/story/tryouts-u11.json";
@@ -38,6 +39,7 @@ const opening = openingFile as unknown as SceneFile;
 const week = weekFile as unknown as SceneFile;
 const season = seasonFile as unknown as SceneFile;
 const tryouts = tryoutsFile as unknown as SceneFile;
+const hobbies = hobbiesFile as unknown as SceneFile;
 
 export const OPENING_START = "open.kickabout";
 
@@ -53,14 +55,16 @@ export const openingScenes = (kind: CampaignKind): Scene[] => merge(opening, kin
 export const weekScenes = (kind: CampaignKind): Scene[] => merge(week, kind);
 export const seasonScenes = (kind: CampaignKind): Scene[] => merge(season, kind);
 export const tryoutScenes = (kind: CampaignKind): Scene[] => merge(tryouts, kind);
+export const hobbyScenes = (kind: CampaignKind): Scene[] => merge(hobbies, kind);
 
-/** Everything authored for a campaign: opening, regular-week, season, story-arc and tryout scenes. */
+/** Everything authored for a campaign: opening, regular-week, season, story-arc, tryout and hobby scenes. */
 export const campaignScenes = (kind: CampaignKind): Scene[] => [
   ...openingScenes(kind),
   ...weekScenes(kind),
   ...seasonScenes(kind),
   ...arcScenes(kind),
   ...tryoutScenes(kind),
+  ...hobbyScenes(kind),
 ];
 
 /**
@@ -113,6 +117,7 @@ export function sceneVars(c: CampaignState): Record<string, string> {
     season_goals: factText("season_goals"),
     season_matches: factText("season_matches_played"),
     season_trophies: factText("season_trophies"),
+    juggling_best: factText("juggling_best"),
     striker: name("striker"),
     organiser: name("organiser"),
     keeper: name("keeper"),

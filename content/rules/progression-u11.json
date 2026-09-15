@@ -2,11 +2,11 @@
   "reviewStatus": "proposal",
   "note": "Spec §19. Tracks are 0–100 and move only through the sources listed here (evidence reducers and authored effects). Relationships gate conversations, activities, support and opportunities — never soccer attributes. Unlock thresholds are owner calls (OPEN_QUESTIONS #20).",
   "tracks": {
-    "technical": { "label": "Technical", "movedBy": ["clean touch in trainings, the first-touch drill and park sessions (verified)", "home skill reports (self-reported, small)"] },
+    "technical": { "label": "Technical", "movedBy": ["clean touch in trainings, the first-touch drill and park sessions (verified)", "a juggling session with a best run of five or more (+1, verified touches)", "home skill reports (self-reported, small)"] },
     "tactical": { "label": "Tactical", "movedBy": ["sharp or mixed reads in trainings, the first-touch drill and park sessions (verified)", "authored coach conversations"] },
     "physical": { "label": "Physical", "movedBy": ["every match played (+1)"] },
-    "wellbeing": { "label": "Wellbeing & recovery", "movedBy": ["rest (+1)", "authored family and friend scenes"] },
-    "school": { "label": "School", "movedBy": ["homework (+1)", "authored school and car scenes"] },
+    "wellbeing": { "label": "Wellbeing & recovery", "movedBy": ["rest (+1)", "a hobby session (+1) and a new juggling personal best (+1)", "authored family, friend and hobby scenes"] },
+    "school": { "label": "School", "movedBy": ["homework (+1)", "reading every second book night (+1), late gaming every third night (-1)", "authored school and car scenes"] },
     "responsibility": { "label": "Responsibility", "movedBy": ["helping at home (+1)", "kept promises and authored choices"] },
     "pathway": { "label": "Pathway", "movedBy": ["sharp reads in a league match you played (+1)", "a tournament title (+4)", "authored scenes where other clubs notice you"] }
   },

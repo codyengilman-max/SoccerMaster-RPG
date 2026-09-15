@@ -7,9 +7,11 @@ import { campaignScenes, enterScene, takeQueuedScene } from "../story/flow";
 import type { Scene } from "../story/scenes";
 import type { ChallengeSummary } from "../training/crossbar";
 import { nextAssignment, stageOf, type Assignment, type Stage } from "../training/homeSkill";
-import { recordCrossbar, recordTraining } from "../training/record";
+import type { JuggleSummary } from "../training/juggling";
+import { JUGGLING_FACTS, recordCrossbar, recordJuggling, recordTraining } from "../training/record";
 import { ACTIVITIES, type Activity, type Summary as SmallSidedSummary } from "../training/smallSided";
 import { FRIEND_ID, advanceDays, playerClubId, storyContext, touch, type CampaignState, type DayAdvance, type PendingActivity } from "./campaign";
+import { HOBBIES, currentHobby, hobbyAvailable, hobbyById, recordHobby } from "./hobbies";
 import { completeCampaignMatch, type CompleteMatchResult } from "./match";
 import { openSpots, recordTryoutSession, sessionOptions, syncTryouts } from "./tryouts";
 
@@ -38,6 +40,8 @@ export type ActionId =
   | "lunch"
   | "car_ride"
   | "park_session"
+  | "juggle"
+  | "hobby"
   | "tryout"
   | "skip_tryout"
   | "free";
@@ -49,6 +53,8 @@ export interface SlotAction {
   commitmentId: string | null;
   /** The club a tryout session is with; the same action id repeats per club. */
   clubId?: string;
+  /** The hobby a `hobby` action is a session of; repeats per hobby until one is picked. */
+  hobbyId?: string;
   /** What the screen must run before calling the matching `complete*`; null for immediate actions. */
   launch: PendingActivity | null;
   /** An optional authored scene the action opens (lunch, car ride, park); null otherwise. */
@@ -57,7 +63,7 @@ export interface SlotAction {
 
 export const FATIGUE_FACT = "fatigue";
 export const TIRED_AT = 7;
-export const FATIGUE = { training: 2, match: 3, homeSkill: 1, park: 1, rest: -3, sleep: -1, max: 10 } as const;
+export const FATIGUE = { training: 2, match: 3, homeSkill: 1, park: 1, juggling: 1, rest: -3, sleep: -1, max: 10 } as const;
 
 export const fatigue = (c: CampaignState): number => {
   const v = c.story.facts[FATIGUE_FACT];
@@ -70,7 +76,7 @@ function addFatigue(c: CampaignState, delta: number): void {
   c.story.facts[FATIGUE_FACT] = Math.max(0, Math.min(FATIGUE.max, fatigue(c) + delta));
 }
 
-/** Tue → 1v1, Thu → 2v2, Fri → 3v2 in the first week; the programme rotates one step each week. */
+/** Tue → 1v1, Thu → 2v2, Fri → 3v2 in the first week; the five-activity programme rotates one step each week. */
 export function trainingActivity(day: CampaignDay): Activity {
   const w = weekday(day);
   const order = w === "Tue" ? 0 : w === "Thu" ? 1 : 2;
@@ -146,6 +152,16 @@ export function slotActions(c: CampaignState): SlotAction[] {
     const park = optionalScene(c, "park");
     if (park) out.push({ id: "park_session", label: `The park with {friend}: ${park.title}`, detail: "A first-touch session, then whatever comes up. Your legs will feel it.", commitmentId: null, launch: null, sceneId: park.id });
   }
+  if (jugglingAvailable(c)) {
+    const best = typeof c.story.facts[JUGGLING_FACTS.best] === "number" ? (c.story.facts[JUGGLING_FACTS.best] as number) : 0;
+    out.push({ id: "juggle", label: "Juggling in the yard", detail: best ? `Your record is ${best}. On your own; a little tiring.` : "Keep the ball up. On your own; a little tiring.", commitmentId: null, launch: { kind: "juggling" }, sceneId: null });
+  }
+  if (hobbyAvailable(c)) {
+    const h = currentHobby(c);
+    for (const hobby of h ? [h] : HOBBIES) {
+      out.push({ id: "hobby", hobbyId: hobby.id, label: h ? hobby.label : `Try ${hobby.label.toLowerCase()}`, detail: hobby.detail, commitmentId: null, launch: null, sceneId: null });
+    }
+  }
   if (c.slot === "evening" || weekday(c.day) === "Sat" || weekday(c.day) === "Sun") {
     out.push({ id: "family", label: "Help at home", detail: "Responsibility; time with {parent}.", commitmentId: null, launch: null, sceneId: null });
     const car = optionalScene(c, "car");
@@ -162,6 +178,8 @@ export const ACTIVITY_TITLE: Record<Activity, string> = {
   "1v1": "1v1 — beat your defender",
   "2v2": "2v2 — pass or carry",
   "3v2": "3v2 — numbers up",
+  rondo: "4v2 rondo — keep the ball",
+  transition: "2v2 transition — you've just won it",
 };
 
 function homeAction(c: CampaignState, a: Assignment): SlotAction {
@@ -199,6 +217,13 @@ export function parkAvailable(c: CampaignState): boolean {
   return c.slot === "evening" && c.progression.unlocked.includes(PARK_EVENINGS_UNLOCK);
 }
 
+/** Juggling is a solo yard activity: any free afternoon or evening, weekend mornings too, once a day. */
+export function jugglingAvailable(c: CampaignState): boolean {
+  if (c.story.facts[JUGGLING_FACTS.day] === c.day) return false;
+  const w = weekday(c.day);
+  return c.slot !== "morning" || w === "Sat" || w === "Sun";
+}
+
 /** The friend is free after school and at weekends, once a day, and only where the phone is allowed (spec §7). */
 export function friendAvailable(c: CampaignState): boolean {
   if (!phoneAvailable(c.day, c.slot)) return false;
@@ -213,10 +238,13 @@ export type TakeResult =
   | { ok: true; launch: null; effects: Effect[]; ended: SlotEnd }
   | { ok: false; reason: "unavailable" | "busy" };
 
-/** Take an action. Immediate ones finish the slot; playable ones become `pending` for the screen to run. */
-export function takeAction(c: CampaignState, id: ActionId, clubId?: string): TakeResult {
+/**
+ * Take an action. Immediate ones finish the slot; playable ones become `pending` for the screen to
+ * run. `ref` picks between same-id actions (a tryout's club, a hobby).
+ */
+export function takeAction(c: CampaignState, id: ActionId, ref?: string): TakeResult {
   if (c.scene || c.pending) return { ok: false, reason: "busy" };
-  const action = slotActions(c).find((a) => a.id === id && (clubId === undefined || a.clubId === clubId));
+  const action = slotActions(c).find((a) => a.id === id && (ref === undefined || a.clubId === ref || a.hobbyId === ref));
   if (!action) return { ok: false, reason: "unavailable" };
   if (action.launch) {
     c.pending = action.launch;
@@ -224,6 +252,8 @@ export function takeAction(c: CampaignState, id: ActionId, clubId?: string): Tak
     return { ok: true, launch: action.launch, effects: [] };
   }
   const effects: Effect[] = [];
+  /** Effects already applied by a reducer (hobbies), reported but not applied again. */
+  const applied: Effect[] = [];
   switch (action.id) {
     case "school":
       markAttended(c.schedule, action.commitmentId!);
@@ -256,6 +286,12 @@ export function takeAction(c: CampaignState, id: ActionId, clubId?: string): Tak
       addFatigue(c, FATIGUE.rest);
       effects.push({ type: "track", track: "wellbeing", delta: 1 });
       break;
+    case "hobby": {
+      const h = hobbyById(action.hobbyId!)!;
+      applied.push(...recordHobby(c, h.id));
+      addFatigue(c, h.fatigue);
+      break;
+    }
     case "free":
       if (action.commitmentId) markAttended(c.schedule, action.commitmentId);
       break;
@@ -264,12 +300,13 @@ export function takeAction(c: CampaignState, id: ActionId, clubId?: string): Tak
   }
   const ctx = storyContext(c);
   for (const e of effects) applyEffect(ctx, e);
+  applied.push(...effects);
   if (action.sceneId) {
     const moved = moveSlot(c);
     enterScene(c, campaignScenes(c.kind), action.sceneId);
-    return { ok: true, launch: null, effects, ended: { ...moved, scene: action.sceneId } };
+    return { ok: true, launch: null, effects: applied, ended: { ...moved, scene: action.sceneId } };
   }
-  return { ok: true, launch: null, effects, ended: endSlot(c) };
+  return { ok: true, launch: null, effects: applied, ended: endSlot(c) };
 }
 
 export const MISSED_FACTS = { recent: "missed_training_recent", count: "trainings_missed", day: "missed_training_day" } as const;
@@ -337,6 +374,15 @@ export function completeCrossbar(c: CampaignState, summary: ChallengeSummary): C
   if (!p || p.kind !== "crossbar") throw new Error("no crossbar pending");
   const effects = recordCrossbar(c, summary);
   c.story.facts[CROSSBAR_DAY_FACT] = c.day;
+  c.pending = null;
+  return { effects, ended: endSlot(c) };
+}
+
+export function completeJuggling(c: CampaignState, summary: JuggleSummary): Completion {
+  const p = c.pending;
+  if (!p || p.kind !== "juggling") throw new Error("no juggling pending");
+  const effects = recordJuggling(c, summary);
+  addFatigue(c, FATIGUE.juggling);
   c.pending = null;
   return { effects, ended: endSlot(c) };
 }

@@ -23,6 +23,7 @@ import { createRosterState, joinRoster, squadFor, type Club, type Person, type R
 import type { SquadPlayer } from "../sim/engine";
 import { hashSeed } from "../sim/rng";
 import type { RoleNumber } from "../sim/types";
+import type { Activity } from "../training/smallSided";
 import { planArc } from "../story/arc";
 import { createStoryState, processDue, type Fired, type StoryState } from "../story/consequences";
 import { createProgression, refreshUnlocks, type Progression } from "../story/progression";
@@ -79,9 +80,10 @@ export interface CampaignState {
 }
 
 export type PendingActivity =
-  | { kind: "training"; commitmentId: string; activity: "1v1" | "2v2" | "3v2" }
+  | { kind: "training"; commitmentId: string; activity: Activity }
   | { kind: "match"; commitmentId: string; fixtureId: string }
   | { kind: "crossbar" }
+  | { kind: "juggling" }
   | { kind: "home_skill"; assignmentId: string }
   | { kind: "tryout"; commitmentId: string; clubId: string; activity: SessionActivity };
 
