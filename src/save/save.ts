@@ -1,7 +1,11 @@
+import competitionsFile from "../../content/rules/competitions-u11.json";
+import castFile from "../../content/story/cast.json";
 import clubsFile from "../../content/story/clubs.json";
+import { dayOfIso } from "../calendar/date";
 import { slotsFor } from "../calendar/schedule";
 import type { CampaignState } from "../campaign/campaign";
-import type { Club } from "../roster/roster";
+import { createTryoutState } from "../campaign/tryouts";
+import type { Club, Person } from "../roster/roster";
 
 /**
  * Versioned saves (spec §22; plan §3.4). A save is plain JSON: `{ version, savedAt, campaign }`.
@@ -10,7 +14,7 @@ import type { Club } from "../roster/roster";
  * one code path.
  */
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export interface SaveFile {
   version: number;
@@ -67,6 +71,21 @@ export const MIGRATIONS: readonly Migration[] = [
       },
     };
   },
+  // 3 → 4: tryouts brought a state slice and the other clubs' coaches (recruiters) into the cast.
+  (raw) => {
+    const c = isObj(raw.campaign) ? raw.campaign : {};
+    const roster = isObj(c.roster) ? c.roster : {};
+    const people = Array.isArray(roster.people) ? (roster.people as Person[]) : [];
+    const shared = (castFile as { shared: Person[] }).shared.filter((p) => !people.some((x) => x.id === p.id));
+    return {
+      ...raw,
+      campaign: {
+        ...c,
+        roster: { ...roster, people: [...people, ...structuredClone(shared)] },
+        tryouts: c.tryouts ?? createTryoutState(dayOfIso(competitionsFile.season.tryoutsDate)),
+      },
+    };
+  },
 ];
 
 export class SaveError extends Error {
@@ -100,7 +119,7 @@ export function migrate(raw: Record<string, unknown>): Record<string, unknown> {
 function validate(file: Record<string, unknown>): SaveFile {
   const c = file.campaign;
   if (!isObj(c)) throw new SaveError("missing campaign", "invalid_shape");
-  const need: (keyof CampaignState)[] = ["id", "seed", "kind", "player", "ageGroup", "day", "revision", "schedule", "competitions", "roster", "story", "progression", "reports", "scene", "slot", "pending"];
+  const need: (keyof CampaignState)[] = ["id", "seed", "kind", "player", "ageGroup", "day", "revision", "schedule", "competitions", "roster", "story", "progression", "reports", "scene", "slot", "pending", "tryouts"];
   for (const k of need) if (!(k in c)) throw new SaveError(`campaign.${k} missing`, "invalid_shape");
   if (typeof file.savedAt !== "string" || typeof file.slot !== "string") throw new SaveError("bad header", "invalid_shape");
   return { version: SAVE_VERSION, savedAt: file.savedAt, slot: file.slot, campaign: c as unknown as CampaignState };

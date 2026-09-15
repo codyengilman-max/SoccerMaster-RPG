@@ -1,0 +1,111 @@
+{
+  "note": "Season-end tryouts and the first transfer opportunity (spec §18; OPEN_QUESTIONS #35–#37). Tryouts fall on the mid-May date in competitions-u11.json. Every value here is a proposal: next-season roster capacities, how many places each club has already filled ('reserved'), the evidence a club needs before it offers, which clubs send invitations and what their recruiters promise. Evidence keys are computed by src/campaign/tryouts.ts from verified campaign state — never from dialogue. 'session_*' evidence only exists for a club whose tryout session the player actually attended and played.",
+  "nextAgeGroup": "U12",
+  "sessionsPerDay": 2,
+  "decisionDays": 7,
+  "inviteCount": 2,
+  "evidence": {
+    "attendance": "Team-training attendance this season (%)",
+    "matches": "Matches played this season",
+    "goals": "Goals this season",
+    "technical": "Technical track",
+    "tactical": "Tactical track",
+    "physical": "Physical track",
+    "school": "School track",
+    "responsibility": "Responsibility track",
+    "pathway": "Pathway track",
+    "coach": "Relationship with your coach",
+    "session_reads": "Strong reads at this club's tryout session (%)",
+    "session_touch": "Clean executions at this club's tryout session (%)"
+  },
+  "clubs": [
+    {
+      "clubId": "batavia",
+      "capacity": 14,
+      "reserved": 3,
+      "recruiter": "coach",
+      "session": null,
+      "invites": false,
+      "requires": [
+        { "evidence": "attendance", "min": 60 },
+        { "evidence": "coach", "min": -10 }
+      ],
+      "promise": null
+    },
+    {
+      "clubId": "sonoran",
+      "capacity": 14,
+      "reserved": 12,
+      "recruiter": "sonoran-coach",
+      "session": "3v2",
+      "invites": true,
+      "invitesWhen": [
+        { "evidence": "tactical", "min": 35 }
+      ],
+      "requires": [
+        { "evidence": "tactical", "min": 40 },
+        { "evidence": "matches", "min": 12 },
+        { "evidence": "session_reads", "min": 50 }
+      ],
+      "promise": { "text": "There's a place in our U12 squad for you if you come to the session.", "keptBy": "offer" }
+    },
+    {
+      "clubId": "camelback",
+      "capacity": 14,
+      "reserved": 11,
+      "recruiter": "camelback-coach",
+      "session": "1v1",
+      "invites": true,
+      "invitesWhen": [
+        { "evidence": "technical", "min": 30 }
+      ],
+      "requires": [
+        { "evidence": "technical", "min": 36 },
+        { "evidence": "session_touch", "min": 50 }
+      ],
+      "promise": { "text": "An hour of individual technical work every week, on top of team training.", "keptBy": "next_season" }
+    },
+    {
+      "clubId": "mesaverde",
+      "capacity": 16,
+      "reserved": 13,
+      "recruiter": "mesaverde-coach",
+      "session": "2v2",
+      "invites": true,
+      "invitesWhen": [
+        { "evidence": "responsibility", "min": 45 }
+      ],
+      "requires": [
+        { "evidence": "attendance", "min": 70 },
+        { "evidence": "school", "min": 55 },
+        { "evidence": "session_reads", "min": 40 }
+      ],
+      "promise": { "text": "Nobody sits for a whole half at Mesa Verde. Nobody.", "keptBy": "next_season" }
+    },
+    {
+      "clubId": "saguaro",
+      "capacity": 16,
+      "reserved": 12,
+      "recruiter": "saguaro-coach",
+      "session": "2v2",
+      "invites": false,
+      "requires": [
+        { "evidence": "session_reads", "min": 30 }
+      ],
+      "promise": null
+    },
+    {
+      "clubId": "redrock",
+      "capacity": 14,
+      "reserved": 11,
+      "recruiter": "redrock-coach",
+      "session": "1v1",
+      "invites": false,
+      "requires": [
+        { "evidence": "technical", "min": 34 },
+        { "evidence": "session_touch", "min": 45 }
+      ],
+      "promise": null
+    }
+  ]
+}

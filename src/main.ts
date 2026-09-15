@@ -3,7 +3,8 @@ import { AUTOSAVE_SLOT, newSession, resumeSession, savedSummary, type Session } 
 import { APP_NAME, APP_VERSION } from "./app/version";
 import { FRIEND_ID, PLAYER_ID, type PendingActivity } from "./campaign/campaign";
 import { campaignMatchConfig, fixtureById, reportFromRuntime } from "./campaign/match";
-import { abandonPending, cancelPending, completeCrossbar, completeHomeSkill, completeMatch, completeTraining, isTired, type Completion } from "./campaign/week";
+import { clubRule } from "./campaign/tryouts";
+import { abandonPending, cancelPending, completeCrossbar, completeHomeSkill, completeMatch, completeTraining, completeTryout, isTired, type Completion } from "./campaign/week";
 import { createRuntime } from "./match/runtime";
 import { registerServiceWorker } from "./pwa/register";
 import { LocalStorageStore, SaveError } from "./save/save";
@@ -75,6 +76,8 @@ function showCampaign(s: Session): void {
 
 const nameOf = (s: Session, id: string, fallback: string): string => s.campaign.roster.people.find((p) => p.id === id)?.name ?? fallback;
 
+const hashId = (id: string): number => [...id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
+
 /** Run the playable activity the week module launched; its `complete*` moves the calendar, evidence and story. */
 function showPending(s: Session, p: PendingActivity): void {
   const c = s.campaign;
@@ -96,6 +99,23 @@ function showPending(s: Session, p: PendingActivity): void {
         onDone: (summary) => after(completeTraining(c, summary)),
         onQuit: () => {
           abandonPending(c);
+          s.save();
+          showCampaign(s);
+        },
+      });
+      return;
+    }
+    case "tryout": {
+      const recruiter = clubRule(p.clubId)?.recruiter;
+      mountSmallSidedScreen(root!, {
+        activity: p.activity,
+        seed: c.seed ^ (c.day * 31) ^ hashId(p.clubId),
+        names: { user: c.player.name, teammates: ["Trialist 7", "Trialist 12"] },
+        coachName: recruiter ? nameOf(s, recruiter, "Coach") : "Coach",
+        windowScale: isTired(c) ? 0.7 : 1,
+        onDone: (summary) => after(completeTryout(c, summary)),
+        onQuit: () => {
+          cancelPending(c);
           s.save();
           showCampaign(s);
         },

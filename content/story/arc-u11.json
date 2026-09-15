@@ -2907,7 +2907,25 @@
         },
         {
           "speaker": "parent",
-          "text": "Two clubs. They've seen you play, apparently. Nothing's promised; it's an invitation to a day in May, not an offer."
+          "text": "{invited_clubs}. They've seen you play, apparently. Nothing's promised; it's an invitation to a day in May, not an offer.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_invite_count",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Well — a mailing list, mostly. Open sessions in May, every club in the valley. Nobody's asked for you by name. Yet.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_invite_count",
+              "equals": 0
+            }
+          ]
         },
         {
           "speaker": "parent",

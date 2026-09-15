@@ -24,7 +24,8 @@ export type CommitmentKind =
   | "family"
   | "rest"
   | "story"
-  | "visit";
+  | "visit"
+  | "tryout";
 
 export type CommitmentStatus = "scheduled" | "attended" | "missed" | "postponed" | "cancelled";
 

@@ -62,6 +62,8 @@ for (let step = 0; step < 60 && c.day < 30; step++) {
         else friendShoots(ch);
       }
       completeCrossbar(c, sumCrossbar(ch));
+    } else if (r.launch.kind === "tryout") {
+      throw new Error("tryouts do not fall in the smoke weeks");
     } else {
       const id = r.launch.assignmentId;
       const stage = stageOf(c, id);

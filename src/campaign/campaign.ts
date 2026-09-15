@@ -26,8 +26,9 @@ import type { RoleNumber } from "../sim/types";
 import { planArc } from "../story/arc";
 import { createStoryState, processDue, type Fired, type StoryState } from "../story/consequences";
 import { createProgression, refreshUnlocks, type Progression } from "../story/progression";
-import { attendsTournament, closeSeason, currentLeagueId, planTournaments, settleFixtures, syncTournamentChoice } from "./season";
+import { attendsTournament, closeSeason, currentLeagueId, planTournaments, SEASON_FACTS, settleFixtures, syncTournamentChoice } from "./season";
 import { FRIEND_ID, HOME_CLUB_ID, MUST_START, PLAYER_ID, playerClubId, storyContext, touch } from "./state";
+import { createTryoutState, syncTryouts, type SessionActivity, type TryoutState } from "./tryouts";
 
 /**
  * The whole campaign in one serialisable object (plan §3.4). Every subsystem gets its own slice;
@@ -73,13 +74,16 @@ export interface CampaignState {
   slot: Slot;
   /** A playable activity launched from the week and not yet completed; resumed on load (spec §22). */
   pending: PendingActivity | null;
+  /** Season-end tryouts, offers and the next-season decision (spec §18). */
+  tryouts: TryoutState;
 }
 
 export type PendingActivity =
   | { kind: "training"; commitmentId: string; activity: "1v1" | "2v2" | "3v2" }
   | { kind: "match"; commitmentId: string; fixtureId: string }
   | { kind: "crossbar" }
-  | { kind: "home_skill"; assignmentId: string };
+  | { kind: "home_skill"; assignmentId: string }
+  | { kind: "tryout"; commitmentId: string; clubId: string; activity: SessionActivity };
 
 export interface CreateOptions {
   kind: CampaignKind;
@@ -191,6 +195,7 @@ export function createCampaign(opts: CreateOptions): CampaignState {
     scene: null,
     slot: "morning",
     pending: null,
+    tryouts: createTryoutState(TRYOUTS_DAY),
   };
   return state;
 }
@@ -288,6 +293,7 @@ export function fixtureTitle(c: CampaignState, fx: Fixture): string {
  */
 export function scheduleWeek(c: CampaignState, monday: CampaignDay): Commitment[] {
   const clubId = playerClubId(c);
+  const offSeason = c.story.facts[SEASON_FACTS.reviewed] === true;
   const added: Commitment[] = [];
   const put = (x: Commitment) => {
     if (x.day === c.day && slotsFor(c.day).indexOf(x.slot) <= slotsFor(c.day).indexOf(c.slot)) return;
@@ -299,7 +305,7 @@ export function scheduleWeek(c: CampaignState, monday: CampaignDay): Commitment[
     if (!isWeekend(d)) {
       put({ id: `school-${d}`, day: d, slot: "school", kind: "school", title: "School", mandatory: true, refId: null, minutes: 390, status: "scheduled" });
     }
-    if (clubId && (w === "Tue" || w === "Thu" || w === "Fri")) {
+    if (clubId && !offSeason && (w === "Tue" || w === "Thu" || w === "Fri")) {
       put({ id: `training-${d}`, day: d, slot: "afternoon", kind: "training", title: "Team training", mandatory: true, refId: `training-${d}`, minutes: 90, status: "scheduled" });
     }
     if (clubId && (w === "Sat" || w === "Sun")) {
@@ -379,6 +385,7 @@ export function advanceDays(c: CampaignState, days: number): DayAdvance {
   syncStoryFlags(c);
   closeSeason(c);
   const unlocked = refreshUnlocks(c.progression);
+  syncTryouts(c);
   touch(c);
   return { from, to, missed, fired, unlocked, settled, entered: entered.at(-1) ?? null };
 }

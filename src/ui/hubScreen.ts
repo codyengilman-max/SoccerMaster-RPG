@@ -15,6 +15,7 @@ import {
   type PendingActivity,
 } from "../campaign/campaign";
 import { seasonPhase, seasonSummary, tournamentViews, type SeasonPhase, type TournamentView } from "../campaign/season";
+import { acceptOffer, declineOffer, tryoutsView, type ClubTryoutView, type TryoutPhase, type TryoutsView } from "../campaign/tryouts";
 import { currentCommitment, fatigue, inRegularWeek, skipToNextEvent, slotActions, takeAction, weekView, type ActionId } from "../campaign/week";
 import { ROLE_LABEL } from "../sim/types";
 import { CENTRAL_QUESTION } from "../story/arc";
@@ -62,6 +63,20 @@ const OUTCOME_LABEL = {
   in_progress: "In progress",
   not_entered: "",
 } as const;
+
+const TRYOUT_PHASE_TEXT: Record<TryoutPhase, string> = {
+  before: "Every club in the valley holds tryouts in May. Invitations, if any, come once your pathway is known.",
+  invited: "You have been invited. An invitation is a day in May, not a place on a roster.",
+  week: "Tryout week. Pick two sessions on the day; a club can only judge what it sees.",
+  day: "Tryout day. Two sessions, five clubs — choose from the board below.",
+  offers: "The clubs have decided. Accept one offer before the deadline, or none.",
+  decided: "Next season is settled.",
+  unattached: "No roster has your name on it for August.",
+};
+
+const OFFER_TEXT = { open: "offer open", accepted: "accepted", declined: "declined", expired: "lapsed" } as const;
+
+const PROMISE_TEXT = { open: "promised", delivered: "kept", broken: "broken" } as const;
 
 const GRANT_LABEL: Record<Grant, string> = { conversation: "conversation", activity: "activity", support: "support", opportunity: "opportunity" };
 
@@ -112,6 +127,8 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
   const canSkip = !now || now.kind === "school";
   const unlocks = unlockViews(c.progression);
   const repairs = openRepairs(c, session.scenes);
+  const tryouts = tryoutsView(c);
+  const showTryouts = tryouts.phase !== "before" || phase === "postseason";
   const people = Object.entries(c.progression.relationships).filter(([id]) => id !== "player");
   const reqLabel = (q: Requirement): string => (q.track ? TRACK_INFO[q.track].label : personName(c, q.personId));
   const oppOf = (f: { homeClubId: string; awayClubId: string }): string => clubNameOf(c, f.homeClubId === club ? f.awayClubId : f.homeClubId);
@@ -124,7 +141,7 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
         <h2>${formatDay(c.day)} · ${SLOT_LABEL[c.slot]}</h2>
         <p class="muted small">Energy: ${energyText(tired)}${c.story.pending.length ? ` · ${c.story.pending.length} consequence${c.story.pending.length === 1 ? "" : "s"} still to land` : ""}</p>
         <div class="choices">
-          ${actions.map((a) => `<button type="button" class="choice action" data-id="${a.id}"><b>${fill(a.label)}</b>${a.detail ? `<span class="muted small"> — ${fill(a.detail)}</span>` : ""}</button>`).join("")}
+          ${actions.map((a) => `<button type="button" class="choice action" data-id="${a.id}"${a.clubId ? ` data-club="${escapeHtml(a.clubId)}"` : ""}><b>${fill(a.label)}</b>${a.detail ? `<span class="muted small"> — ${fill(a.detail)}</span>` : ""}</button>`).join("")}
           ${canSkip ? `<button type="button" class="choice skip-ahead"><b>Let the days pass</b><span class="muted small"> — until the next training, match or moment</span></button>` : ""}
         </div>
       </div>
@@ -169,6 +186,7 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
             : ""
         }
       </div>
+      ${showTryouts ? tryoutsCard(c, tryouts) : ""}
       <div class="card season">
         <h3>Season</h3>
         <p class="muted small">League record ${season.record.won}-${season.record.drawn}-${season.record.lost}${season.fall ? ` · fall ${ordinal(season.fall.position)} of ${season.fall.of}` : ""}${season.spring ? ` · spring ${ordinal(season.spring.position)} of ${season.spring.of}` : ""}${season.trophies ? ` · ${season.trophies} troph${season.trophies === 1 ? "y" : "ies"}` : ""}</p>
@@ -215,7 +233,7 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
 
   for (const b of root.querySelectorAll<HTMLButtonElement>("button.action")) {
     b.addEventListener("click", () => {
-      const r = takeAction(c, b.dataset["id"] as ActionId);
+      const r = takeAction(c, b.dataset["id"] as ActionId, b.dataset["club"]);
       session.save();
       if (!r.ok) {
         mountHubScreen(root, session, h);
@@ -240,6 +258,15 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
       mountHubScreen(root, session, h);
     });
   }
+  for (const b of root.querySelectorAll<HTMLButtonElement>("button.offer")) {
+    b.addEventListener("click", () => {
+      const clubId = b.dataset["club"] ?? "";
+      const r = b.dataset["decision"] === "accept" ? acceptOffer(c, clubId) : declineOffer(c, clubId);
+      session.save();
+      if (!r.ok) window.alert(`That offer can't be ${b.dataset["decision"] === "accept" ? "accepted" : "declined"} (${r.reason}).`);
+      mountHubScreen(root, session, h);
+    });
+  }
   root.querySelector<HTMLButtonElement>("button.skip-ahead")?.addEventListener("click", () => {
     skipToNextEvent(c);
     session.save();
@@ -250,6 +277,32 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
     mountHubScreen(root, session, h);
   });
   root.querySelector<HTMLButtonElement>("button.exit")?.addEventListener("click", h.onExit);
+}
+
+/** Season-end tryouts (spec §18): every club's places, evidence, invitation, promise and offer, and the accept/decline decision. */
+function tryoutsCard(c: CampaignState, v: TryoutsView): string {
+  const deciding = v.phase === "offers";
+  const row = (k: ClubTryoutView): string => {
+    const places = k.places === null ? "places set in tryout week" : `${k.places} of ${k.capacity} places open${k.reserved ? ` (${k.reserved} returning)` : ""}`;
+    const flags = [k.home ? "your club" : null, k.invited ? "invited you" : null, k.session ? (k.session.played ? `${k.session.activity} session played` : `${k.session.activity} session on the day`) : "no session — decides on your season"].filter((x): x is string => x !== null);
+    const reqs = k.requirements.map((r) => `${escapeHtml(r.label)} ${r.value === null ? "—" : r.value}/${r.min}${r.met ? " ✓" : ""}`).join(", ");
+    const promise = k.promise ? `<br><span class="small">${escapeHtml(personName(c, k.promise.by))} ${PROMISE_TEXT[k.promise.status]}: “${escapeHtml(k.promise.text)}”${k.promise.keptBy === "next_season" && k.promise.status === "open" ? " (about next season — not an offer)" : ""}</span>` : "";
+    const offer = k.offer ? `<b>${OFFER_TEXT[k.offer.status]}</b>${k.offer.status === "open" ? ` · answer by ${formatDay(k.offer.expiresDay)}` : ""}` : v.phase === "offers" || v.phase === "decided" || v.phase === "unattached" ? "no offer" : k.eligible ? "meets every requirement so far" : "not yet";
+    const buttons =
+      deciding && k.offer?.status === "open"
+        ? `<div class="choices"><button type="button" class="choice offer" data-club="${escapeHtml(k.clubId)}" data-decision="accept"><b>${k.home ? "Stay at" : "Join"} ${escapeHtml(k.name)}</b></button><button type="button" class="choice offer" data-club="${escapeHtml(k.clubId)}" data-decision="decline"><b>Turn ${escapeHtml(k.name)} down</b></button></div>`
+        : "";
+    return `<li class="${k.chosen ? "chosen" : ""}"><b>${escapeHtml(k.name)}</b> <span class="muted small">— ${escapeHtml(k.attraction)}</span><br><span class="small">${places} · ${flags.join(" · ")}</span><br><span class="muted small">Needs ${reqs || "nothing beyond a place"}</span>${promise}<br><span class="small">${offer}</span>${buttons}</li>`;
+  };
+  return `
+      <div class="card tryouts">
+        <h3>Tryouts · ${v.dayLabel}</h3>
+        <p class="muted small">${TRYOUT_PHASE_TEXT[v.phase]}${v.phase === "day" ? ` ${v.sessionsLeft} session${v.sessionsLeft === 1 ? "" : "s"} left.` : ""}${v.deadline !== null && deciding ? ` Deadline ${formatDay(v.deadline)}.` : ""}</p>
+        ${v.decided ? `<p><b>Next season: ${escapeHtml(v.decided.name)}</b>${v.decided.moved ? " — you're moving." : " — you're staying."}</p>` : ""}
+        ${v.friend ? `<p class="small">${escapeHtml(v.friend.name)} will be at ${escapeHtml(v.friend.clubName)}${v.friend.apart ? " — a different club from you. Friends don't change club with you." : " — with you."}</p>` : ""}
+        <ul class="facts clubs">${v.clubs.map(row).join("")}</ul>
+        ${deciding ? `<p class="muted small">Doing nothing is a decision too: open offers lapse after the deadline.</p>` : ""}
+      </div>`;
 }
 
 function ordinal(n: number): string {

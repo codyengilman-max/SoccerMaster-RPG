@@ -10,6 +10,51 @@
       "shirt": null,
       "bio": "Strict, loud, passionate, demanding, detail-oriented and compassionate; funny; listens; admits mistakes; no grudges when players leave.",
       "reviewStatus": "proposal"
+    },
+    {
+      "id": "sonoran-coach",
+      "name": "Coach Delgado",
+      "role": "coach",
+      "clubId": "sonoran",
+      "shirt": null,
+      "bio": "Sonoran United U12 head coach and the club's recruiter. Polished, persuasive, promises more than the roster can hold.",
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "camelback-coach",
+      "name": "Coach Whitfield",
+      "role": "coach",
+      "clubId": "camelback",
+      "shirt": null,
+      "bio": "Camelback Athletic technical director. Former winger; judges everyone by their first touch and means it kindly.",
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "mesaverde-coach",
+      "name": "Coach Nakamura",
+      "role": "coach",
+      "clubId": "mesaverde",
+      "shirt": null,
+      "bio": "Mesa Verde SC U12 coach. Calm, asks about school before soccer, keeps every promise small enough to keep.",
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "saguaro-coach",
+      "name": "Coach Bell",
+      "role": "coach",
+      "clubId": "saguaro",
+      "shirt": null,
+      "bio": "Saguaro Rangers coach and PE teacher. Plays everyone, travels nowhere, promises nothing.",
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "redrock-coach",
+      "name": "Coach Okafor",
+      "role": "coach",
+      "clubId": "redrock",
+      "shirt": null,
+      "bio": "Red Rock FC academy coach, ex-professional goalkeeper. Blunt about evidence; warm once you have some.",
+      "reviewStatus": "proposal"
     }
   ],
   "campaigns": {

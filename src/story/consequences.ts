@@ -27,6 +27,7 @@ export type Effect =
   | { type: "learn"; personId: string; factId: string }
   | { type: "promise"; id: string; by: string; text: string }
   | { type: "deliver"; promiseId: string }
+  | { type: "break_promise"; promiseId: string }
   | { type: "queue_scene"; sceneId: string; onDay: CampaignDay | null }
   | { type: "flag"; id: string };
 
@@ -77,6 +78,8 @@ export interface StoryPromise {
   text: string;
   madeDay: CampaignDay;
   delivered: boolean;
+  /** Set when the world showed the promise will not be kept (spec §18: promises are tracked apart from what was delivered). */
+  brokenDay?: CampaignDay;
 }
 
 export interface StoryState {
@@ -172,6 +175,11 @@ export function applyEffect(ctx: StoryContext, e: Effect): void {
     case "deliver": {
       const p = story.promises.find((x) => x.id === e.promiseId);
       if (p) p.delivered = true;
+      return;
+    }
+    case "break_promise": {
+      const p = story.promises.find((x) => x.id === e.promiseId);
+      if (p && !p.delivered && p.brokenDay === undefined) p.brokenDay = day;
       return;
     }
     case "queue_scene":
