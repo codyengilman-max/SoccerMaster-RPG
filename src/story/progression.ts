@@ -1,7 +1,10 @@
+import progressionFile from "../../content/rules/progression-u11.json";
+
 /**
  * Progression tracks (spec §19). Tracked separately and only moved by authored effects or
- * evidence reducers; relationships never feed soccer attributes. Unlocks are explicit rules
- * (OPEN_QUESTIONS #20 — the table is a proposal).
+ * evidence reducers; relationships never feed soccer attributes. Unlocks are explicit rules read
+ * from `content/rules/progression-u11.json` (OPEN_QUESTIONS #20 — thresholds are a proposal):
+ * each names what it grants and what it opens, so development is never implied by dialogue alone.
  */
 
 export type Track = "technical" | "tactical" | "physical" | "wellbeing" | "school" | "responsibility" | "pathway";
@@ -39,30 +42,62 @@ export function adjustRelationship(p: Progression, personId: string, delta: numb
 
 export const relationship = (p: Progression, personId: string): number => p.relationships[personId] ?? 0;
 
+/** What an unlock hands the player. Never an attribute (spec §19). */
+export type Grant = "conversation" | "activity" | "support" | "opportunity";
+export const GRANTS: readonly Grant[] = ["conversation", "activity", "support", "opportunity"];
+
+export type Requirement = { track: Track; personId?: undefined; min: number } | { personId: string; track?: undefined; min: number };
+
 export interface UnlockRule {
   id: string;
   title: string;
-  requires: { track?: Track; personId?: string; min: number }[];
+  grants: Grant;
+  /** What the unlock concretely opens in the game, in the player's terms. */
+  opens: string;
+  requires: Requirement[];
 }
 
-/** Proposal — see OPEN_QUESTIONS #20. Relationships gate conversations and activities, never attributes. */
-export const UNLOCKS: readonly UnlockRule[] = [
-  { id: "friend_park_sessions", title: "Extra park sessions with your friend", requires: [{ personId: "friend", min: 20 }] },
-  { id: "coach_extra_feedback", title: "Coach Code offers detailed film feedback", requires: [{ personId: "coach", min: 25 }, { track: "responsibility", min: 45 }] },
-  { id: "captain_conversation", title: "Captaincy conversation", requires: [{ track: "tactical", min: 45 }, { track: "responsibility", min: 60 }] },
-  { id: "tryout_invitations", title: "Other clubs notice you", requires: [{ track: "pathway", min: 30 }] },
-];
+interface ProgressionFile {
+  tracks: Record<Track, { label: string; movedBy: string[] }>;
+  unlocks: UnlockRule[];
+}
+
+const rules = progressionFile as unknown as ProgressionFile;
+
+export const TRACK_INFO: Readonly<Record<Track, { label: string; movedBy: string[] }>> = rules.tracks;
+export const UNLOCKS: readonly UnlockRule[] = rules.unlocks;
+
+export const requirementValue = (p: Progression, q: Requirement): number => (q.track ? p.tracks[q.track] : relationship(p, q.personId));
+
+export const ruleMet = (p: Progression, r: UnlockRule): boolean => r.requires.every((q) => requirementValue(p, q) >= q.min);
 
 /** Recompute unlocks; returns the newly unlocked ids (never re-locks: an earned unlock stays). */
 export function refreshUnlocks(p: Progression, rules: readonly UnlockRule[] = UNLOCKS): string[] {
   const fresh: string[] = [];
   for (const r of rules) {
     if (p.unlocked.includes(r.id)) continue;
-    const ok = r.requires.every((q) => (q.track ? p.tracks[q.track] >= q.min : q.personId ? relationship(p, q.personId) >= q.min : false));
-    if (ok) {
+    if (ruleMet(p, r)) {
       p.unlocked.push(r.id);
       fresh.push(r.id);
     }
   }
   return fresh;
+}
+
+export interface UnlockView {
+  rule: UnlockRule;
+  unlocked: boolean;
+  requirements: { requirement: Requirement; value: number; met: boolean }[];
+}
+
+/** Every rule with where the player stands on each requirement — the hub shows this, so unlocks are never implied. */
+export function unlockViews(p: Progression, rules: readonly UnlockRule[] = UNLOCKS): UnlockView[] {
+  return rules.map((rule) => ({
+    rule,
+    unlocked: p.unlocked.includes(rule.id),
+    requirements: rule.requires.map((requirement) => {
+      const value = requirementValue(p, requirement);
+      return { requirement, value, met: value >= requirement.min };
+    }),
+  }));
 }

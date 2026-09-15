@@ -11,21 +11,31 @@ import type { Summary as SmallSidedSummary } from "./smallSided";
  */
 
 export const INTRO_FACTS = { reads: "intro_reads", touch: "intro_touch" } as const;
+export const PARK_FACTS = { reads: "park_reads", touch: "park_touch", sessions: "park_sessions" } as const;
 
-export function recordFirstTouch(c: CampaignState, s: DrillSummary): Effect[] {
+/** The first-touch drill at the Thursday visit (coach and friend watching) or at the park (friend only). */
+export function recordFirstTouch(c: CampaignState, s: DrillSummary, setting: "visit" | "park" = "visit"): Effect[] {
   const p = c.progression;
   p.verified["first_touch"] = (p.verified["first_touch"] ?? 0) + s.reps;
   const tactical = s.reads === "sharp" ? 2 : s.reads === "mixed" ? 1 : 0;
   const technical = s.touch === "clean" ? 1 : 0;
+  const facts = setting === "park" ? PARK_FACTS : INTRO_FACTS;
+  const witnesses = setting === "park" ? ["friend"] : ["coach", "friend"];
   const effects: Effect[] = [
-    { type: "set_fact", id: INTRO_FACTS.reads, value: s.reads },
-    { type: "set_fact", id: INTRO_FACTS.touch, value: s.touch },
-    { type: "learn", personId: "coach", factId: INTRO_FACTS.reads },
-    { type: "learn", personId: "coach", factId: INTRO_FACTS.touch },
-    { type: "learn", personId: "friend", factId: INTRO_FACTS.reads },
-    { type: "learn", personId: "friend", factId: INTRO_FACTS.touch },
-    { type: "set_fact", id: "first_touch_through", value: s.outcomes.through },
+    { type: "set_fact", id: facts.reads, value: s.reads },
+    { type: "set_fact", id: facts.touch, value: s.touch },
+    ...witnesses.flatMap((who): Effect[] => [
+      { type: "learn", personId: who, factId: facts.reads },
+      { type: "learn", personId: who, factId: facts.touch },
+    ]),
   ];
+  if (setting === "park") {
+    p.verified["park_first_touch"] = (p.verified["park_first_touch"] ?? 0) + s.reps;
+    const n = typeof c.story.facts[PARK_FACTS.sessions] === "number" ? (c.story.facts[PARK_FACTS.sessions] as number) : 0;
+    effects.push({ type: "set_fact", id: PARK_FACTS.sessions, value: n + 1 });
+  } else {
+    effects.push({ type: "set_fact", id: "first_touch_through", value: s.outcomes.through });
+  }
   if (tactical) effects.push({ type: "track", track: "tactical", delta: tactical });
   if (technical) effects.push({ type: "track", track: "technical", delta: technical });
   const ctx = storyContext(c);

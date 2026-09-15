@@ -124,7 +124,10 @@ describe("regular week: calendar and slot actions", () => {
     const s = joinedSession();
     const c = s.campaign;
     reach(s, "school");
-    expect(slotActions(c).map((a) => a.id)).toEqual(["school"]);
+    const school = slotActions(c);
+    expect(school[0]!.id).toBe("school");
+    expect(school.every((a) => a.commitmentId === school[0]!.commitmentId)).toBe(true);
+    expect(school.map((a) => a.id)).not.toContain("friend_crossbar");
     reach(s, "train");
     const ids = slotActions(c).map((a) => a.id);
     expect(ids).toContain("train");

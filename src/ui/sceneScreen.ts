@@ -1,7 +1,7 @@
 import type { Session } from "../app/session";
 import { formatDay } from "../calendar/date";
 import { PLAYER_ID } from "../campaign/campaign";
-import { chooseInScene, continueScene, viewScene, type SceneView } from "../story/flow";
+import { chooseInScene, continueScene, personName, viewScene, type SceneView } from "../story/flow";
 import type { Line, LocationId, Scene } from "../story/scenes";
 import { escapeHtml, q } from "./html";
 
@@ -46,7 +46,7 @@ export function mountSceneScreen(root: HTMLElement, session: Session, h: SceneHa
     </section>`;
   const log = q<HTMLDivElement>(root, ".dialogue");
   const actions = q<HTMLDivElement>(root, ".scene-actions");
-  const nameOf = (id: string): string => (id === PLAYER_ID ? c.player.name : (c.roster.people.find((p) => p.id === id)?.name ?? id));
+  const nameOf = (id: string): string => personName(c, id);
 
   const addLine = (l: Line): void => {
     const el = document.createElement("p");

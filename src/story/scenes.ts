@@ -9,8 +9,11 @@ import { allHold, knows, type Choice, type Condition, type StoryContext, type St
  */
 
 export type Tone = "reward" | "adversity" | "everyday";
+export const TONES: readonly Tone[] = ["reward", "adversity", "everyday"];
 
+/** The everyday places of spec §6 (school, lunch, car, park, home, training, tournament common areas, the pitch). */
 export type LocationId = "home" | "car" | "school" | "lunch_spot" | "training_field" | "park" | "tournament_hotel" | "pitch";
+export const LOCATIONS: readonly LocationId[] = ["home", "car", "school", "lunch_spot", "training_field", "park", "tournament_hotel", "pitch"];
 
 export interface Line {
   /** Person id, or null for narration. */
@@ -46,6 +49,15 @@ export interface Scene {
   commitment?: { kind: CommitmentKind; slot: Slot; title: string; minutes: number };
   /** Once-only scenes are recorded as `scene:<id>` in `story.applied`. */
   once: boolean;
+  /**
+   * Arc milestone: the planner queues the scene for the next such weekday as soon as its
+   * eligibility holds (at most one milestone per week). Absent for scenes queued by effects.
+   */
+  auto?: Weekday;
+  /** Offered from the hub at the scene's location when eligible (lunch, car, park); never forced. */
+  optional?: boolean;
+  /** Days before a repeatable optional scene is offered again (default in story/arc). */
+  cooldownDays?: number;
   reviewStatus: "proposal" | "reviewed";
 }
 
@@ -54,6 +66,13 @@ export const sceneKey = (id: string): string => `scene:${id}`;
 export function sceneEligible(ctx: StoryContext, scene: Scene): boolean {
   if (scene.once && ctx.story.applied.includes(sceneKey(scene.id))) return false;
   return allHold(ctx, scene.eligibility);
+}
+
+/** Day a repeatable scene last played, or undefined. */
+export const lastPlayed = (story: StoryState, sceneId: string): CampaignDay | undefined => story.appliedDays[`played:${sceneId}`];
+
+export function markPlayed(story: StoryState, sceneId: string, day: CampaignDay): void {
+  story.appliedDays[`played:${sceneId}`] = day;
 }
 
 /** Lines the world currently allows: speaker knowledge and conditions. */

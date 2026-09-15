@@ -1,0 +1,3737 @@
+{
+  "reviewStatus": "proposal",
+  "note": "U11 story arc (spec §6). Central question: can this new team become something worth believing in—and will the people building it stay together as new opportunities appear? Scenes with `auto` are milestones the planner queues when their eligibility holds (one per week at most); `optional` scenes are offered from the hub at their location and never forced; `unlock.*` scenes play once when the named progression unlock is reached. Speakers `striker`, `organiser`, `keeper` and `newcomer` are cast roles that resolve to each campaign's teammate (cast.json). Effects are relationships, tracks, facts, promises and scene queues only — never soccer attributes, results, grades, positions or transfers. All text is proposal status pending owner review.",
+  "shared": [
+    {
+      "id": "arc.question",
+      "title": "Is this a real team?",
+      "location": "lunch_spot",
+      "tone": "everyday",
+      "auto": "Wed",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "fall"
+        },
+        {
+          "type": "fact",
+          "id": "league_matches_played",
+          "min": 1
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The table by the window. {organiser} has a folded league sheet someone printed at home."
+        },
+        {
+          "speaker": "organiser",
+          "text": "Serious question. Are we a real team, or a bunch of kids whose parents know {coach}?"
+        },
+        {
+          "speaker": "friend",
+          "text": "We've played one game."
+        },
+        {
+          "speaker": "organiser",
+          "text": "Exactly. So this is the moment to decide. Before anyone else decides it for us."
+        },
+        {
+          "speaker": "striker",
+          "text": "Sonoran United have a bus. With their name on it.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "loss"
+            }
+          ]
+        },
+        {
+          "speaker": "striker",
+          "text": "We won. Ask me after we lose.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "win"
+            }
+          ]
+        },
+        {
+          "speaker": null,
+          "text": "Everyone looks at you, because you're the one who hasn't said anything."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.question.in",
+          "label": "\"It's real if we make it real. I'm in.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "arc_belief",
+              "value": "in"
+            },
+            {
+              "type": "learn",
+              "personId": "organiser",
+              "factId": "arc_belief"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "arc_belief"
+            },
+            {
+              "type": "relationship",
+              "personId": "organiser",
+              "delta": 3
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "organiser",
+              "text": "Okay. Good. That's two."
+            },
+            {
+              "speaker": "friend",
+              "text": "Three. Obviously three."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.question.wait",
+          "label": "\"Ask me at the end of the fall.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "arc_belief",
+              "value": "wait"
+            },
+            {
+              "type": "learn",
+              "personId": "organiser",
+              "factId": "arc_belief"
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "organiser",
+              "text": "That's fair. Honest, anyway. I'll ask."
+            },
+            {
+              "speaker": null,
+              "text": "{organiser} writes something on the corner of the league sheet. You can't see what."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.question.joke",
+          "label": "\"We have orange slices. Sonoran don't have orange slices.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "arc_belief",
+              "value": "deflect"
+            },
+            {
+              "type": "relationship",
+              "personId": "striker",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "organiser",
+              "delta": -1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "striker",
+              "text": "That's true. That's actually a point."
+            },
+            {
+              "speaker": "organiser",
+              "text": "I asked a real thing."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.sibling_rumour",
+      "title": "The bus with the name on it",
+      "location": "training_field",
+      "tone": "adversity",
+      "auto": "Thu",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "fall"
+        },
+        {
+          "type": "fact",
+          "id": "league_matches_played",
+          "min": 3
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Cones out, {coach} on the phone by the gate. {striker} jogs over like it's nothing."
+        },
+        {
+          "speaker": "striker",
+          "text": "My brother's coach at Sonoran said they 'look at people' after the fall. He said my name came up."
+        },
+        {
+          "speaker": "striker",
+          "text": "I'm not saying anything. I'm just saying."
+        },
+        {
+          "speaker": "friend",
+          "text": "You literally are saying."
+        },
+        {
+          "speaker": "striker",
+          "text": "Three straight. Nobody would blame me.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "result_streak",
+              "max": -2
+            }
+          ]
+        },
+        {
+          "speaker": "striker",
+          "text": "We're winning and they still noticed. That's the point.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "result_streak",
+              "min": 2
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.rumour.go",
+          "label": "\"If it's better, go.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "striker_tempted",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "striker",
+              "factId": "striker_tempted"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "striker_tempted"
+            },
+            {
+              "type": "relationship",
+              "personId": "striker",
+              "delta": -3
+            }
+          ],
+          "delayed": [
+            {
+              "id": "drifts",
+              "afterDays": 10,
+              "effects": [
+                {
+                  "type": "set_fact",
+                  "id": "striker_distant",
+                  "value": true
+                }
+              ],
+              "unless": [
+                {
+                  "type": "relationship",
+                  "personId": "striker",
+                  "min": 4
+                }
+              ]
+            }
+          ],
+          "repair": [
+            {
+              "id": "take_it_back",
+              "label": "Tell {striker} you didn't mean 'go'",
+              "when": [],
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "striker",
+                  "delta": 3
+                },
+                {
+                  "type": "clear_fact",
+                  "id": "striker_distant"
+                }
+              ],
+              "cancels": [
+                "drifts"
+              ],
+              "withinDays": 4
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "striker",
+              "text": "...Right. Okay."
+            },
+            {
+              "speaker": null,
+              "text": "That wasn't the answer {striker} was fishing for. The jog back to the cones is faster than the jog over."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.rumour.stay",
+          "label": "\"What would it take for you to stay?\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "striker_tempted",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "striker",
+              "factId": "striker_tempted"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "striker_tempted"
+            },
+            {
+              "type": "relationship",
+              "personId": "striker",
+              "delta": 3
+            },
+            {
+              "type": "promise",
+              "id": "promise.early_ball",
+              "by": "player",
+              "text": "Look for {striker} early when the picture is there"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "striker",
+              "text": "Honestly? The ball. Early. When I make the run and it doesn't come, I feel stupid."
+            },
+            {
+              "speaker": "player",
+              "text": "When the picture's there, I'll look for you first."
+            },
+            {
+              "speaker": "striker",
+              "text": "Okay. Deal. That's a deal."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.rumour.coach",
+          "label": "Tell {coach} after training",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "striker_tempted",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "striker",
+              "factId": "striker_tempted"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "striker_tempted"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "striker_tempted"
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "striker",
+              "delta": -2
+            }
+          ],
+          "delayed": [
+            {
+              "id": "finds_out",
+              "afterDays": 5,
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "striker",
+                  "delta": -3
+                },
+                {
+                  "type": "set_fact",
+                  "id": "striker_felt_reported",
+                  "value": true
+                },
+                {
+                  "type": "learn",
+                  "personId": "striker",
+                  "factId": "striker_felt_reported"
+                }
+              ],
+              "unless": [
+                {
+                  "type": "relationship",
+                  "personId": "striker",
+                  "min": 6
+                }
+              ]
+            }
+          ],
+          "repair": [
+            {
+              "id": "own_it",
+              "label": "Tell {striker} it was you who told {coach}",
+              "when": [],
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "striker",
+                  "delta": 2
+                },
+                {
+                  "type": "track",
+                  "track": "responsibility",
+                  "delta": 1
+                }
+              ],
+              "cancels": [
+                "finds_out"
+              ],
+              "withinDays": 5
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Thank you for telling me. I'd rather know. Now — that stays between us until {striker} is ready to say it."
+            },
+            {
+              "speaker": null,
+              "text": "{striker} clocks the two of you talking. Says nothing. Notices."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.run",
+      "title": "That's a team",
+      "location": "car",
+      "tone": "reward",
+      "auto": "Sun",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "fall"
+        },
+        {
+          "type": "fact",
+          "id": "result_streak",
+          "min": 2
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Sunday. Nowhere to be. {parent} drives the long way past the fields anyway."
+        },
+        {
+          "speaker": "parent",
+          "text": "Two in a row. I watched the second one from behind the goal. You know what it looked like?"
+        },
+        {
+          "speaker": "parent",
+          "text": "It looked like a team. People moving before the ball did. I don't know where you all learned that."
+        },
+        {
+          "speaker": "parent",
+          "text": "And {friend}. Honestly, {friend} ran themselves silly for you.",
+          "requiresKnown": [
+            "last_friend_played"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_friend_played",
+              "equals": true
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.run.believe",
+          "label": "\"It is a team. I think it could be a really good one.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "told_parent_believe",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "told_parent_believe"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 2
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Then I'll keep standing behind the goal. Somebody has to."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.run.careful",
+          "label": "\"One good week. Don't jinx it.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "superstitious",
+              "value": true
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "I didn't say anything. I said nothing. Look, eyes on the road."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.slump",
+      "title": "Two texts",
+      "location": "home",
+      "tone": "adversity",
+      "auto": "Sun",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "fall"
+        },
+        {
+          "type": "fact",
+          "id": "result_streak",
+          "max": -2
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Sunday night. Two losses in a row and your phone has been face-down since dinner."
+        },
+        {
+          "speaker": null,
+          "text": "Two texts from {friend}. 'you ok' and then, eleven minutes later, 'we're still good right'."
+        },
+        {
+          "speaker": "parent",
+          "text": "You've read it four times. Either answer it or put it in the drawer."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.slump.reply",
+          "label": "Reply: 'we fix it tuesday'",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 2
+            },
+            {
+              "type": "promise",
+              "id": "promise.fix_it",
+              "by": "player",
+              "text": "Turn up Tuesday and work"
+            },
+            {
+              "type": "set_fact",
+              "id": "answered_slump_text",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "Reply comes back before you've put the phone down: 'tuesday. ok. TUESDAY.'"
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.slump.drawer",
+          "label": "Put the phone in the drawer",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": -1
+            },
+            {
+              "type": "set_fact",
+              "id": "answered_slump_text",
+              "value": false
+            }
+          ],
+          "delayed": [
+            {
+              "id": "left_hanging",
+              "afterDays": 3,
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "friend",
+                  "delta": -2
+                },
+                {
+                  "type": "set_fact",
+                  "id": "friend_left_hanging",
+                  "value": true
+                }
+              ],
+              "unless": [
+                {
+                  "type": "relationship",
+                  "personId": "friend",
+                  "min": 15
+                }
+              ]
+            }
+          ],
+          "repair": [
+            {
+              "id": "answer_late",
+              "label": "Answer {friend} properly, even late",
+              "when": [],
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "friend",
+                  "delta": 2
+                }
+              ],
+              "cancels": [
+                "left_hanging"
+              ],
+              "withinDays": 3
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "Quiet helps tonight. Whether it helps {friend} is another question."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.fall_table",
+      "title": "Where we finished",
+      "location": "lunch_spot",
+      "tone": "everyday",
+      "auto": "Mon",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "winter"
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "First school week with no game at the end of it. The table feels bigger."
+        },
+        {
+          "speaker": "organiser",
+          "text": "Final fall table. We finished {fall_finish}. Top two. Nobody had us top two.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "fall_position",
+              "min": 1,
+              "max": 2
+            }
+          ]
+        },
+        {
+          "speaker": "organiser",
+          "text": "Final fall table. {fall_finish}. Middle. Which for a team that didn't exist in July is not nothing.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "fall_position",
+              "min": 3,
+              "max": 4
+            }
+          ]
+        },
+        {
+          "speaker": "organiser",
+          "text": "Final fall table. {fall_finish}. I'm not reading the rest out.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "fall_position",
+              "min": 5
+            }
+          ]
+        },
+        {
+          "speaker": "striker",
+          "text": "Sonoran won it. Obviously. My brother won't shut up.",
+          "requiresKnown": [
+            "striker_tempted"
+          ]
+        },
+        {
+          "speaker": "organiser",
+          "text": "You said ask you at the end of the fall. It's the end of the fall.",
+          "requiresKnown": [
+            "arc_belief"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "arc_belief",
+              "equals": "wait"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Winter's long. Three tournaments if we get in. Then spring. Then... whatever comes."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.fall_table.use_winter",
+          "label": "\"Winter's ours. Nobody's watching. We get better.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "winter_plan",
+              "value": true
+            },
+            {
+              "type": "set_fact",
+              "id": "arc_belief",
+              "value": "in"
+            },
+            {
+              "type": "learn",
+              "personId": "organiser",
+              "factId": "arc_belief"
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 2
+            },
+            {
+              "type": "relationship",
+              "personId": "organiser",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "organiser",
+              "text": "I was hoping you'd say that. I've got a list. Don't look like that, it's a short list."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.fall_table.rest",
+          "label": "\"Can we have one week where we don't talk about it?\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "winter_plan",
+              "value": false
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 2
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Seconded. Loudly seconded."
+            },
+            {
+              "speaker": "organiser",
+              "text": "Fine. One week. I'm keeping the list."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.striker_stays",
+      "title": "Staying",
+      "location": "training_field",
+      "tone": "reward",
+      "auto": "Thu",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "winter"
+        },
+        {
+          "type": "fact",
+          "id": "striker_tempted",
+          "equals": true
+        },
+        {
+          "type": "fact",
+          "id": "striker_decision",
+          "exists": false
+        },
+        {
+          "type": "relationship",
+          "personId": "striker",
+          "min": 5
+        },
+        {
+          "type": "day",
+          "min": 120
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Cold enough for gloves. {striker} waits until the others are doing laps."
+        },
+        {
+          "speaker": "striker",
+          "text": "Sonoran called my dad. Actual phone call."
+        },
+        {
+          "speaker": "striker",
+          "text": "I said no. Well — my dad said no, but I told him to say no. Same thing."
+        },
+        {
+          "speaker": "striker",
+          "text": "You kept looking for me. Early. Like you said.",
+          "requiresKnown": [
+            "striker_tempted"
+          ],
+          "when": [
+            {
+              "type": "applied",
+              "choiceId": "arc.rumour.stay"
+            }
+          ]
+        },
+        {
+          "speaker": "striker",
+          "text": "Don't make it weird."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.striker_stays.glad",
+          "label": "\"Good. We need you. I'm allowed to say that.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "striker_decision",
+              "value": "stay"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "striker_decision"
+            },
+            {
+              "type": "relationship",
+              "personId": "striker",
+              "delta": 2
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 2
+            },
+            {
+              "type": "deliver",
+              "promiseId": "promise.early_ball"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "striker",
+              "text": "You made it weird. Come on, laps."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.striker_stays.nod",
+          "label": "Nod. Start the laps together.",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "striker_decision",
+              "value": "stay"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "striker_decision"
+            },
+            {
+              "type": "relationship",
+              "personId": "striker",
+              "delta": 1
+            },
+            {
+              "type": "deliver",
+              "promiseId": "promise.early_ball"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "Nothing else needs saying. That's sort of the point of a team."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.striker_trial",
+      "title": "A session over the break",
+      "location": "training_field",
+      "tone": "adversity",
+      "auto": "Thu",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "winter"
+        },
+        {
+          "type": "fact",
+          "id": "striker_tempted",
+          "equals": true
+        },
+        {
+          "type": "fact",
+          "id": "striker_decision",
+          "exists": false
+        },
+        {
+          "type": "relationship",
+          "personId": "striker",
+          "max": 4
+        },
+        {
+          "type": "day",
+          "min": 120
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{striker} tells the group during the water break, which is the way you tell people when you don't want a conversation."
+        },
+        {
+          "speaker": "striker",
+          "text": "I'm going to a Sonoran session over the break. Just one. To see."
+        },
+        {
+          "speaker": "striker",
+          "text": "It's not a decision. Nothing changes till May anyway. Everyone calm down."
+        },
+        {
+          "speaker": "organiser",
+          "text": "Nobody said anything."
+        },
+        {
+          "speaker": "striker",
+          "text": "You're all thinking it."
+        },
+        {
+          "speaker": "coach",
+          "text": "Players go and look. That's allowed. What isn't allowed is half-training for the next eight weeks. Understood?",
+          "requiresKnown": [
+            "striker_tempted"
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.striker_trial.luck",
+          "label": "\"Good luck. Mean it. Then come back and score for us.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "striker_decision",
+              "value": "trial"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "striker_decision"
+            },
+            {
+              "type": "relationship",
+              "personId": "striker",
+              "delta": 3
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "striker",
+              "text": "...Thanks. Actually thanks."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.striker_trial.quiet",
+          "label": "Say nothing. Pick up the ball.",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "striker_decision",
+              "value": "trial"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "striker_decision"
+            },
+            {
+              "type": "set_fact",
+              "id": "striker_distant",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "Water break ends. Whatever was in the air stays there."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.striker_trial.team",
+          "label": "\"Then the rest of us make this place worth coming back to.\"",
+          "eligibility": [
+            {
+              "type": "fact",
+              "id": "arc_belief",
+              "equals": "in"
+            }
+          ],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "striker_decision",
+              "value": "trial"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "striker_decision"
+            },
+            {
+              "type": "relationship",
+              "personId": "organiser",
+              "delta": 2
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "organiser",
+              "text": "Yes. That. Exactly that."
+            },
+            {
+              "speaker": "coach",
+              "text": "Right answer. Now show me it on the grass."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.newcomer",
+      "title": "Is it worth it?",
+      "location": "training_field",
+      "tone": "everyday",
+      "auto": "Tue",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "spring"
+        },
+        {
+          "type": "fact",
+          "id": "league_matches_played",
+          "min": 8
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{newcomer} is collecting cones next to you, slowly, so the question can come out sideways."
+        },
+        {
+          "speaker": "newcomer",
+          "text": "We might move again. Summer, probably. Third school in four years."
+        },
+        {
+          "speaker": "newcomer",
+          "text": "So, honestly — is this worth it? Getting into it. If I'm just going to leave."
+        },
+        {
+          "speaker": "newcomer",
+          "text": "You seem like you decided it was.",
+          "requiresKnown": [
+            "arc_belief"
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.newcomer.park",
+          "label": "\"Come to the park with me and {friend}. Then decide.\"",
+          "eligibility": [
+            {
+              "type": "unlocked",
+              "id": "friend_park_sessions"
+            }
+          ],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "newcomer_invited",
+              "value": true
+            },
+            {
+              "type": "relationship",
+              "personId": "newcomer",
+              "delta": 3
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "newcomer",
+              "text": "The park. Okay. Yeah. Okay."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.newcomer.honest",
+          "label": "\"I don't know yet either. I'm finding out by staying.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "honest_with_newcomer",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "newcomer",
+              "factId": "honest_with_newcomer"
+            },
+            {
+              "type": "relationship",
+              "personId": "newcomer",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "newcomer",
+              "text": "That's a better answer than the one I was scared of."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.newcomer.shrug",
+          "label": "Shrug. \"Up to you.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "newcomer",
+              "delta": -1
+            },
+            {
+              "type": "set_fact",
+              "id": "newcomer_shrugged",
+              "value": true
+            }
+          ],
+          "delayed": [
+            {
+              "id": "stops_asking",
+              "afterDays": 7,
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "newcomer",
+                  "delta": -2
+                },
+                {
+                  "type": "set_fact",
+                  "id": "newcomer_stopped_asking",
+                  "value": true
+                }
+              ],
+              "unless": [
+                {
+                  "type": "relationship",
+                  "personId": "newcomer",
+                  "min": 6
+                }
+              ]
+            }
+          ],
+          "repair": [
+            {
+              "id": "come_back",
+              "label": "Go back to {newcomer} with a real answer",
+              "when": [],
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "newcomer",
+                  "delta": 3
+                },
+                {
+                  "type": "clear_fact",
+                  "id": "newcomer_shrugged"
+                }
+              ],
+              "cancels": [
+                "stops_asking"
+              ],
+              "withinDays": 7
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "{newcomer} stacks the last cone and carries them in alone."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.coach_question",
+      "title": "The coach asks it straight",
+      "location": "training_field",
+      "tone": "everyday",
+      "auto": "Thu",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "spring"
+        },
+        {
+          "type": "day",
+          "min": 224
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "End of session. {coach} sits everyone on the grass, which only happens when something's coming."
+        },
+        {
+          "speaker": "coach",
+          "text": "Tryouts are in May. Other clubs will call some of you. I'm not going to pretend otherwise."
+        },
+        {
+          "speaker": "coach",
+          "text": "So I'm asking you what I asked myself in July. Is this team worth believing in? Not worth winning with. Worth believing in."
+        },
+        {
+          "speaker": "coach",
+          "text": "I already know one of you has been asked to look elsewhere. That's fine. Looking is fine.",
+          "requiresKnown": [
+            "striker_tempted"
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "{player}. You first. You've been quiet all season and I've noticed it's the useful kind."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.coach_question.yes",
+          "label": "\"Yes. Because of who turned up in the winter when nobody was watching.\"",
+          "eligibility": [
+            {
+              "type": "fact",
+              "id": "winter_plan",
+              "equals": true
+            }
+          ],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "arc_answer",
+              "value": "yes"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "arc_answer"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "arc_answer"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 3
+            },
+            {
+              "type": "relationship",
+              "personId": "organiser",
+              "delta": 2
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "That's the answer of someone who was there. Good."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.coach_question.people",
+          "label": "\"Yes. It's the people. If they stay, it's worth it.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "arc_answer",
+              "value": "people"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "arc_answer"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "arc_answer"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 2
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "'If they stay.' You heard the important word in your own sentence. Hold on to it."
+            },
+            {
+              "speaker": null,
+              "text": "{friend} is looking at the grass very hard."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.coach_question.ask",
+          "label": "\"What happens to the team at tryouts, honestly?\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "arc_answer",
+              "value": "asked"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "arc_answer"
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Honestly? Some of you get calls. Some of you take them. The ones who stay decide what this is next year. That's always how it works."
+            },
+            {
+              "speaker": "coach",
+              "text": "You asked instead of answering. That's an answer too. Think about it."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.coach_question.pass",
+          "label": "\"Can someone else go first?\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "arc_answer",
+              "value": "passed"
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "They can. But I'll come back to you."
+            },
+            {
+              "speaker": "organiser",
+              "text": "I'll go. Yes. Obviously yes. Next question."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.tryouts_talk",
+      "title": "May",
+      "location": "lunch_spot",
+      "tone": "everyday",
+      "auto": "Wed",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "spring"
+        },
+        {
+          "type": "day",
+          "min": 250
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{friend} has eaten nothing and rearranged everything on the tray twice."
+        },
+        {
+          "speaker": "friend",
+          "text": "Camelback tryouts are the fifteenth. Sonoran's the same day. Everyone knows the date."
+        },
+        {
+          "speaker": "friend",
+          "text": "{striker}'s going to at least one of them. Don't say anything, I'm not supposed to know.",
+          "requiresKnown": [
+            "striker_decision"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "striker_decision",
+              "equals": "trial"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "{striker} says Sonoran can call all they want. That's one.",
+          "requiresKnown": [
+            "striker_decision"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "striker_decision",
+              "equals": "stay"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "So. Us. Are we staying? Because I'll stay if you stay and I'll — I don't know what I'll do if you don't."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.tryouts.together",
+          "label": "\"Wherever you go, I go. That's the whole plan.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_stance",
+              "value": "together"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "tryout_stance"
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 3
+            },
+            {
+              "type": "promise",
+              "id": "promise.together",
+              "by": "player",
+              "text": "Decide next season together with {friend}"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Okay. Okay okay okay. I'm going to eat something now."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.tryouts.look",
+          "label": "\"I want to see what's out there. I'd tell you first.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_stance",
+              "value": "look"
+            },
+            {
+              "type": "set_fact",
+              "id": "wants_to_look",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "tryout_stance"
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": -2
+            }
+          ],
+          "delayed": [
+            {
+              "id": "friend_quiet",
+              "afterDays": 7,
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "friend",
+                  "delta": -3
+                },
+                {
+                  "type": "set_fact",
+                  "id": "friend_went_quiet",
+                  "value": true
+                }
+              ],
+              "unless": [
+                {
+                  "type": "relationship",
+                  "personId": "friend",
+                  "min": 25
+                }
+              ]
+            }
+          ],
+          "repair": [
+            {
+              "id": "tell_first",
+              "label": "Actually tell {friend} first — everything you're thinking",
+              "when": [],
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "friend",
+                  "delta": 3
+                }
+              ],
+              "cancels": [
+                "friend_quiet"
+              ],
+              "withinDays": 5
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Right. Yeah. No, that's — that's fair."
+            },
+            {
+              "speaker": null,
+              "text": "The tray gets rearranged a third time."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.tryouts.after",
+          "label": "\"We decide after the season. Together. Not at lunch.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_stance",
+              "value": "later"
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "tryout_stance"
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Together. Fine. But I'm holding you to 'together'."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.lunch.table",
+      "title": "The window table",
+      "location": "lunch_spot",
+      "tone": "everyday",
+      "optional": true,
+      "cooldownDays": 7,
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Twenty minutes. Trays, noise, and the table by the window where the team ends up without deciding to."
+        },
+        {
+          "speaker": "organiser",
+          "text": "Three unbeaten. I'm not saying it out loud. I'm saying it quietly.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "result_streak",
+              "min": 3
+            }
+          ]
+        },
+        {
+          "speaker": "striker",
+          "text": "Nobody mention Saturday.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "result_streak",
+              "max": -1
+            }
+          ]
+        },
+        {
+          "speaker": "newcomer",
+          "text": "Is there always a seat here? Like, is that a rule?",
+          "when": [
+            {
+              "type": "relationship",
+              "personId": "newcomer",
+              "max": 2
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Sit. Eat. You look like you slept in your boots.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "fatigue",
+              "min": 6
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.lunch.table.organiser",
+          "label": "Sit with {organiser} and the league sheet",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "organiser",
+              "delta": 1
+            },
+            {
+              "type": "learn",
+              "personId": "organiser",
+              "factId": "last_result"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "organiser",
+              "text": "Look at this. If Mesa Verde drop points and we don't — no, look at it properly."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.lunch.table.newcomer",
+          "label": "Make room for {newcomer}",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "newcomer",
+              "delta": 2
+            },
+            {
+              "type": "set_fact",
+              "id": "newcomer_has_seat",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "newcomer",
+              "text": "Thanks. My old school didn't really have a — anyway. Thanks."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.lunch.table.friend",
+          "label": "Just you and {friend}, the far end",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Okay but honestly. Honestly. How are you."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.lunch.striker",
+      "title": "Ask about Sonoran, properly",
+      "location": "lunch_spot",
+      "tone": "everyday",
+      "optional": true,
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "striker_tempted",
+          "equals": true
+        },
+        {
+          "type": "fact",
+          "id": "striker_decision",
+          "exists": false
+        },
+        {
+          "type": "relationship",
+          "personId": "striker",
+          "max": 4
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{striker} is at the end of the table, headphones in, one ear only. There's a gap next to them."
+        },
+        {
+          "speaker": "striker",
+          "text": "If this is about Sonoran, I've had the talk. From everyone."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.lunch.striker.listen",
+          "label": "\"Not a talk. I just want to know what you actually want.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "striker",
+              "delta": 4
+            },
+            {
+              "type": "set_fact",
+              "id": "striker_heard",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "striker",
+              "factId": "striker_heard"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "striker",
+              "text": "...I want to be somewhere people expect me to score. Not somewhere they're surprised."
+            },
+            {
+              "speaker": "striker",
+              "text": "Nobody's asked that. Just so you know."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.lunch.striker.bail",
+          "label": "\"Fair. Never mind.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "striker_heard",
+              "value": false
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "The other earphone goes in."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.car.errands",
+      "title": "Errands",
+      "location": "car",
+      "tone": "everyday",
+      "optional": true,
+      "cooldownDays": 7,
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Hardware store, then the pharmacy, then the long light on the boulevard. {parent} drives with one hand on the top of the wheel."
+        },
+        {
+          "speaker": "parent",
+          "text": "Your teacher emailed. Nothing bad. Yet. 'Could be applying themselves more.' Ring any bells?",
+          "when": [
+            {
+              "type": "track",
+              "track": "school",
+              "max": 55
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Report came. You're doing fine at school. I'm saying it so you've heard me say it.",
+          "when": [
+            {
+              "type": "track",
+              "track": "school",
+              "min": 70
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "You're limping when you think I'm not looking.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "fatigue",
+              "min": 7
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Coach said something to me at pickup. About you listening. Good listening, apparently.",
+          "when": [
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "min": 15
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.car.errands.school",
+          "label": "Talk about school, properly",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "school",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "school_talked"
+            },
+            {
+              "type": "set_fact",
+              "id": "school_talked",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "That's all I wanted. Twenty minutes a night. I'll stop asking when you stop needing asking."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.car.errands.ask",
+          "label": "Ask about {parent}'s week instead",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 2
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "My week? Huh. Nobody asks me that."
+            },
+            {
+              "speaker": null,
+              "text": "It takes the whole pharmacy queue. You learn two things you didn't know."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.car.errands.headphones",
+          "label": "Headphones. Window.",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": -1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "{parent} turns the radio up a notch. Neither of you minds, exactly."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.car.honest",
+      "title": "The honest drive",
+      "location": "car",
+      "tone": "everyday",
+      "optional": true,
+      "eligibility": [
+        {
+          "type": "unlocked",
+          "id": "parent_trusts_you"
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "No errands tonight. {parent} just said 'come on' and took the keys."
+        },
+        {
+          "speaker": "parent",
+          "text": "I've been thinking about next year. Not deciding. Thinking. I'd rather do it out loud with you than in my head at two a.m."
+        },
+        {
+          "speaker": "parent",
+          "text": "You told me you believe in this team. I heard you.",
+          "requiresKnown": [
+            "told_parent_believe"
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "So tell me straight. If a bigger club called — what would you want me to say?"
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.car.honest.stay",
+          "label": "\"Say we're happy where we are. For now.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "parent_stance",
+              "value": "stay"
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "parent_stance"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 2
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "'For now.' Noted. That's the grown-up version. Okay."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.car.honest.listen",
+          "label": "\"Say we'd listen. And then we'd talk. You and me.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "parent_stance",
+              "value": "listen"
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "parent_stance"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 3
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "You and me. Yes. That's the deal. Whatever happens, we do it that way."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.car.honest.dodge",
+          "label": "\"Can we not, tonight?\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "parent_stance",
+              "value": "dodged"
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": -1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "We can not. But it doesn't go away because we didn't."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.park.session",
+      "title": "First touch under the lights",
+      "location": "park",
+      "tone": "everyday",
+      "optional": true,
+      "cooldownDays": 2,
+      "eligibility": [
+        {
+          "type": "unlocked",
+          "id": "friend_park_sessions"
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The park. One goal with no net, one wall, {friend} already there because {friend} is always already there."
+        },
+        {
+          "speaker": "friend",
+          "text": "Wall. Two touches. Then one. Then we see who cracks."
+        },
+        {
+          "speaker": "newcomer",
+          "text": "You said I could come. So I came.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "newcomer_invited",
+              "equals": true
+            }
+          ]
+        }
+      ],
+      "choices": [],
+      "next": "arc.park.after",
+      "activity": "first_touch",
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.park.after",
+      "title": "Walking back",
+      "location": "park",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Legs done. Ball under one arm. The streetlights come on one at a time down the block."
+        },
+        {
+          "speaker": "friend",
+          "text": "That last set. Clean. Like, actually clean.",
+          "requiresKnown": [
+            "park_touch"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "park_touch",
+              "equals": "clean"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "You were guessing at the end. I could tell because I was guessing too.",
+          "requiresKnown": [
+            "park_reads"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "park_reads",
+              "equals": "rushed"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "You know we could do this every day and nobody would grade it."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.park.after.team",
+          "label": "Talk about the team on the way",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 2
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "arc_belief"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "I think about it too. More than I say. Same as you, probably."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.park.after.race",
+          "label": "Race to the corner",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "Nobody wins. Both of you claim it."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "unlock.friend_park_sessions",
+      "title": "The park",
+      "location": "school",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Between classes. {friend} walks backwards in front of you to say it."
+        },
+        {
+          "speaker": "friend",
+          "text": "My mom says I can go to the park after school if I'm home by dark. And I said 'only if {player} comes' and she said 'obviously'."
+        },
+        {
+          "speaker": "friend",
+          "text": "So. Wall, ball, us. Whenever we've got a free afternoon or a weekend. No coach. No cones. Just touches."
+        }
+      ],
+      "choices": [
+        {
+          "id": "unlock.park.yes",
+          "label": "\"Whenever. Just say when.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            },
+            {
+              "type": "set_fact",
+              "id": "park_agreed",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "'When' is the first afternoon we're both free. I'll bring the ball. You bring the touches."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "unlock.parent_trusts_you",
+      "title": "Evenings",
+      "location": "home",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Homework done, plate cleared, nothing asked for. {parent} notices that kind of thing."
+        },
+        {
+          "speaker": "parent",
+          "text": "School's fine. You've been straight with me all season. So: school nights, if the homework's done, you can go to the park with {friend} until it gets dark."
+        },
+        {
+          "speaker": "parent",
+          "text": "That's not a reward. That's trust. It goes away the same way it came."
+        }
+      ],
+      "choices": [
+        {
+          "id": "unlock.trust.thanks",
+          "label": "\"I know. Thanks.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Back by dark. I mean dark, not 'dark-ish'."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "unlock.coach_extra_feedback",
+      "title": "Film room",
+      "location": "training_field",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "After training. {coach} has a tablet and a look that says stay a minute."
+        },
+        {
+          "speaker": "coach",
+          "text": "You turn up, you listen, you own your mistakes. That earns you this: after matches, if you want it, I'll walk through your decisions with you. Properly. Not just 'well done'."
+        },
+        {
+          "speaker": "coach",
+          "text": "Your last match: mostly sharp. You saw it early. That's the bit I can't teach.",
+          "requiresKnown": [
+            "last_match_reads"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_match_reads",
+              "equals": "sharp"
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "Your last match: some early, some late. Film shows you which. That's what it's for.",
+          "requiresKnown": [
+            "last_match_reads"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_match_reads",
+              "equals": "mixed"
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "Your last match was rushed. Not wrong — rushed. There's a difference, and the film shows it.",
+          "requiresKnown": [
+            "last_match_reads"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_match_reads",
+              "equals": "rushed"
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "unlock.film.yes",
+          "label": "\"I want it. Even the bad bits.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "film_room",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "film_room"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Especially the bad bits. Good. The car ride home just got more interesting for you."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "unlock.film.later",
+          "label": "\"Can I think about it?\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "film_room",
+              "value": false
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "You can. The offer doesn't expire. Neither does the film."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "unlock.captain_conversation",
+      "title": "Not a badge",
+      "location": "training_field",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{coach} walks the touchline with you while the others pack up."
+        },
+        {
+          "speaker": "coach",
+          "text": "I don't do captains at this age. Armbands make ten-year-olds weird. But I do notice who the others look at when it goes wrong."
+        },
+        {
+          "speaker": "coach",
+          "text": "They look at you. And at {organiser}. So this is a conversation, not a job: when the picture breaks down, what do you say to them?"
+        }
+      ],
+      "choices": [
+        {
+          "id": "unlock.captain.calm",
+          "label": "\"Next ball. That's all. Next ball.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "leadership_voice",
+              "value": "calm"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "leadership_voice"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 2
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Short. Repeatable. Good. Say it to {organiser} too — between you, you'll cover the whole pitch."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "unlock.captain.share",
+          "label": "\"Honestly, {organiser} should be the one. I'd back them up.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "leadership_voice",
+              "value": "shared"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "leadership_voice"
+            },
+            {
+              "type": "relationship",
+              "personId": "organiser",
+              "delta": 3
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "That answer is exactly why they look at you. Fine. Both of you, then."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "unlock.tryout_invitations",
+      "title": "An email",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{parent} turns the laptop round at the kitchen table. Subject line: 'Tryouts — invitation'."
+        },
+        {
+          "speaker": "parent",
+          "text": "Two clubs. They've seen you play, apparently. Nothing's promised; it's an invitation to a day in May, not an offer."
+        },
+        {
+          "speaker": "parent",
+          "text": "I'm not deciding anything tonight and neither are you. But you should know it exists."
+        },
+        {
+          "speaker": "parent",
+          "text": "You said we'd listen, and then talk. So: I'm listening.",
+          "requiresKnown": [
+            "parent_stance"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "parent_stance",
+              "equals": "listen"
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "unlock.tryouts.tell_friend",
+          "label": "\"I want to tell {friend} before anyone else finds out.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "invitation_known",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "invitation_known"
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 2
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Good instinct. Do it in person, not by text."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "unlock.tryouts.quiet",
+          "label": "\"Can we keep it between us until the season's done?\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "invitation_known",
+              "value": false
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "We can. Finish the season with your head where your feet are."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "boys": [
+    {
+      "id": "arc.keeper",
+      "title": "Owen wants out",
+      "location": "training_field",
+      "tone": "everyday",
+      "auto": "Tue",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "fall"
+        },
+        {
+          "type": "fact",
+          "id": "league_matches_played",
+          "min": 6
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{keeper} has taken the gloves off and left them on the crossbar, which is a statement."
+        },
+        {
+          "speaker": "keeper",
+          "text": "I'm the only one who never gets to score. Ever. I want a go outfield. One training. That's all."
+        },
+        {
+          "speaker": "coach",
+          "text": "That's a fair thing to want. Positions are my call, and nobody's moving today — but I'm asking the group how we handle it, because it's your team too."
+        },
+        {
+          "speaker": "friend",
+          "text": "If Owen goes outfield who goes in goal? Because it's not me."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.keeper.back",
+          "label": "\"Give him the go. One session. We all take a turn in goal.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "keeper",
+              "delta": 3
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "keeper_backed"
+            },
+            {
+              "type": "set_fact",
+              "id": "keeper_backed",
+              "value": true
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "keeper",
+              "text": "See? {player} gets it."
+            },
+            {
+              "speaker": "coach",
+              "text": "Then we'll do a rotation drill Thursday. In training. Match days are still mine."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.keeper.need",
+          "label": "\"We need a keeper who wants to be a keeper.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "keeper",
+              "delta": -2
+            },
+            {
+              "type": "set_fact",
+              "id": "keeper_backed",
+              "value": false
+            },
+            {
+              "type": "track",
+              "track": "tactical",
+              "delta": 1
+            }
+          ],
+          "delayed": [
+            {
+              "id": "keeper_sulks",
+              "afterDays": 5,
+              "effects": [
+                {
+                  "type": "set_fact",
+                  "id": "keeper_quiet",
+                  "value": true
+                }
+              ],
+              "unless": [
+                {
+                  "type": "relationship",
+                  "personId": "keeper",
+                  "min": 3
+                }
+              ]
+            }
+          ],
+          "repair": [
+            {
+              "id": "shots_after",
+              "label": "Stay after and take shots at Owen until he's laughing again",
+              "when": [],
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "keeper",
+                  "delta": 3
+                }
+              ],
+              "cancels": [
+                "keeper_sulks"
+              ],
+              "withinDays": 4
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "keeper",
+              "text": "Wow. Okay."
+            },
+            {
+              "speaker": "coach",
+              "text": "True, and not the whole truth. Wanting to be a keeper comes and goes at eleven. We'll talk."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.keeper.rotate",
+          "label": "\"Rotate everyone in training. Then the keeper decides, not us.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "keeper",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 2
+            },
+            {
+              "type": "set_fact",
+              "id": "keeper_backed",
+              "value": true
+            },
+            {
+              "type": "track",
+              "track": "tactical",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "That's the answer I'd have given. Thursday, then. Everyone gets ten minutes of the gloves. Owen, you'll hate watching."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.holiday_car",
+      "title": "The shift pattern",
+      "location": "car",
+      "tone": "everyday",
+      "auto": "Sat",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "winter"
+        },
+        {
+          "type": "day",
+          "min": 138
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Holiday traffic. Dad has the spring schedule on his phone, propped against the gearstick, which you're fairly sure is illegal."
+        },
+        {
+          "speaker": "parent",
+          "text": "Spring. Two leagues' worth of Saturdays, a tournament in February, State in May if you make it. My shifts moved. I can't do every one."
+        },
+        {
+          "speaker": "parent",
+          "text": "Mateo's mom says she can take you when I can't. I'm telling you that because it's true, not because I like it."
+        },
+        {
+          "speaker": "parent",
+          "text": "And the tournament fee's real money. I'm not saying no. I'm saying it's real."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.holiday.cost",
+          "label": "\"What does it cost? Actually.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "asked_about_cost",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "asked_about_cost"
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 2
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Huh. Okay. It's a hotel night, the fee, gas, food. Call it a week of my overtime."
+            },
+            {
+              "speaker": "parent",
+              "text": "Nobody's ever asked me that. Not even your mother."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.holiday.grades",
+          "label": "\"I'll keep school up. Properly. Then it's worth it.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "promise",
+              "id": "promise.grades",
+              "by": "player",
+              "text": "Keep school up through the spring"
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "promise.grades"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [
+            {
+              "id": "grades_check",
+              "afterDays": 28,
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "parent",
+                  "delta": -3
+                },
+                {
+                  "type": "set_fact",
+                  "id": "broke_grades_promise",
+                  "value": true
+                }
+              ],
+              "unless": [
+                {
+                  "type": "track",
+                  "track": "school",
+                  "min": 60
+                }
+              ]
+            }
+          ],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "That's a promise. I'll check in a month. I'm not being mean, I'm being your dad."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.holiday.skip",
+          "label": "\"If we have to skip a tournament, I'd get it.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "offered_to_skip",
+              "value": true
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 3
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "...We're not skipping anything. But thank you. Genuinely. Eyes front, the light's green."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "girls": [
+    {
+      "id": "arc.keeper",
+      "title": "Rosa's rules",
+      "location": "training_field",
+      "tone": "everyday",
+      "auto": "Tue",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "fall"
+        },
+        {
+          "type": "fact",
+          "id": "league_matches_played",
+          "min": 6
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{keeper} has called a meeting. In goal. Everyone's standing in the six-yard box like it's a classroom."
+        },
+        {
+          "speaker": "keeper",
+          "text": "I chose goal. I like goal. But I can see everything from here and nobody listens when I shout."
+        },
+        {
+          "speaker": "keeper",
+          "text": "So: new rule. When I say 'time', you've got time. When I say 'man on', turn away. Don't argue with me, I can see behind you."
+        },
+        {
+          "speaker": "coach",
+          "text": "I didn't call this meeting. I'm also not stopping it. Well? She's asking you."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.keeper.back",
+          "label": "\"Deal. You're the eyes. We'll listen.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "keeper",
+              "delta": 3
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "keeper_backed"
+            },
+            {
+              "type": "set_fact",
+              "id": "keeper_backed",
+              "value": true
+            },
+            {
+              "type": "track",
+              "track": "tactical",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "keeper",
+              "text": "Thank you. Finally. Somebody."
+            },
+            {
+              "speaker": "coach",
+              "text": "Good. Then we practise it. Thursday, every drill starts with the keeper's voice."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.keeper.need",
+          "label": "\"You can't run the whole team from the goal, Rosa.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "keeper",
+              "delta": -2
+            },
+            {
+              "type": "set_fact",
+              "id": "keeper_backed",
+              "value": false
+            },
+            {
+              "type": "relationship",
+              "personId": "organiser",
+              "delta": 1
+            }
+          ],
+          "delayed": [
+            {
+              "id": "keeper_sulks",
+              "afterDays": 5,
+              "effects": [
+                {
+                  "type": "set_fact",
+                  "id": "keeper_quiet",
+                  "value": true
+                }
+              ],
+              "unless": [
+                {
+                  "type": "relationship",
+                  "personId": "keeper",
+                  "min": 3
+                }
+              ]
+            }
+          ],
+          "repair": [
+            {
+              "id": "shots_after",
+              "label": "Stay after and let Rosa run a drill her way",
+              "when": [],
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "keeper",
+                  "delta": 3
+                }
+              ],
+              "cancels": [
+                "keeper_sulks"
+              ],
+              "withinDays": 4
+            }
+          ],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "keeper",
+              "text": "Watch me."
+            },
+            {
+              "speaker": "coach",
+              "text": "She can't. She can run the back three, though, and she's right that nobody listens. Think about that."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.keeper.rotate",
+          "label": "\"Try it Thursday. If it works, it's a rule. If not, we say so.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "keeper",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 2
+            },
+            {
+              "type": "set_fact",
+              "id": "keeper_backed",
+              "value": true
+            },
+            {
+              "type": "track",
+              "track": "tactical",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "That's how rules should get made. Thursday. Rosa, bring your voice. Everyone else, bring your ears."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "arc.holiday_car",
+      "title": "The February trip",
+      "location": "car",
+      "tone": "everyday",
+      "auto": "Sat",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_phase",
+          "equals": "winter"
+        },
+        {
+          "type": "day",
+          "min": 138
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Holiday traffic. Mom has two calendars open on her phone, which she reads at red lights and only at red lights."
+        },
+        {
+          "speaker": "parent",
+          "text": "Work wants me away the last week of February. That's the tournament weekend if you get in. I've asked. They've not said yes to moving it."
+        },
+        {
+          "speaker": "parent",
+          "text": "Nia's parents would take you. I know that. I'd just — I want to be behind the goal. It's my thing."
+        },
+        {
+          "speaker": "parent",
+          "text": "And the spring's not cheap. Not saying no. Saying it's real."
+        }
+      ],
+      "choices": [
+        {
+          "id": "arc.holiday.cost",
+          "label": "\"What does it cost? Actually.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "asked_about_cost",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "asked_about_cost"
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 2
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Hotel, the fee, gas, food. A good week's invoices. It's fine. It's a choice, and I'm choosing it."
+            },
+            {
+              "speaker": "parent",
+              "text": "Nobody's ever asked me that. I like that you did."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.holiday.grades",
+          "label": "\"I'll keep school up. Properly. Then it's worth it.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "promise",
+              "id": "promise.grades",
+              "by": "player",
+              "text": "Keep school up through the spring"
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "promise.grades"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [
+            {
+              "id": "grades_check",
+              "afterDays": 28,
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "parent",
+                  "delta": -3
+                },
+                {
+                  "type": "set_fact",
+                  "id": "broke_grades_promise",
+                  "value": true
+                }
+              ],
+              "unless": [
+                {
+                  "type": "track",
+                  "track": "school",
+                  "min": 60
+                }
+              ]
+            }
+          ],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "That's a promise. I'll check in a month. Not because I doubt you — because promises get checked."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "arc.holiday.skip",
+          "label": "\"If you can't be there, I'd rather you were at work and not stressed.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "offered_to_skip",
+              "value": true
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 3
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "...When did you get like this. Okay. We'll see what work says. Either way, you're going."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ]
+}

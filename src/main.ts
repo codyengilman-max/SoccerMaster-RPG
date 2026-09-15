@@ -11,6 +11,7 @@ import { U11_9V9 } from "./sim/rules";
 import { generateSquad } from "./sim/squad";
 import { ROLE_BY_NUMBER, ROLE_LABEL, ROLE_NUMBERS, type RoleNumber } from "./sim/types";
 import { continueScene } from "./story/flow";
+import type { Scene } from "./story/scenes";
 import { loadCatalog, type CatalogFile } from "./tactics/catalog";
 import { pacingFor } from "./tactics/recognition";
 import { recordFirstTouch } from "./training/record";
@@ -65,7 +66,7 @@ function showCampaign(s: Session): void {
   if (s.campaign.scene) {
     mountSceneScreen(root!, s, {
       onNext: () => showCampaign(s),
-      onActivity: (scene) => showActivity(s, scene.activity!),
+      onActivity: (scene) => showActivity(s, scene),
     });
     return;
   }
@@ -136,15 +137,16 @@ function showPending(s: Session, p: PendingActivity): void {
   }
 }
 
-function showActivity(s: Session, activityId: string): void {
-  if (activityId !== "first_touch") throw new Error(`unknown activity ${activityId}`);
+/** A scene's playable activity. At the park the friend runs the session, not the coach. */
+function showActivity(s: Session, scene: Scene): void {
+  if (scene.activity !== "first_touch") throw new Error(`unknown activity ${scene.activity}`);
   const c = s.campaign;
-  const coach = c.roster.people.find((p) => p.id === "coach")?.name ?? "Coach";
+  const lead = scene.location === "park" ? nameOf(s, FRIEND_ID, "Friend") : nameOf(s, "coach", "Coach");
   mountDrillScreen(root!, {
     seed: c.seed ^ c.day,
-    coachName: coach,
+    coachName: lead,
     onDone: (summary) => {
-      recordFirstTouch(c, summary);
+      recordFirstTouch(c, summary, scene.location === "park" ? "park" : "visit");
       continueScene(c, s.scenes);
       s.save();
       showCampaign(s);

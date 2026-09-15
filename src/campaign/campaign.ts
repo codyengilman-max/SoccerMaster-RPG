@@ -23,6 +23,7 @@ import { createRosterState, joinRoster, squadFor, type Club, type Person, type R
 import type { SquadPlayer } from "../sim/engine";
 import { hashSeed } from "../sim/rng";
 import type { RoleNumber } from "../sim/types";
+import { planArc } from "../story/arc";
 import { createStoryState, processDue, type Fired, type StoryState } from "../story/consequences";
 import { createProgression, refreshUnlocks, type Progression } from "../story/progression";
 import { attendsTournament, closeSeason, currentLeagueId, planTournaments, settleFixtures, syncTournamentChoice } from "./season";
@@ -101,14 +102,26 @@ interface CompetitionsFile {
   }[];
 }
 
+/** Story roles the arc addresses teammates by; each maps to a roster identity. */
+export type CastRole = "striker" | "organiser" | "keeper" | "newcomer";
+export const CAST_ROLES: readonly CastRole[] = ["striker", "organiser", "keeper", "newcomer"];
+
 interface CastFile {
   shared: Person[];
-  campaigns: Record<CampaignKind, { friend: Person; parent: Person; teammates: Person[] }>;
+  campaigns: Record<CampaignKind, { friend: Person; parent: Person; teammates: Person[]; roles: Record<CastRole, string> }>;
 }
 
 const competitionsFile = competitionsU11 as CompetitionsFile;
 const castFile = cast as unknown as CastFile;
 const clubs = (clubsFile as { clubs: Club[] }).clubs;
+
+export const castRoles = (kind: CampaignKind): Readonly<Record<CastRole, string>> => castFile.campaigns[kind].roles;
+
+/** Roster person id for a story id: cast roles resolve to the campaign's teammate, anything else is itself. */
+export function resolvePerson(kind: CampaignKind, id: string): string {
+  const roles = castRoles(kind);
+  return (CAST_ROLES as readonly string[]).includes(id) ? roles[id as CastRole] : id;
+}
 
 export function loadTournaments(): Tournament[] {
   return competitionsFile.tournaments.map((t) => ({
@@ -358,6 +371,7 @@ export function advanceDays(c: CampaignState, days: number): DayAdvance {
       entered.push(e.tournament.id);
       scheduleWeek(c, mondayOf(c.day));
     }
+    planArc(c);
   }
   c.slot = slotsFor(to)[0]!;
   const missed = advanceTo(c.schedule, to);

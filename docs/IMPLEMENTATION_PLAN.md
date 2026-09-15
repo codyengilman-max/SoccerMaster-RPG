@@ -130,6 +130,20 @@ Every consequential choice is data: `{ id, eligibility, immediate[], delayed[], 
 Effects are applied through one reducer with an idempotency key `(choiceId, saveRevision)`.
 Dialogue text — authored or AI — never carries effects; it only references approved facts.
 
+The U11 arc (`src/story/arc.ts`) is planned, not scripted: each milestone scene declares the
+evidence it needs (`season_phase`, `league_matches_played`, `result_streak`, `fall_position`,
+facts earlier scenes set) and the planner queues the first eligible one on its weekday, one per
+week. Story therefore reacts to what the simulation produced and can never decide a result, a
+grade or a roster position. Optional scenes are offered from the hub at a location (lunch spot,
+car, park) and repeat after a cooldown; consequential choices carry `delayed` effects with an
+`unless` premise and `repair` options with a `withinDays` window, all applied by the reducer.
+
+Progression (`src/story/progression.ts`) reads `content/rules/progression-u11.json`: seven tracks
+moved by verified activity, and unlock rules that grant a conversation, an activity, support or an
+opportunity when named track or relationship thresholds hold. Relationships never move tracks;
+tracks never move relationships. The hub renders every rule with its requirements and the
+player's current values, so nothing is implied only through dialogue.
+
 ### 3.5 Result ingestion (§17)
 
 `MatchReport` carries `eventId`. `calendar.ingestResult` rejects unknown fixtures, role
@@ -157,6 +171,7 @@ Beyond the first playable (spec §17, §5):
 | # | PR | Contents | Acceptance checks touched |
 |---|---|---|---|
 | 9 | U11 season + tournament weekends | home-and-away fall/spring leagues with reserve dates, deterministic off-screen results, missed-match consequences, cutoff-window registration, three-game Sat/Sun tournament weekends with guest clubs, league-clash rescheduling, family attendance choice and hotel/common-area scenes, tournament results kept out of league tables, season phases and season-end review, hub season/fixture/tournament cards, "let the days pass", save v3, `npm run smoke:season` | 11, 12, 13, 14 |
+| 10 | U11 story arc + explicit progression | `content/story/arc-u11.json`: the season's central question, twelve milestone scenes the arc planner queues (at most one a week) from evidence the world already holds (league matches played, result streak, season phase, fall finish, the striker's rumour), optional lunch / family-car / park scenes offered from the hub with cooldowns, boys'/girls' authored differences via cast-role aliases; `content/rules/progression-u11.json`: track sources and unlock rules with grants and thresholds, `unlockViews` for the hub's progress card, `unlock.*` announcement scenes; park first-touch sessions as a friend-led verified activity; repairs offered from the hub within their window; `npm run story:tones` | 3, 11, 16 |
 
 ## 5. Verification approach
 
