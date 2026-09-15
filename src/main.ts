@@ -5,6 +5,7 @@ import { FRIEND_ID, PLAYER_ID, type PendingActivity } from "./campaign/campaign"
 import { campaignMatchConfig, fixtureById, reportFromRuntime } from "./campaign/match";
 import { abandonPending, cancelPending, completeCrossbar, completeHomeSkill, completeMatch, completeTraining, isTired, type Completion } from "./campaign/week";
 import { createRuntime } from "./match/runtime";
+import { registerServiceWorker } from "./pwa/register";
 import { LocalStorageStore, SaveError } from "./save/save";
 import { U11_9V9 } from "./sim/rules";
 import { generateSquad } from "./sim/squad";
@@ -201,4 +202,5 @@ function startMatch(seed: number, role: RoleNumber): void {
   mountMatchScreen(root!, runtime, showQuickMatch);
 }
 
+registerServiceWorker();
 showStart();

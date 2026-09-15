@@ -15,6 +15,7 @@ import {
   type MomentClosed,
 } from "../match/runtime";
 import { createCamera, follow, frameFor, resize, toField, type Camera } from "../render/camera";
+import { createProbe, formatSummary, type ProbeSummary } from "../perf/probe";
 import { render } from "../render/pitch";
 import type { Vec2 } from "../sim/geometry";
 import type { MatchEvent } from "../sim/types";
@@ -29,6 +30,8 @@ import { feedbackFor } from "../tactics/session";
  */
 
 export interface MatchScreenHandle {
+  /** Rolling frame-time summary for the last ~300 frames (docs/PERFORMANCE.md). */
+  perf(): ProbeSummary;
   destroy(): void;
 }
 
@@ -54,6 +57,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
         <canvas class="pitch" aria-label="match view"></canvas>
         <div class="window" hidden><div class="bar"></div><span class="left"></span></div>
         <div class="banner" hidden></div>
+        <div class="perf" hidden></div>
       </div>
       <section class="panel">
         <div class="moment" hidden>
@@ -86,6 +90,10 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
   const timeEl = q<HTMLElement>(".clock .time");
   const halfEl = q<HTMLElement>(".clock .half");
   const speedEl = q<HTMLElement>(".speed");
+  const perfEl = q<HTMLElement>(".perf");
+  const probe = createProbe();
+  const showPerf = new URLSearchParams(location.search).has("perf");
+  perfEl.hidden = !showPerf;
   const windowEl = q<HTMLDivElement>(".window");
   const windowBar = q<HTMLDivElement>(".window .bar");
   const windowLeft = q<HTMLSpanElement>(".window .left");
@@ -252,6 +260,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
 
   let last = 0;
   let raf = 0;
+  let perfFrames = 0;
   let finishedShown = false;
 
   const loop = (now: number): void => {
@@ -259,7 +268,9 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     const dt = last === 0 ? 16 : Math.min(MAX_FRAME_MS, now - last);
     last = now;
 
+    const t0 = performance.now();
     const res = frame(runtime, dt);
+    const t1 = performance.now();
     if (res.opened) {
       showBanner(res.opened.major ? "Big moment" : "Read the field", 1200);
       renderOptions();
@@ -305,6 +316,8 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       slow,
       major: w?.moment.major ?? false,
     });
+    probe.sample({ frameMs: dt, simMs: t1 - t0, renderMs: performance.now() - t1, ticks: res.ticks });
+    if (showPerf && ++perfFrames % 30 === 0) perfEl.textContent = formatSummary(probe.summary());
 
     if (res.finished && !finishedShown) {
       finishedShown = true;
@@ -339,6 +352,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
   };
 
   const handle: MatchScreenHandle = {
+    perf: () => probe.summary(),
     destroy() {
       cancelAnimationFrame(raf);
       ro.disconnect();

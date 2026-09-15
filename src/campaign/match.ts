@@ -6,6 +6,7 @@ import type { MatchConfig } from "../sim/engine";
 import { U11_9V9 } from "../sim/rules";
 import { hashSeed } from "../sim/rng";
 import { applyEffect, type Effect } from "../story/consequences";
+import { HOME_REPORTS_FACT } from "../training/homeSkill";
 import { FRIEND_ID, PLAYER_ID, matchSquads, playerClubId, recordMatch, storyContext, touch, type CampaignState } from "./campaign";
 
 /**
@@ -75,7 +76,22 @@ export const MATCH_FACTS = {
   goodReadPoorExecution: "last_good_read_poor_execution",
   poorReadGoodOutcome: "last_poor_read_good_outcome",
   reads: "last_match_reads",
+  weekTrained: "week_trainings_attended",
+  weekMissed: "week_trainings_missed",
+  weekHome: "week_home_reports",
 } as const;
+
+/** Attendance in the seven days up to and including match day, from the schedule itself. */
+export function weekAttendance(c: CampaignState, matchDay: number): { attended: number; missed: number } {
+  let attended = 0;
+  let missed = 0;
+  for (const k of c.schedule.commitments) {
+    if (k.kind !== "training" || k.day > matchDay || k.day <= matchDay - 7) continue;
+    if (k.status === "attended") attended++;
+    else if (k.status === "missed") missed++;
+  }
+  return { attended, missed };
+}
 
 /** `none` when no tactical moment was recorded — then nothing may be claimed about the reads. */
 export type MatchReads = "sharp" | "mixed" | "rushed" | "none";
@@ -98,6 +114,8 @@ export function matchFacts(c: CampaignState, r: MatchReport, fixture: Fixture): 
   const friendPlayed = playedIn(r, FRIEND_ID);
   const friend = friendPlayed ? lineFor(r, FRIEND_ID) : undefined;
   const played = typeof c.story.facts[MATCH_FACTS.played] === "number" ? (c.story.facts[MATCH_FACTS.played] as number) : 0;
+  const week = weekAttendance(c, c.day);
+  const homeReports = typeof c.story.facts[HOME_REPORTS_FACT] === "number" ? (c.story.facts[HOME_REPORTS_FACT] as number) : 0;
   const effects: Effect[] = [
     { type: "set_fact", id: MATCH_FACTS.played, value: played + 1 },
     { type: "set_fact", id: MATCH_FACTS.result, value: resultFor(r, side) },
@@ -116,13 +134,24 @@ export function matchFacts(c: CampaignState, r: MatchReport, fixture: Fixture): 
     { type: "set_fact", id: MATCH_FACTS.goodReadPoorExecution, value: r.moments.goodReadPoorExecution.length },
     { type: "set_fact", id: MATCH_FACTS.poorReadGoodOutcome, value: r.moments.poorReadGoodOutcome.length },
     { type: "set_fact", id: MATCH_FACTS.reads, value: matchReads(r) },
+    { type: "set_fact", id: MATCH_FACTS.weekTrained, value: week.attended },
+    { type: "set_fact", id: MATCH_FACTS.weekMissed, value: week.missed },
+    { type: "set_fact", id: MATCH_FACTS.weekHome, value: homeReports },
   ];
   // The parent watched from the touchline: they know the result and what they could see, not the reads.
   for (const id of [MATCH_FACTS.result, MATCH_FACTS.score, MATCH_FACTS.opponent, MATCH_FACTS.myGoals, MATCH_FACTS.friendPlayed]) {
     effects.push({ type: "learn", personId: "parent", factId: id });
   }
-  // The coach saw the decisions.
-  for (const id of [MATCH_FACTS.result, MATCH_FACTS.reads, MATCH_FACTS.goodReadPoorExecution, MATCH_FACTS.poorReadGoodOutcome, MATCH_FACTS.myGoals]) {
+  // The coach saw the decisions, and takes the register.
+  for (const id of [
+    MATCH_FACTS.result,
+    MATCH_FACTS.reads,
+    MATCH_FACTS.goodReadPoorExecution,
+    MATCH_FACTS.poorReadGoodOutcome,
+    MATCH_FACTS.myGoals,
+    MATCH_FACTS.weekTrained,
+    MATCH_FACTS.weekMissed,
+  ]) {
     effects.push({ type: "learn", personId: "coach", factId: id });
   }
   // The friend knows what happened only if they were on the pitch.
@@ -152,6 +181,7 @@ export function completeCampaignMatch(c: CampaignState, report: MatchReport): Co
   if (!ingest.ok) return ingest.reason === "duplicate_event" || before ? { ok: true, effects: [], duplicate: true } : { ok: false, reason: ingest.reason };
   const effects = matchFacts(c, report, fixture);
   effects.push({ type: "track", track: "physical", delta: 1 });
+  effects.push({ type: "queue_scene", sceneId: "week.coach_word", onDay: c.day });
   effects.push({ type: "queue_scene", sceneId: "week.postgame", onDay: c.day });
   effects.push({ type: "queue_scene", sceneId: "week.friend_after_match", onDay: c.day });
   const ctx = storyContext(c);

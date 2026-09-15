@@ -17,7 +17,8 @@
     "catalog:build": "tsx tools/authorCatalog.ts",
     "sim:tactics": "tsx tools/headlessTactics.ts",
     "sim:training": "tsx tools/headlessSmallSided.ts",
-    "smoke:week": "tsx tools/smokeWeek.ts"
+    "smoke:week": "tsx tools/smokeWeek.ts",
+    "perf": "tsx tools/perfBench.ts"
   },
   "devDependencies": {
     "@types/node": "20.19.43",

@@ -3,7 +3,7 @@ import catalogJson from "../../content/catalog/provisional-u11.json";
 import { standings } from "../../src/calendar/competitions";
 import { mondayOf, weekday } from "../../src/calendar/date";
 import { advanceDays, currentLeagueId, eligibilityPreview, FRIEND_ID, fixturesFor, PLAYER_ID, scheduleWeek } from "../../src/campaign/campaign";
-import { campaignMatchConfig, completeCampaignMatch, fixtureById, MATCH_FACTS, reportFromRuntime } from "../../src/campaign/match";
+import { campaignMatchConfig, completeCampaignMatch, fixtureById, MATCH_FACTS, reportFromRuntime, weekAttendance } from "../../src/campaign/match";
 import {
   abandonPending,
   cancelPending,
@@ -339,9 +339,32 @@ describe("regular week: campaign match through the runtime", () => {
     expect(c.story.facts[MATCH_FACTS.moments]).toBe(rep.moments.total);
     if (rep.moments.total === 0) expect(c.story.facts[MATCH_FACTS.reads]).toBe("none");
 
+    // the coach's word comes before the postgame and is grounded in this week's attendance
+    expect(c.story.facts[MATCH_FACTS.weekTrained]).toBe(weekAttendance(c, c.day).attended);
+    expect(c.story.facts[MATCH_FACTS.weekMissed]).toBe(weekAttendance(c, c.day).missed);
+    expect(c.story.knowledge["coach"]).toContain(MATCH_FACTS.weekTrained);
     const seen = hub(s);
-    expect(seen).toContain("week.postgame");
+    expect(seen.indexOf("week.coach_word")).toBeGreaterThanOrEqual(0);
+    expect(seen.indexOf("week.coach_word")).toBeLessThan(seen.indexOf("week.postgame"));
     expect(seen).toContain("week.friend_after_match");
+  });
+
+  it("weekAttendance counts only training commitments in the seven days up to the match", () => {
+    const s = joinedSession();
+    const c = s.campaign;
+    const day = c.day + 9;
+    const k = (kind: "training" | "school" | "match", d: number, status: "attended" | "missed" | "scheduled") =>
+      ({ id: `${kind}-${d}`, day: d, slot: "afternoon" as const, kind, title: kind, mandatory: true, refId: null, minutes: 60, status });
+    c.schedule.commitments = [
+      k("training", day - 7, "attended"),
+      k("training", day - 6, "attended"),
+      k("training", day - 2, "missed"),
+      k("training", day, "scheduled"),
+      k("training", day + 1, "attended"),
+      k("school", day - 1, "attended"),
+      k("match", day, "scheduled"),
+    ];
+    expect(weekAttendance(c, day)).toEqual({ attended: 1, missed: 1 });
   });
 
   it("a league fixture updates the table and the eligibility preview; the earlier friendly never did", () => {
