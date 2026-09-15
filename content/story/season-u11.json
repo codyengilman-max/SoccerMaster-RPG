@@ -1,0 +1,1462 @@
+{
+  "reviewStatus": "proposal",
+  "note": "Season scenes (spec §6, §17, §20): tournament entry at the kitchen table, between-games and hotel-lobby moments, the coach's wrap after a final, the unplayed-match conversation, the season review before tryouts. Facts come from the competition record and match reports; nothing here invents a result. Every line is a proposal for the owner's review.",
+  "shared": [
+    {
+      "id": "season.tournament_entered",
+      "title": "Kitchen table, club message",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "tournament_pending",
+          "exists": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{parent} reads the club message out loud at the kitchen table, twice."
+        },
+        {
+          "speaker": "parent",
+          "text": "{club} are in the {tournament}. {tournament_date}. Two games Saturday, one Sunday."
+        },
+        {
+          "speaker": "parent",
+          "text": "It knocks a league game on: {tournament_moved}.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_moved",
+              "exists": true
+            }
+          ]
+        },
+        {
+          "speaker": null,
+          "text": "Saturday night is a hotel if it's far. Everyone at the table is thinking about the same weekend."
+        }
+      ],
+      "choices": [
+        {
+          "id": "season.entered.family",
+          "label": "\"We'll go. All of us.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tournament_attend",
+              "value": "team"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Then it's a weekend. I'll sort the room and the cooler."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.entered.friend",
+          "label": "\"Can I ride with {friend}'s family?\"",
+          "eligibility": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "min": 1
+            }
+          ],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tournament_attend",
+              "value": "friend"
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "If they say yes. Text now — and you pack your own bag, all of it."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.entered.skip",
+          "label": "\"Do I have to go?\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tournament_attend",
+              "value": "skip"
+            },
+            {
+              "type": "set_fact",
+              "id": "tournament_skipped",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "tournament_skipped"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": -2
+            }
+          ],
+          "delayed": [
+            {
+              "id": "friend_noticed",
+              "afterDays": 4,
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "friend",
+                  "delta": -1
+                },
+                {
+                  "type": "set_fact",
+                  "id": "friend_missed_you",
+                  "value": true
+                },
+                {
+                  "type": "learn",
+                  "personId": "friend",
+                  "factId": "friend_missed_you"
+                }
+              ]
+            }
+          ],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "No. But your team does, and they'll notice. Your call — I won't make it for you."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "season.tournament_between",
+      "title": "Between games",
+      "location": "pitch",
+      "tone": "everyday",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "tournament_game",
+          "exists": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Shade, water, orange slices. The next game is in fifty minutes."
+        },
+        {
+          "speaker": "coach",
+          "text": "That's one. {tournament_record} so far. Eat something, drink, then feet up.",
+          "requiresKnown": [
+            "tournament_record"
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "Good. Nobody gets excited. Same again.",
+          "requiresKnown": [
+            "last_result"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "win"
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "Fine result. We're still in it.",
+          "requiresKnown": [
+            "last_result"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "draw"
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "It's a tournament. One result doesn't decide it. Heads up for the next one.",
+          "requiresKnown": [
+            "last_result"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_result",
+              "equals": "loss"
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "season.between.team",
+          "label": "Sit with the team",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Halftime oranges are the best part of soccer. Don't tell coach I said that."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.between.quiet",
+          "label": "Find ten minutes of quiet",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tournament_rested",
+              "value": true
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "Ten minutes with your eyes shut behind the tent. Nobody bothers you."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "season.tournament_evening",
+      "title": "Hotel lobby",
+      "location": "tournament_hotel",
+      "tone": "everyday",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "tournament_game",
+          "exists": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The hotel lobby has two sofas and a vending machine, and eleven kids have claimed all of it."
+        },
+        {
+          "speaker": "friend",
+          "text": "Two games in one day. My legs are done. {tournament_record}.",
+          "requiresKnown": [
+            "tournament_record"
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Tomorrow's a final. An actual final.",
+          "requiresKnown": [
+            "tournament_final"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_final",
+              "equals": true
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Tomorrow's the placement game. Still a game. Still counts to me.",
+          "requiresKnown": [
+            "tournament_final"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_final",
+              "equals": false
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Lights out at nine. I mean it."
+        }
+      ],
+      "choices": [
+        {
+          "id": "season.evening.cards",
+          "label": "Cards in the lobby till lights-out",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            },
+            {
+              "type": "set_fact",
+              "id": "tournament_late",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "You cheat at Uno and I respect it."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.evening.early",
+          "label": "Early night. Tomorrow matters.",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tournament_rested",
+              "value": true
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Boring. Correct, but boring."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.evening.parent",
+          "label": "Sit with {parent} for a bit",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Proud of you today. Whatever tomorrow is."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "season.tournament_end",
+      "title": "The tent comes down",
+      "location": "pitch",
+      "tone": "everyday",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "tournament_outcome",
+          "exists": true
+        },
+        {
+          "type": "fact",
+          "id": "tournament_outcome",
+          "not": "in_progress"
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Medals or not, the tent comes down the same way."
+        },
+        {
+          "speaker": "coach",
+          "text": "{tournament} champions. Look at each other — you did that, all of you. Enjoy it today; Tuesday we train.",
+          "requiresKnown": [
+            "tournament_outcome"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_outcome",
+              "equals": "champions"
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "A final, and we lost it. That hurts, and it should. But we were in it, and I'll take how we got there.",
+          "requiresKnown": [
+            "tournament_outcome"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_outcome",
+              "equals": "runners_up"
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "Not the final we wanted, but you finished the weekend winning. That's what good teams do.",
+          "requiresKnown": [
+            "tournament_outcome"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_outcome",
+              "equals": "placement_won"
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "Long weekend, hard finish. Tuesday we look at what it showed us — there's plenty.",
+          "requiresKnown": [
+            "tournament_outcome"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_outcome",
+              "equals": "placement_lost"
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "And you — that goal. Right moment for it.",
+          "requiresKnown": [
+            "last_my_goals"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_my_goals",
+              "min": 1
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "season.tend.coach",
+          "label": "Thank the coach",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Thank your teammates. Then your parents. Then me, if there's time."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.tend.friend",
+          "label": "Find {friend}",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Same again next cup. Deal."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "season.missed_match",
+      "title": "Result sheet",
+      "location": "training_field",
+      "tone": "adversity",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "missed_match_recent",
+          "equals": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "{coach} has the result sheet folded in a back pocket and doesn't need to look at it."
+        },
+        {
+          "speaker": "coach",
+          "text": "We played {missed_match_opponent} without you. {missed_match_score}.",
+          "requiresKnown": [
+            "missed_match_recent"
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "That's twice now.",
+          "requiresKnown": [
+            "missed_match_recent"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "matches_missed",
+              "min": 2
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "season.missed.honest",
+          "label": "\"I should have been there.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "clear_fact",
+              "id": "missed_match_recent"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": -1
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Yes. A team is nine people who turn up. Be one of them."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.missed.excuse",
+          "label": "\"Something came up.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "clear_fact",
+              "id": "missed_match_recent"
+            }
+          ],
+          "delayed": [
+            {
+              "id": "pattern",
+              "afterDays": 10,
+              "effects": [
+                {
+                  "type": "relationship",
+                  "personId": "coach",
+                  "delta": -2
+                },
+                {
+                  "type": "set_fact",
+                  "id": "coach_doubts_excuses",
+                  "value": true
+                },
+                {
+                  "type": "learn",
+                  "personId": "coach",
+                  "factId": "coach_doubts_excuses"
+                }
+              ],
+              "unless": [
+                {
+                  "type": "fact",
+                  "id": "matches_missed",
+                  "max": 1
+                }
+              ]
+            }
+          ],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Then tell me before, not after. That's all I ask."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "season.end",
+      "title": "Last training of the season",
+      "location": "training_field",
+      "tone": "reward",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_reviewed",
+          "equals": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Bibs in the bag, cones in the sack. {coach} gathers everyone in for the last time this season."
+        },
+        {
+          "speaker": "coach",
+          "text": "Season's done. League: {season_record}. {season_matches} matches with you in the shirt.",
+          "requiresKnown": [
+            "season_league_record",
+            "season_matches_played"
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "And {season_trophies} weekend where we lifted something. Remember what that took.",
+          "requiresKnown": [
+            "season_trophies"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "season_trophies",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "No trophies. Plenty of weekends that mattered anyway. Trophies come later if the work stays.",
+          "requiresKnown": [
+            "season_trophies"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "season_trophies",
+              "equals": 0
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "Tryouts are the fifteenth of May. Every club in the valley. I'd like you back, and I'll say that to your face rather than hint at it."
+        },
+        {
+          "speaker": "friend",
+          "text": "Same team next year. Right?"
+        }
+      ],
+      "choices": [
+        {
+          "id": "season.end.stay",
+          "label": "\"I want to stay at {club}.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_intent",
+              "value": "stay"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "tryout_intent"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Good. Then we start again in August, a year better."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.end.look",
+          "label": "\"I want to see what's out there.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_intent",
+              "value": "look"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "tryout_intent"
+            },
+            {
+              "type": "track",
+              "track": "pathway",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Good. Say it now, in May, to my face — that's how it's done. Whatever you choose, you'll be ready."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.end.undecided",
+          "label": "\"I don't know yet.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_intent",
+              "value": "undecided"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "tryout_intent"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "That's an honest answer. Take the week."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "boys": [
+    {
+      "id": "season.tournament_evening",
+      "title": "Hotel lobby",
+      "location": "tournament_hotel",
+      "tone": "everyday",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "tournament_game",
+          "exists": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The hotel lobby has two sofas and a vending machine, and eleven kids have claimed all of it."
+        },
+        {
+          "speaker": "friend",
+          "text": "Two games. TWO. My legs have filed a complaint. {tournament_record} though.",
+          "requiresKnown": [
+            "tournament_record"
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Tomorrow's a final. I'm not sleeping. Don't even try to make me.",
+          "requiresKnown": [
+            "tournament_final"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_final",
+              "equals": true
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Placement game tomorrow. Whatever. I want to win it more than the final anyway.",
+          "requiresKnown": [
+            "tournament_final"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_final",
+              "equals": false
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Lights out at nine. I mean it."
+        }
+      ],
+      "choices": [
+        {
+          "id": "season.evening.cards",
+          "label": "Cards in the lobby till lights-out",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            },
+            {
+              "type": "set_fact",
+              "id": "tournament_late",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "You cheat at Uno and I respect it."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.evening.early",
+          "label": "Early night. Tomorrow matters.",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tournament_rested",
+              "value": true
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Boring. Correct, but boring."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.evening.parent",
+          "label": "Sit with {parent} for a bit",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Proud of you today. Whatever tomorrow is."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "season.end",
+      "title": "Last training of the season",
+      "location": "training_field",
+      "tone": "reward",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_reviewed",
+          "equals": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Bibs in the bag, cones in the sack. {coach} gathers everyone in for the last time this season."
+        },
+        {
+          "speaker": "coach",
+          "text": "Season's done. League: {season_record}. {season_matches} matches with you in the shirt.",
+          "requiresKnown": [
+            "season_league_record",
+            "season_matches_played"
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "And {season_trophies} weekend where we lifted something. Remember what that took.",
+          "requiresKnown": [
+            "season_trophies"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "season_trophies",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "No trophies. Plenty of weekends that mattered anyway. Trophies come later if the work stays.",
+          "requiresKnown": [
+            "season_trophies"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "season_trophies",
+              "equals": 0
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "Tryouts are the fifteenth of May. Every club in the valley. I'd like you back, and I'll say that to your face rather than hint at it."
+        },
+        {
+          "speaker": "friend",
+          "text": "We're staying together next year. Right? RIGHT."
+        }
+      ],
+      "choices": [
+        {
+          "id": "season.end.stay",
+          "label": "\"I want to stay at {club}.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_intent",
+              "value": "stay"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "tryout_intent"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Good. Then we start again in August, a year better."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.end.look",
+          "label": "\"I want to see what's out there.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_intent",
+              "value": "look"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "tryout_intent"
+            },
+            {
+              "type": "track",
+              "track": "pathway",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Good. Say it now, in May, to my face — that's how it's done. Whatever you choose, you'll be ready."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.end.undecided",
+          "label": "\"I don't know yet.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_intent",
+              "value": "undecided"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "tryout_intent"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "That's an honest answer. Take the week."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "girls": [
+    {
+      "id": "season.tournament_evening",
+      "title": "Hotel lobby",
+      "location": "tournament_hotel",
+      "tone": "everyday",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "tournament_game",
+          "exists": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The hotel lobby has two sofas and a vending machine, and eleven kids have claimed all of it."
+        },
+        {
+          "speaker": "friend",
+          "text": "Two games in a day. {tournament_record}. I've written both up already.",
+          "requiresKnown": [
+            "tournament_record"
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Tomorrow's a final. I've drawn three corners for it. You're the near-post runner — don't argue.",
+          "requiresKnown": [
+            "tournament_final"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_final",
+              "equals": true
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Placement game tomorrow. My notebook says we win it. My notebook is usually right.",
+          "requiresKnown": [
+            "tournament_final"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tournament_final",
+              "equals": false
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Lights out at nine. I mean it."
+        }
+      ],
+      "choices": [
+        {
+          "id": "season.evening.cards",
+          "label": "Cards in the lobby till lights-out",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            },
+            {
+              "type": "set_fact",
+              "id": "tournament_late",
+              "value": true
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "You cheat at Uno and I respect it."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.evening.early",
+          "label": "Early night. Tomorrow matters.",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tournament_rested",
+              "value": true
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Boring. Correct, but boring."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.evening.parent",
+          "label": "Sit with {parent} for a bit",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Proud of you today. Whatever tomorrow is."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "season.end",
+      "title": "Last training of the season",
+      "location": "training_field",
+      "tone": "reward",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "season_reviewed",
+          "equals": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Bibs in the bag, cones in the sack. {coach} gathers everyone in for the last time this season."
+        },
+        {
+          "speaker": "coach",
+          "text": "Season's done. League: {season_record}. {season_matches} matches with you in the shirt.",
+          "requiresKnown": [
+            "season_league_record",
+            "season_matches_played"
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "And {season_trophies} weekend where we lifted something. Remember what that took.",
+          "requiresKnown": [
+            "season_trophies"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "season_trophies",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "No trophies. Plenty of weekends that mattered anyway. Trophies come later if the work stays.",
+          "requiresKnown": [
+            "season_trophies"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "season_trophies",
+              "equals": 0
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "Tryouts are the fifteenth of May. Every club in the valley. I'd like you back, and I'll say that to your face rather than hint at it."
+        },
+        {
+          "speaker": "friend",
+          "text": "I've already drawn next season's set plays. You're in all of them."
+        }
+      ],
+      "choices": [
+        {
+          "id": "season.end.stay",
+          "label": "\"I want to stay at {club}.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_intent",
+              "value": "stay"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "tryout_intent"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Good. Then we start again in August, a year better."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.end.look",
+          "label": "\"I want to see what's out there.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_intent",
+              "value": "look"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "tryout_intent"
+            },
+            {
+              "type": "track",
+              "track": "pathway",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Good. Say it now, in May, to my face — that's how it's done. Whatever you choose, you'll be ready."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "season.end.undecided",
+          "label": "\"I don't know yet.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_intent",
+              "value": "undecided"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "tryout_intent"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "That's an honest answer. Take the week."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ]
+}

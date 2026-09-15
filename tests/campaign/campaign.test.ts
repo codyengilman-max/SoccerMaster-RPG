@@ -173,7 +173,8 @@ describe("matches into the campaign", () => {
     expect(win.eligible).toContain("tuzona");
     expect(lose.eligible).not.toContain("state");
     expect(win.eligible).not.toContain("pacific-wave");
-    expect(fixturesFor(c, "batavia").filter((f) => f.kind === "league")).toHaveLength(10);
+    // home and away against five clubs in each of the two league terms
+    expect(fixturesFor(c, "batavia").filter((f) => f.kind === "league")).toHaveLength(20);
   });
 });
 
@@ -198,7 +199,10 @@ describe("saves", () => {
     const loaded = loadCampaign(store, "slot-1")!;
     expect(loaded).toEqual(JSON.parse(JSON.stringify(c)));
     expect(loaded.story.pending).toHaveLength(1);
-    expect(loaded.competitions.appliedEventIds).toHaveLength(1);
+    // The played match plus every off-screen fixture settled while the days passed, each exactly once.
+    expect(loaded.competitions.appliedEventIds).toContain(c.reports[0]!.eventId);
+    expect(loaded.competitions.appliedEventIds).toHaveLength(1 + loaded.competitions.fixtures.filter((f) => f.result && f.source === "generated" && f.id !== c.reports[0]!.fixtureId).length);
+    expect(new Set(loaded.competitions.appliedEventIds).size).toBe(loaded.competitions.appliedEventIds.length);
     expect(loaded.reports[0]!.eventId).toBe(c.reports[0]!.eventId);
     expect(store.list()).toHaveLength(1);
     // Loaded state keeps behaving: the duplicate result is still rejected.

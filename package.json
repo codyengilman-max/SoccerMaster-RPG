@@ -18,7 +18,8 @@
     "sim:tactics": "tsx tools/headlessTactics.ts",
     "sim:training": "tsx tools/headlessSmallSided.ts",
     "smoke:week": "tsx tools/smokeWeek.ts",
-    "perf": "tsx tools/perfBench.ts"
+    "perf": "tsx tools/perfBench.ts",
+    "smoke:season": "tsx tools/smokeSeason.ts"
   },
   "devDependencies": {
     "@types/node": "20.19.43",

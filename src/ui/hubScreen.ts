@@ -8,12 +8,14 @@ import {
   advanceDays,
   currentLeagueId,
   eligibilityPreview,
+  fixtureTitle,
   fixturesFor,
   playerClubId,
   type CampaignState,
   type PendingActivity,
 } from "../campaign/campaign";
-import { fatigue, inRegularWeek, slotActions, takeAction, weekView, type ActionId } from "../campaign/week";
+import { seasonPhase, seasonSummary, tournamentViews, type SeasonPhase, type TournamentView } from "../campaign/season";
+import { currentCommitment, fatigue, inRegularWeek, skipToNextEvent, slotActions, takeAction, weekView, type ActionId } from "../campaign/week";
 import { ROLE_LABEL } from "../sim/types";
 import { openingStatus, takeQueuedScene } from "../story/flow";
 import { escapeHtml } from "./html";
@@ -31,6 +33,32 @@ const STATUS_TEXT = {
   joined: "You are on the FC Batavia U11 roster.",
   undecided: "You have not decided about FC Batavia yet.",
   declined: "You are not at a club right now.",
+} as const;
+
+const PHASE_LABEL: Record<SeasonPhase, string> = {
+  preseason: "Preseason",
+  fall: "Fall league",
+  winter: "Winter break",
+  spring: "Spring league",
+  postseason: "Season over",
+};
+
+const TOURNAMENT_STATUS: Record<TournamentView["status"], string> = {
+  entered: "entered",
+  skipped: "entered — you're not going",
+  window: "registration open",
+  upcoming: "not yet open",
+  closed: "closed",
+  blocked: "not eligible",
+};
+
+const OUTCOME_LABEL = {
+  champions: "Champions",
+  runners_up: "Runners-up",
+  placement_won: "Won the placement game",
+  placement_lost: "Lost the placement game",
+  in_progress: "In progress",
+  not_entered: "",
 } as const;
 
 const SLOT_LABEL: Record<Slot, string> = { morning: "Morning", school: "School", afternoon: "Afternoon", evening: "Evening" };
@@ -65,22 +93,31 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
   const parent = c.roster.people.find((p) => p.id === "parent")?.name ?? "your parent";
   const fill = (s: string): string => escapeHtml(s.replace("{friend}", friend).replace("{parent}", parent));
   const tired = fatigue(c);
-  const next = fixturesFor(c, club).find((f) => !f.result && f.day >= c.day);
+  const upcoming = fixturesFor(c, club)
+    .filter((f) => !f.result && f.day >= c.day)
+    .slice(0, 3);
   const leagueId = currentLeagueId(c);
   const table = leagueId ? standings(c.competitions, leagueId, c.day) : [];
   const paths = eligibilityPreview(c);
   const week = weekView(c);
   const last = c.reports.at(-1);
+  const phase = seasonPhase(c);
+  const season = seasonSummary(c);
+  const tournaments = tournamentViews(c);
+  const now = currentCommitment(c);
+  const canSkip = !now || now.kind === "school";
+  const oppOf = (f: { homeClubId: string; awayClubId: string }): string => clubNameOf(c, f.homeClubId === club ? f.awayClubId : f.homeClubId);
 
   root.innerHTML = `
     <section class="start hub">
       <h1>${escapeHtml(c.player.name)}</h1>
-      <p>${c.kind === "boys" ? "Boys'" : "Girls'"} campaign · ${ROLE_LABEL[c.player.position]} · ${escapeHtml(clubName)}</p>
+      <p>${c.kind === "boys" ? "Boys'" : "Girls'"} campaign · ${ROLE_LABEL[c.player.position]} · ${escapeHtml(clubName)} · ${PHASE_LABEL[phase]}</p>
       <div class="card now">
         <h2>${formatDay(c.day)} · ${SLOT_LABEL[c.slot]}</h2>
         <p class="muted small">Energy: ${energyText(tired)}${c.story.pending.length ? ` · ${c.story.pending.length} consequence${c.story.pending.length === 1 ? "" : "s"} still to land` : ""}</p>
         <div class="choices">
           ${actions.map((a) => `<button type="button" class="choice action" data-id="${a.id}"><b>${fill(a.label)}</b>${a.detail ? `<span class="muted small"> — ${fill(a.detail)}</span>` : ""}</button>`).join("")}
+          ${canSkip ? `<button type="button" class="choice skip-ahead"><b>Let the days pass</b><span class="muted small"> — until the next training, match or moment</span></button>` : ""}
         </div>
       </div>
       <div class="card">
@@ -96,8 +133,34 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
             )
             .join("")}
         </tbody></table></div>
-        ${next ? `<p class="muted small">Next: ${next.kind === "league" ? "league" : next.kind} v ${escapeHtml(clubNameOf(c, next.homeClubId === club ? next.awayClubId : next.homeClubId))} · ${formatDay(next.day)} (${next.homeClubId === club ? "home" : "away"})</p>` : ""}
         ${last ? `<p class="muted small">Last: ${escapeHtml(last.home.name)} ${last.score.home} – ${last.score.away} ${escapeHtml(last.away.name)}</p>` : ""}
+      </div>
+      <div class="card season">
+        <h3>Season</h3>
+        <p class="muted small">League record ${season.record.won}-${season.record.drawn}-${season.record.lost}${season.fall ? ` · fall ${ordinal(season.fall.position)} of ${season.fall.of}` : ""}${season.spring ? ` · spring ${ordinal(season.spring.position)} of ${season.spring.of}` : ""}${season.trophies ? ` · ${season.trophies} troph${season.trophies === 1 ? "y" : "ies"}` : ""}</p>
+        ${
+          upcoming.length
+            ? `<ul class="facts fixtures">${upcoming
+                .map(
+                  (f) =>
+                    `<li><b>${escapeHtml(fixtureTitle(c, f))}</b> v ${escapeHtml(oppOf(f))} · ${formatDay(f.day)} (${f.homeClubId === club ? "home" : "away"})${
+                      f.movedFromDay !== undefined ? `<span class="muted small"> — moved from ${formatDay(f.movedFromDay)} for a tournament</span>` : ""
+                    }</li>`,
+                )
+                .join("")}</ul>`
+            : `<p class="muted small">No fixtures left this season.</p>`
+        }
+        <h4>Tournaments</h4>
+        <ul class="facts tournaments">
+          ${tournaments
+            .map((v) => {
+              const s = v.summary;
+              const line = s && s.played ? ` · ${s.won}-${s.drawn}-${s.lost}${s.outcome !== "in_progress" ? ` · ${OUTCOME_LABEL[s.outcome]}` : ""}` : "";
+              const why = v.reasons.length ? ` <span class="muted small">(${escapeHtml(v.reasons.join("; "))})</span>` : "";
+              return `<li class="t-${v.status}"><b>${escapeHtml(v.tournament.name)}</b> · ${formatDay(v.tournament.day)} · ${TOURNAMENT_STATUS[v.status]}${line}${why}</li>`;
+            })
+            .join("")}
+        </ul>
       </div>
       ${
         table.length
@@ -135,7 +198,22 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
       mountHubScreen(root, session, h);
     });
   }
+  root.querySelector<HTMLButtonElement>("button.skip-ahead")?.addEventListener("click", () => {
+    skipToNextEvent(c);
+    session.save();
+    if (c.scene) {
+      h.onScene();
+      return;
+    }
+    mountHubScreen(root, session, h);
+  });
   root.querySelector<HTMLButtonElement>("button.exit")?.addEventListener("click", h.onExit);
+}
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
 }
 
 /** Before the club is joined (or if it was declined): the opening's state and a way to reach the next due scene. */
@@ -185,5 +263,9 @@ function energyText(f: number): string {
 }
 
 function shortTitle(t: string): string {
-  return t === "Team training" ? "Train" : t === "League match" ? "League" : t;
+  if (t === "Team training") return "Train";
+  if (t === "League match") return "League";
+  if (t === "League match (moved)") return "League*";
+  const g = /· (G\d+)$/.exec(t);
+  return g ? `Cup ${g[1]}` : t;
 }

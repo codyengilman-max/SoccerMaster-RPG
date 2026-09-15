@@ -152,6 +152,12 @@ Each item is one PR unless noted. Order chosen so every PR is runnable and teste
 | 7 | Week one | hub, calendar, school scenes, 3 trainings (1v1, 2v2, 3v2), home assignment flow, optional friend activity, league match launch, postgame from `MatchReport`, calendar preview of tournament paths | 11, 15 |
 | 8 | Acceptance + polish | acceptance test suite for §24, mobile performance measurement, PWA shell, visual review pass | 10, 15, 17, 18 |
 
+Beyond the first playable (spec §17, §5):
+
+| # | PR | Contents | Acceptance checks touched |
+|---|---|---|---|
+| 9 | U11 season + tournament weekends | home-and-away fall/spring leagues with reserve dates, deterministic off-screen results, missed-match consequences, cutoff-window registration, three-game Sat/Sun tournament weekends with guest clubs, league-clash rescheduling, family attendance choice and hotel/common-area scenes, tournament results kept out of league tables, season phases and season-end review, hub season/fixture/tournament cards, "let the days pass", save v3, `npm run smoke:season` | 11, 12, 13, 14 |
+
 ## 5. Verification approach
 
 - Unit tests per module; property-style tests for simulation invariants (18 players, ball on

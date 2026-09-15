@@ -1,4 +1,4 @@
-import type { Fixture } from "../calendar/competitions";
+import { tournamentSummary, type Fixture } from "../calendar/competitions";
 import { buildReport, lineFor, playedIn, resultFor, type MatchReport } from "../match/report";
 import type { MatchRuntime } from "../match/runtime";
 import { isPoolPlayer } from "../roster/roster";
@@ -8,6 +8,7 @@ import { hashSeed } from "../sim/rng";
 import { applyEffect, type Effect } from "../story/consequences";
 import { HOME_REPORTS_FACT } from "../training/homeSkill";
 import { FRIEND_ID, PLAYER_ID, matchSquads, playerClubId, recordMatch, storyContext, touch, type CampaignState } from "./campaign";
+import { SCENES } from "./season";
 
 /**
  * Campaign matches (spec §10, §12): the fixture's real rosters go into the sim, the user's locked
@@ -168,9 +169,52 @@ export type CompleteMatchResult =
   | { ok: true; effects: []; duplicate: true }
   | { ok: false; reason: string };
 
+export const TOURNAMENT_FACTS = {
+  name: "tournament_name",
+  game: "tournament_game",
+  games: "tournament_games",
+  record: "tournament_record",
+  /** Whether the next (or just played last) game is a final rather than a placement match. */
+  final: "tournament_final",
+  outcome: "tournament_outcome",
+} as const;
+
+/**
+ * Facts about the tournament a fixture belongs to, from the club's tournament fixtures alone. Pure.
+ * Returns the postgame scenes for this point of the weekend: between games, the evening in the
+ * hotel after the day's last game, or the coach's wrap after the final.
+ */
+export function tournamentFacts(c: CampaignState, fixture: Fixture): { effects: Effect[]; scenes: string[] } {
+  const mine = playerClubId(c)!;
+  const t = c.competitions.tournaments.find((x) => x.id === fixture.competitionId);
+  const games = c.competitions.fixtures
+    .filter((f) => f.competitionId === fixture.competitionId && (f.homeClubId === mine || f.awayClubId === mine))
+    .sort((a, b) => a.day - b.day || a.id.localeCompare(b.id));
+  const idx = games.findIndex((f) => f.id === fixture.id);
+  const s = tournamentSummary(c.competitions, fixture.competitionId, mine);
+  const last = idx === games.length - 1;
+  const lastToday = last || games[idx + 1]!.day !== fixture.day;
+  const effects: Effect[] = [
+    { type: "set_fact", id: TOURNAMENT_FACTS.name, value: t?.name ?? fixture.competitionId },
+    { type: "set_fact", id: TOURNAMENT_FACTS.game, value: idx + 1 },
+    { type: "set_fact", id: TOURNAMENT_FACTS.games, value: games.length },
+    { type: "set_fact", id: TOURNAMENT_FACTS.record, value: `${s.won}-${s.drawn}-${s.lost}` },
+    { type: "set_fact", id: TOURNAMENT_FACTS.final, value: s.finalIsFinal },
+    { type: "set_fact", id: TOURNAMENT_FACTS.outcome, value: s.outcome },
+  ];
+  for (const id of [TOURNAMENT_FACTS.record, TOURNAMENT_FACTS.final, TOURNAMENT_FACTS.outcome]) {
+    effects.push({ type: "learn", personId: "coach", factId: id });
+    effects.push({ type: "learn", personId: "friend", factId: id });
+    effects.push({ type: "learn", personId: "parent", factId: id });
+  }
+  const scenes = last ? [SCENES.end, "week.postgame"] : lastToday ? [SCENES.evening] : [SCENES.between];
+  return { effects, scenes };
+}
+
 /**
  * Persist the report, ingest the fixture result (idempotent), derive facts, and queue the postgame
- * scenes for today. Re-submitting the same match is a no-op.
+ * scenes for today. Re-submitting the same match is a no-op. A tournament game gets the weekend's
+ * scenes instead of the league Saturday's drive home.
  */
 export function completeCampaignMatch(c: CampaignState, report: MatchReport): CompleteMatchResult {
   if (!report.finished) return { ok: false, reason: "match not finished" };
@@ -181,9 +225,16 @@ export function completeCampaignMatch(c: CampaignState, report: MatchReport): Co
   if (!ingest.ok) return ingest.reason === "duplicate_event" || before ? { ok: true, effects: [], duplicate: true } : { ok: false, reason: ingest.reason };
   const effects = matchFacts(c, report, fixture);
   effects.push({ type: "track", track: "physical", delta: 1 });
-  effects.push({ type: "queue_scene", sceneId: "week.coach_word", onDay: c.day });
-  effects.push({ type: "queue_scene", sceneId: "week.postgame", onDay: c.day });
-  effects.push({ type: "queue_scene", sceneId: "week.friend_after_match", onDay: c.day });
+  if (fixture.kind === "tournament") {
+    const t = tournamentFacts(c, fixture);
+    effects.push(...t.effects);
+    effects.push({ type: "queue_scene", sceneId: "week.coach_word", onDay: c.day });
+    for (const sceneId of t.scenes) effects.push({ type: "queue_scene", sceneId, onDay: c.day });
+  } else {
+    effects.push({ type: "queue_scene", sceneId: "week.coach_word", onDay: c.day });
+    effects.push({ type: "queue_scene", sceneId: "week.postgame", onDay: c.day });
+    effects.push({ type: "queue_scene", sceneId: "week.friend_after_match", onDay: c.day });
+  }
   const ctx = storyContext(c);
   for (const e of effects) applyEffect(ctx, e);
   touch(c);

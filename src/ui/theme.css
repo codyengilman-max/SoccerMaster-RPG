@@ -875,3 +875,36 @@ button {
 .home a {
   color: var(--cyan-300);
 }
+
+/* ---------------------------------------------------------- season card */
+
+.hub h4 {
+  margin: 0.9rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hub .facts.fixtures li,
+.hub .facts.tournaments li {
+  margin: 0.15rem 0;
+}
+
+.hub .tournaments li.t-closed,
+.hub .tournaments li.t-blocked,
+.hub .tournaments li.t-upcoming {
+  opacity: 0.65;
+}
+
+.hub .tournaments li.t-window b {
+  color: var(--cyan-300);
+}
+
+.hub .tournaments li.t-entered b {
+  color: var(--amber);
+}
+
+.hub .choice.skip-ahead {
+  opacity: 0.85;
+}

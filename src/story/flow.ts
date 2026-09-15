@@ -1,4 +1,5 @@
 import openingFile from "../../content/story/opening-u11.json";
+import seasonFile from "../../content/story/season-u11.json";
 import weekFile from "../../content/story/week-u11.json";
 import { nextWeekday, weekday } from "../calendar/date";
 import { addCommitment, markAttended, slotsFor } from "../calendar/schedule";
@@ -31,6 +32,7 @@ interface SceneFile {
 
 const opening = openingFile as unknown as SceneFile;
 const week = weekFile as unknown as SceneFile;
+const season = seasonFile as unknown as SceneFile;
 
 export const OPENING_START = "open.kickabout";
 
@@ -44,9 +46,10 @@ function merge(file: SceneFile, kind: CampaignKind): Scene[] {
 
 export const openingScenes = (kind: CampaignKind): Scene[] => merge(opening, kind);
 export const weekScenes = (kind: CampaignKind): Scene[] => merge(week, kind);
+export const seasonScenes = (kind: CampaignKind): Scene[] => merge(season, kind);
 
-/** Everything authored for a campaign: opening plus regular-week scenes. */
-export const campaignScenes = (kind: CampaignKind): Scene[] => [...openingScenes(kind), ...weekScenes(kind)];
+/** Everything authored for a campaign: opening, regular-week and season scenes. */
+export const campaignScenes = (kind: CampaignKind): Scene[] => [...openingScenes(kind), ...weekScenes(kind), ...seasonScenes(kind)];
 
 /**
  * Choice ids are the consequence reducer's idempotency keys. A repeatable scene (`once: false`,
@@ -81,6 +84,16 @@ export function sceneVars(c: CampaignState): Record<string, string> {
     score: factText("last_score"),
     opponent: factText("last_opponent"),
     missed_day: factText("missed_training_day"),
+    tournament: factText("tournament_name"),
+    tournament_date: factText("tournament_date"),
+    tournament_moved: factText("tournament_moved"),
+    tournament_record: factText("tournament_record"),
+    missed_match_opponent: factText("missed_match_opponent"),
+    missed_match_score: factText("missed_match_score"),
+    season_record: factText("season_league_record"),
+    season_goals: factText("season_goals"),
+    season_matches: factText("season_matches_played"),
+    season_trophies: factText("season_trophies"),
   };
 }
 
@@ -141,7 +154,9 @@ export function viewScene(c: CampaignState, scenes: readonly Scene[]): SceneView
   const ctx = storyContext(c);
   const vars = sceneVars(c);
   const lines = visibleLines(ctx, scene.lines).map((l) => ({ ...l, text: fill(l.text, vars) }));
-  const choices = scene.choices.filter((ch) => choiceEligible(ctx, scopedChoice(scene, ch, c.day)));
+  const choices = scene.choices
+    .filter((ch) => choiceEligible(ctx, scopedChoice(scene, ch, c.day)))
+    .map((ch) => ({ ...ch, label: fill(ch.label, vars) }));
   return { scene, lines, choices, vars };
 }
 
