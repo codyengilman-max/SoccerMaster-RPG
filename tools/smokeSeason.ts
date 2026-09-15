@@ -9,7 +9,9 @@ import { buildReport } from "../src/match/report";
 import { isPoolPlayer } from "../src/roster/roster";
 import { MemoryStore } from "../src/save/save";
 import { runHeadless as runMatch } from "../src/sim/engine";
+import { CENTRAL_QUESTION, arcScenes } from "../src/story/arc";
 import { chooseInScene, continueScene, takeQueuedScene, viewScene } from "../src/story/flow";
+import { unlockViews } from "../src/story/progression";
 import { createDrill as createFT, runHeadless as runFT, summarize as sumFT } from "../src/training/firstTouch";
 import { recordFirstTouch } from "../src/training/record";
 import { createDrill, runHeadless, summarize } from "../src/training/smallSided";
@@ -91,6 +93,16 @@ for (const l of c.competitions.leagues) {
 }
 console.log("scenes", Object.fromEntries(seenScenes));
 console.log("facts", JSON.stringify(c.story.facts));
+console.log(`\narc: ${CENTRAL_QUESTION}`);
+const milestones = arcScenes(c.kind).filter((sc) => sc.auto);
+const arcPlayed = milestones.filter((sc) => seenScenes.has(sc.id)).length;
+console.log(`  milestones played ${arcPlayed}/${milestones.length}: ${milestones.map((sc) => `${sc.id}${seenScenes.has(sc.id) ? "" : "(-)"}`).join(" ")}`);
+console.log("  tracks", JSON.stringify(c.progression.tracks));
+console.log("  relationships", JSON.stringify(c.progression.relationships));
+for (const u of unlockViews(c.progression)) {
+  const reqs = u.requirements.map((r) => `${r.requirement.track ?? r.requirement.personId} ${r.value}/${r.requirement.min}`);
+  console.log(`  ${u.unlocked ? "[x]" : "[ ]"} ${u.rule.id.padEnd(22)} ${reqs.join(", ")}`);
+}
 
 const league = c.competitions.fixtures.filter((f) => f.kind === "league");
 const unplayed = league.filter((f) => !f.result);
@@ -102,6 +114,7 @@ const problems = [
   tournamentInTable ? "tournament results leaked into a league table" : null,
   c.story.facts["season_reviewed"] !== true ? "season never closed" : null,
   played < 15 ? `only ${played} matches played on screen` : null,
+  arcPlayed < 6 ? `only ${arcPlayed} arc milestones played` : null,
 ];
 const bad = problems.filter((x): x is string => x !== null);
 console.log(bad.length ? `FAIL: ${bad.join("; ")}` : `PASS (${played} matches played, day ${c.day})`);

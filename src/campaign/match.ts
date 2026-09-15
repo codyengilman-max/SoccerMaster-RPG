@@ -80,7 +80,20 @@ export const MATCH_FACTS = {
   weekTrained: "week_trainings_attended",
   weekMissed: "week_trainings_missed",
   weekHome: "week_home_reports",
+  /** League matches the player actually played. */
+  leaguePlayed: "league_matches_played",
+  /** Consecutive league wins (+n) or losses (−n) in matches the player played; a draw resets to 0. */
+  streak: "result_streak",
 } as const;
+
+/** Pathway evidence (spec §19 "opportunities and pathway access"): what other clubs could notice. */
+export const PATHWAY_EVIDENCE = { sharpLeagueReads: 1, tournamentTitle: 4 } as const;
+
+export function nextStreak(previous: number, result: "win" | "draw" | "loss"): number {
+  if (result === "draw") return 0;
+  if (result === "win") return previous > 0 ? previous + 1 : 1;
+  return previous < 0 ? previous - 1 : -1;
+}
 
 /** Attendance in the seven days up to and including match day, from the schedule itself. */
 export function weekAttendance(c: CampaignState, matchDay: number): { attended: number; missed: number } {
@@ -114,12 +127,15 @@ export function matchFacts(c: CampaignState, r: MatchReport, fixture: Fixture): 
   const me = lineFor(r, PLAYER_ID);
   const friendPlayed = playedIn(r, FRIEND_ID);
   const friend = friendPlayed ? lineFor(r, FRIEND_ID) : undefined;
-  const played = typeof c.story.facts[MATCH_FACTS.played] === "number" ? (c.story.facts[MATCH_FACTS.played] as number) : 0;
+  const num = (id: string): number => (typeof c.story.facts[id] === "number" ? (c.story.facts[id] as number) : 0);
+  const played = num(MATCH_FACTS.played);
   const week = weekAttendance(c, c.day);
-  const homeReports = typeof c.story.facts[HOME_REPORTS_FACT] === "number" ? (c.story.facts[HOME_REPORTS_FACT] as number) : 0;
+  const homeReports = num(HOME_REPORTS_FACT);
+  const result = resultFor(r, side);
+  const reads = matchReads(r);
   const effects: Effect[] = [
     { type: "set_fact", id: MATCH_FACTS.played, value: played + 1 },
-    { type: "set_fact", id: MATCH_FACTS.result, value: resultFor(r, side) },
+    { type: "set_fact", id: MATCH_FACTS.result, value: result },
     { type: "set_fact", id: MATCH_FACTS.score, value: side === "home" ? `${r.score.home}–${r.score.away}` : `${r.score.away}–${r.score.home}` },
     { type: "set_fact", id: MATCH_FACTS.opponent, value: opponent.name },
     { type: "set_fact", id: MATCH_FACTS.kind, value: fixture.kind },
@@ -134,11 +150,18 @@ export function matchFacts(c: CampaignState, r: MatchReport, fixture: Fixture): 
     { type: "set_fact", id: MATCH_FACTS.timeouts, value: r.moments.decisions.timeout },
     { type: "set_fact", id: MATCH_FACTS.goodReadPoorExecution, value: r.moments.goodReadPoorExecution.length },
     { type: "set_fact", id: MATCH_FACTS.poorReadGoodOutcome, value: r.moments.poorReadGoodOutcome.length },
-    { type: "set_fact", id: MATCH_FACTS.reads, value: matchReads(r) },
+    { type: "set_fact", id: MATCH_FACTS.reads, value: reads },
     { type: "set_fact", id: MATCH_FACTS.weekTrained, value: week.attended },
     { type: "set_fact", id: MATCH_FACTS.weekMissed, value: week.missed },
     { type: "set_fact", id: MATCH_FACTS.weekHome, value: homeReports },
   ];
+  if (fixture.kind === "league") {
+    effects.push(
+      { type: "set_fact", id: MATCH_FACTS.leaguePlayed, value: num(MATCH_FACTS.leaguePlayed) + 1 },
+      { type: "set_fact", id: MATCH_FACTS.streak, value: nextStreak(num(MATCH_FACTS.streak), result) },
+    );
+    if (reads === "sharp") effects.push({ type: "track", track: "pathway", delta: PATHWAY_EVIDENCE.sharpLeagueReads });
+  }
   // The parent watched from the touchline: they know the result and what they could see, not the reads.
   for (const id of [MATCH_FACTS.result, MATCH_FACTS.score, MATCH_FACTS.opponent, MATCH_FACTS.myGoals, MATCH_FACTS.friendPlayed]) {
     effects.push({ type: "learn", personId: "parent", factId: id });
@@ -207,6 +230,7 @@ export function tournamentFacts(c: CampaignState, fixture: Fixture): { effects: 
     effects.push({ type: "learn", personId: "friend", factId: id });
     effects.push({ type: "learn", personId: "parent", factId: id });
   }
+  if (last && s.outcome === "champions") effects.push({ type: "track", track: "pathway", delta: PATHWAY_EVIDENCE.tournamentTitle });
   const scenes = last ? [SCENES.end, "week.postgame"] : lastToday ? [SCENES.evening] : [SCENES.between];
   return { effects, scenes };
 }

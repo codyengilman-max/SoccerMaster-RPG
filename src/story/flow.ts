@@ -5,7 +5,9 @@ import { nextWeekday, weekday } from "../calendar/date";
 import { addCommitment, markAttended, slotsFor } from "../calendar/schedule";
 import {
   advanceDays,
+  PLAYER_ID,
   playerClubId,
+  resolvePerson,
   storyContext,
   syncStoryFlags,
   touch,
@@ -14,8 +16,9 @@ import {
   type DayAdvance,
 } from "../campaign/campaign";
 import { ROLE_LABEL } from "../sim/types";
-import { applyChoice, choiceEligible, type ChoiceResult } from "./consequences";
-import { fill, markSeen, sceneEligible, visibleLines, type Line, type Scene, type SceneChoice } from "./scenes";
+import { arcScenes } from "./arc";
+import { applyChoice, applyRepair, availableRepairs, choiceEligible, type ChoiceResult, type RepairOption, type RepairResult } from "./consequences";
+import { fill, markPlayed, markSeen, sceneEligible, visibleLines, type Line, type Scene, type SceneChoice } from "./scenes";
 
 /**
  * Scene flow: which authored scene is on screen, what of it the world lets the user see, and
@@ -48,8 +51,8 @@ export const openingScenes = (kind: CampaignKind): Scene[] => merge(opening, kin
 export const weekScenes = (kind: CampaignKind): Scene[] => merge(week, kind);
 export const seasonScenes = (kind: CampaignKind): Scene[] => merge(season, kind);
 
-/** Everything authored for a campaign: opening, regular-week and season scenes. */
-export const campaignScenes = (kind: CampaignKind): Scene[] => [...openingScenes(kind), ...weekScenes(kind), ...seasonScenes(kind)];
+/** Everything authored for a campaign: opening, regular-week, season and story-arc scenes. */
+export const campaignScenes = (kind: CampaignKind): Scene[] => [...openingScenes(kind), ...weekScenes(kind), ...seasonScenes(kind), ...arcScenes(kind)];
 
 /**
  * Choice ids are the consequence reducer's idempotency keys. A repeatable scene (`once: false`,
@@ -66,9 +69,16 @@ export function sceneById(scenes: readonly Scene[], id: string): Scene {
   return s;
 }
 
+/** Display name for a story speaker or person id (cast roles resolve to the campaign's teammate). */
+export function personName(c: CampaignState, id: string): string {
+  if (id === PLAYER_ID) return c.player.name;
+  const rosterId = resolvePerson(c.kind, id);
+  return c.roster.people.find((p) => p.id === rosterId)?.name ?? id;
+}
+
 /** Text variables for `fill` (spec §4 names the friend, parent and coach by role). */
 export function sceneVars(c: CampaignState): Record<string, string> {
-  const name = (id: string): string => c.roster.people.find((p) => p.id === id)?.name ?? id;
+  const name = (id: string): string => personName(c, id);
   const club = c.roster.clubs.find((k) => k.id === "batavia");
   const factText = (id: string): string => {
     const v = c.story.facts[id];
@@ -94,7 +104,20 @@ export function sceneVars(c: CampaignState): Record<string, string> {
     season_goals: factText("season_goals"),
     season_matches: factText("season_matches_played"),
     season_trophies: factText("season_trophies"),
+    striker: name("striker"),
+    organiser: name("organiser"),
+    keeper: name("keeper"),
+    newcomer: name("newcomer"),
+    league_played: factText("league_matches_played"),
+    streak: factText("result_streak"),
+    fall_finish: typeof c.story.facts["fall_position"] === "number" && c.story.facts["fall_position"] > 0 ? ordinal(c.story.facts["fall_position"]) : "{fall_finish}",
   };
+}
+
+export function ordinal(n: number): string {
+  const v = n % 100;
+  const suffix = v >= 11 && v <= 13 ? "th" : n % 10 === 1 ? "st" : n % 10 === 2 ? "nd" : n % 10 === 3 ? "rd" : "th";
+  return `${n}${suffix}`;
 }
 
 export interface EnterResult {
@@ -188,6 +211,7 @@ export function continueScene(c: CampaignState, scenes: readonly Scene[]): Enter
 
 function leave(c: CampaignState, scenes: readonly Scene[], scene: Scene, nextId: string | null): EnterResult | null {
   if (scene.once) markSeen(c.story, scene.id, c.day);
+  else markPlayed(c.story, scene.id, c.day);
   if (nextId) return enterScene(c, scenes, nextId);
   c.scene = null;
   touch(c);
@@ -205,6 +229,48 @@ export function takeQueuedScene(c: CampaignState, scenes: readonly Scene[]): Ent
   if (i < 0) return null;
   const [q] = c.story.queuedScenes.splice(i, 1);
   return enterScene(c, scenes, q!.sceneId);
+}
+
+export interface OpenRepair {
+  scene: Scene;
+  choice: SceneChoice;
+  repair: RepairOption;
+  label: string;
+  /** Last campaign day the repair is still possible. */
+  untilDay: number;
+}
+
+/** Repairs still open for choices already taken (spec §20: every consequential choice names its repair). */
+export function openRepairs(c: CampaignState, scenes: readonly Scene[]): OpenRepair[] {
+  const ctx = storyContext(c);
+  const vars = sceneVars(c);
+  const out: OpenRepair[] = [];
+  for (const scene of scenes) {
+    for (const choice of scene.choices) {
+      if (!choice.repair.length) continue;
+      const takenIds = scene.once
+        ? [choice.id]
+        : Object.keys(c.story.appliedDays).filter((k) => k.startsWith(`${choice.id}@`) && !k.includes(":"));
+      for (const id of takenIds) {
+        const madeDay = c.story.appliedDays[id];
+        if (madeDay === undefined) continue;
+        const taken = { ...choice, id };
+        for (const repair of availableRepairs(ctx, taken)) {
+          out.push({ scene, choice: taken, repair, label: fill(repair.label, vars), untilDay: madeDay + repair.withinDays });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/** `choiceId` is the taken (possibly day-scoped) id from `openRepairs`. */
+export function takeRepair(c: CampaignState, scenes: readonly Scene[], choiceId: string, repairId: string): RepairResult {
+  const open = openRepairs(c, scenes).find((r) => r.choice.id === choiceId && r.repair.id === repairId);
+  if (!open) return { ok: false, reason: "unavailable" };
+  const r = applyRepair(storyContext(c), open.choice, repairId);
+  if (r.ok) touch(c);
+  return r;
 }
 
 export type OpeningStatus = "in_progress" | "joined" | "undecided" | "declined";

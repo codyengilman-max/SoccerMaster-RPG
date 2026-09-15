@@ -17,7 +17,9 @@ import {
 import { seasonPhase, seasonSummary, tournamentViews, type SeasonPhase, type TournamentView } from "../campaign/season";
 import { currentCommitment, fatigue, inRegularWeek, skipToNextEvent, slotActions, takeAction, weekView, type ActionId } from "../campaign/week";
 import { ROLE_LABEL } from "../sim/types";
-import { openingStatus, takeQueuedScene } from "../story/flow";
+import { CENTRAL_QUESTION } from "../story/arc";
+import { openRepairs, openingStatus, personName, takeQueuedScene, takeRepair } from "../story/flow";
+import { TRACKS, TRACK_INFO, unlockViews, type Grant, type Requirement } from "../story/progression";
 import { escapeHtml } from "./html";
 
 export interface HubHandlers {
@@ -60,6 +62,8 @@ const OUTCOME_LABEL = {
   in_progress: "In progress",
   not_entered: "",
 } as const;
+
+const GRANT_LABEL: Record<Grant, string> = { conversation: "conversation", activity: "activity", support: "support", opportunity: "opportunity" };
 
 const SLOT_LABEL: Record<Slot, string> = { morning: "Morning", school: "School", afternoon: "Afternoon", evening: "Evening" };
 const SLOT_SHORT: Record<Slot, string> = { morning: "am", school: "sch", afternoon: "pm", evening: "eve" };
@@ -106,6 +110,10 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
   const tournaments = tournamentViews(c);
   const now = currentCommitment(c);
   const canSkip = !now || now.kind === "school";
+  const unlocks = unlockViews(c.progression);
+  const repairs = openRepairs(c, session.scenes);
+  const people = Object.entries(c.progression.relationships).filter(([id]) => id !== "player");
+  const reqLabel = (q: Requirement): string => (q.track ? TRACK_INFO[q.track].label : personName(c, q.personId));
   const oppOf = (f: { homeClubId: string; awayClubId: string }): string => clubNameOf(c, f.homeClubId === club ? f.awayClubId : f.homeClubId);
 
   root.innerHTML = `
@@ -134,6 +142,32 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
             .join("")}
         </tbody></table></div>
         ${last ? `<p class="muted small">Last: ${escapeHtml(last.home.name)} ${last.score.home} – ${last.score.away} ${escapeHtml(last.away.name)}</p>` : ""}
+      </div>
+      <div class="card progress">
+        <h3>Progress</h3>
+        <p class="muted small question">${escapeHtml(CENTRAL_QUESTION)}</p>
+        <ul class="tracks">
+          ${TRACKS.map((t) => `<li><span class="track-label">${escapeHtml(TRACK_INFO[t].label)}</span><span class="bar" role="img" aria-label="${c.progression.tracks[t]} of 100"><span class="fill" style="width:${c.progression.tracks[t]}%"></span></span><span class="track-value">${c.progression.tracks[t]}</span></li>`).join("")}
+        </ul>
+        ${people.length ? `<p class="muted small">People: ${people.map(([id, v]) => `${escapeHtml(personName(c, id))} ${v > 0 ? "+" : ""}${v}`).join(" · ")}</p>` : ""}
+        <h4>Unlocks</h4>
+        <ul class="facts unlocks">
+          ${unlocks
+            .map(
+              (u) =>
+                `<li class="${u.unlocked ? "unlocked" : "locked"}"><b>${u.unlocked ? "Open" : "Locked"} · ${escapeHtml(u.rule.title)}</b> <span class="muted small">(${GRANT_LABEL[u.rule.grants]})</span><br><span class="small">${escapeHtml(u.rule.opens)}</span><br><span class="muted small">Needs ${u.requirements
+                  .map((r) => `${escapeHtml(reqLabel(r.requirement))} ${r.value}/${r.requirement.min}${r.met ? " ✓" : ""}`)
+                  .join(", ")}</span></li>`,
+            )
+            .join("")}
+        </ul>
+        ${
+          repairs.length
+            ? `<h4>Things you could still put right</h4><div class="choices">${repairs
+                .map((r, i) => `<button type="button" class="choice repair" data-i="${i}"><b>${escapeHtml(r.label)}</b><span class="muted small"> — until ${formatDay(r.untilDay)}</span></button>`)
+                .join("")}</div>`
+            : ""
+        }
       </div>
       <div class="card season">
         <h3>Season</h3>
@@ -195,6 +229,14 @@ export function mountHubScreen(root: HTMLElement, session: Session, h: HubHandle
         h.onScene();
         return;
       }
+      mountHubScreen(root, session, h);
+    });
+  }
+  for (const b of root.querySelectorAll<HTMLButtonElement>("button.repair")) {
+    b.addEventListener("click", () => {
+      const r = repairs[Number(b.dataset["i"])];
+      if (r) takeRepair(c, session.scenes, r.choice.id, r.repair.id);
+      session.save();
       mountHubScreen(root, session, h);
     });
   }

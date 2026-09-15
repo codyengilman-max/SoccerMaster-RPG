@@ -1,6 +1,6 @@
 {
   "reviewStatus": "proposal",
-  "note": "Recurring cast (spec §5, OPEN_QUESTIONS #3, #5). Names and biographies are placeholders for the owner to replace. 'friend' and 'parent' are resolved per campaign. Ids of players are the ids used on the field.",
+  "note": "Recurring cast (spec §5, OPEN_QUESTIONS #3, #5). Names and biographies are placeholders for the owner to replace. 'friend' and 'parent' are resolved per campaign. Ids of players are the ids used on the field. `roles` name the teammates the story arc leans on (striker, organiser, keeper, newcomer): arc content addresses them by role so shared scenes read the same in both campaigns while still pointing at real roster identities.",
   "shared": [
     {
       "id": "coach",
@@ -41,7 +41,8 @@
         { "id": "bat-jonah", "name": "Jonah Reyes", "role": "player", "clubId": "batavia", "shirt": 7, "bio": "Tricks first, decisions later; the team's joker.", "reviewStatus": "proposal" },
         { "id": "bat-theo", "name": "Theo Lindqvist", "role": "player", "clubId": "batavia", "shirt": 9, "bio": "Scores in training, freezes in matches; older brother plays for Sonoran.", "reviewStatus": "proposal" },
         { "id": "bat-ari", "name": "Ari Novak", "role": "player", "clubId": "batavia", "shirt": 11, "bio": "New to the area; lives near the training field.", "reviewStatus": "proposal" }
-      ]
+      ],
+      "roles": { "striker": "bat-theo", "organiser": "bat-cal", "keeper": "bat-owen", "newcomer": "bat-ari" }
     },
     "girls": {
       "friend": {
@@ -71,7 +72,8 @@
         { "id": "bat-lena", "name": "Lena Kowalski", "role": "player", "clubId": "batavia", "shirt": 7, "bio": "Tricks first, decisions later; the team's joker.", "reviewStatus": "proposal" },
         { "id": "bat-zoe", "name": "Zoe Haddad", "role": "player", "clubId": "batavia", "shirt": 9, "bio": "Scores in training, freezes in matches; older sister plays for Sonoran.", "reviewStatus": "proposal" },
         { "id": "bat-june", "name": "June Park", "role": "player", "clubId": "batavia", "shirt": 11, "bio": "New to the area; lives near the training field.", "reviewStatus": "proposal" }
-      ]
+      ],
+      "roles": { "striker": "bat-zoe", "organiser": "bat-imani", "keeper": "bat-rosa", "newcomer": "bat-june" }
     }
   }
 }

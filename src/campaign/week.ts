@@ -1,8 +1,10 @@
 import { mondayOf, weekOf, weekday, type CampaignDay, type Weekday } from "../calendar/date";
 import { commitmentsOn, markAttended, phoneAvailable, slotsFor, type Commitment, type Slot } from "../calendar/schedule";
 import type { MatchReport } from "../match/report";
+import { announceUnlocks, optionalScene } from "../story/arc";
 import { applyEffect, type Effect } from "../story/consequences";
-import { takeQueuedScene, campaignScenes } from "../story/flow";
+import { campaignScenes, enterScene, takeQueuedScene } from "../story/flow";
+import type { Scene } from "../story/scenes";
 import type { ChallengeSummary } from "../training/crossbar";
 import { nextAssignment, stageOf, type Assignment, type Stage } from "../training/homeSkill";
 import { recordCrossbar, recordTraining } from "../training/record";
@@ -32,6 +34,9 @@ export type ActionId =
   | "family"
   | "homework"
   | "rest"
+  | "lunch"
+  | "car_ride"
+  | "park_session"
   | "free";
 
 export interface SlotAction {
@@ -41,11 +46,13 @@ export interface SlotAction {
   commitmentId: string | null;
   /** What the screen must run before calling the matching `complete*`; null for immediate actions. */
   launch: PendingActivity | null;
+  /** An optional authored scene the action opens (lunch, car ride, park); null otherwise. */
+  sceneId: string | null;
 }
 
 export const FATIGUE_FACT = "fatigue";
 export const TIRED_AT = 7;
-export const FATIGUE = { training: 2, match: 3, homeSkill: 1, rest: -3, sleep: -1, max: 10 } as const;
+export const FATIGUE = { training: 2, match: 3, homeSkill: 1, park: 1, rest: -3, sleep: -1, max: 10 } as const;
 
 export const fatigue = (c: CampaignState): number => {
   const v = c.story.facts[FATIGUE_FACT];
@@ -76,8 +83,12 @@ export function slotActions(c: CampaignState): SlotAction[] {
   const k = currentCommitment(c);
   if (k) {
     switch (k.kind) {
-      case "school":
-        return [{ id: "school", label: "Go to school", detail: k.title, commitmentId: k.id, launch: null }];
+      case "school": {
+        const out: SlotAction[] = [{ id: "school", label: "Go to school", detail: k.title, commitmentId: k.id, launch: null, sceneId: null }];
+        const lunch = optionalScene(c, "lunch_spot");
+        if (lunch) out.push({ id: "lunch", label: `School, then lunch: ${lunch.title}`, detail: lunchDetail(lunch), commitmentId: k.id, launch: null, sceneId: lunch.id });
+        return out;
+      }
       case "training": {
         const activity = trainingActivity(c.day);
         return [
@@ -87,33 +98,40 @@ export function slotActions(c: CampaignState): SlotAction[] {
             detail: `${ACTIVITY_TITLE[activity]}${isTired(c) ? " · you're tired — expect slower reads" : ""}`,
             commitmentId: k.id,
             launch: { kind: "training", commitmentId: k.id, activity },
+            sceneId: null,
           },
-          { id: "skip_training", label: "Skip training", detail: "The coach will notice.", commitmentId: k.id, launch: null },
+          { id: "skip_training", label: "Skip training", detail: "The coach will notice.", commitmentId: k.id, launch: null, sceneId: null },
         ];
       }
       case "match":
       case "tournament":
         return [
-          { id: "play_match", label: "Play the match", detail: k.title, commitmentId: k.id, launch: { kind: "match", commitmentId: k.id, fixtureId: k.refId! } },
-          { id: "skip_match", label: "Miss the match", detail: "The team plays without you. The result still counts.", commitmentId: k.id, launch: null },
+          { id: "play_match", label: "Play the match", detail: k.title, commitmentId: k.id, launch: { kind: "match", commitmentId: k.id, fixtureId: k.refId! }, sceneId: null },
+          { id: "skip_match", label: "Miss the match", detail: "The team plays without you. The result still counts.", commitmentId: k.id, launch: null, sceneId: null },
         ];
       default:
-        return [{ id: "free", label: k.title, detail: "", commitmentId: k.id, launch: null }];
+        return [{ id: "free", label: k.title, detail: "", commitmentId: k.id, launch: null, sceneId: null }];
     }
   }
   const out: SlotAction[] = [];
   const home = nextAssignment(c);
   if (home) out.push(homeAction(c, home));
   if (friendAvailable(c)) {
-    out.push({ id: "friend_crossbar", label: "Crossbar challenge with {friend}", detail: "Time with your friend. Not training.", commitmentId: null, launch: { kind: "crossbar" } });
+    out.push({ id: "friend_crossbar", label: "Crossbar challenge with {friend}", detail: "Time with your friend. Not training.", commitmentId: null, launch: { kind: "crossbar" }, sceneId: null });
+  }
+  if (parkAvailable(c)) {
+    const park = optionalScene(c, "park");
+    if (park) out.push({ id: "park_session", label: `The park with {friend}: ${park.title}`, detail: "A first-touch session, then whatever comes up. Your legs will feel it.", commitmentId: null, launch: null, sceneId: park.id });
   }
   if (c.slot === "evening" || weekday(c.day) === "Sat" || weekday(c.day) === "Sun") {
-    out.push({ id: "family", label: "Help at home", detail: "Responsibility; time with {parent}.", commitmentId: null, launch: null });
+    out.push({ id: "family", label: "Help at home", detail: "Responsibility; time with {parent}.", commitmentId: null, launch: null, sceneId: null });
+    const car = optionalScene(c, "car");
+    if (car) out.push({ id: "car_ride", label: `Ride along with {parent}: ${car.title}`, detail: "Errands, and a conversation you could have.", commitmentId: null, launch: null, sceneId: car.id });
   }
   if (c.slot === "evening" && !["Sat", "Sun"].includes(weekday(c.day))) {
-    out.push({ id: "homework", label: "Homework", detail: "School comes first.", commitmentId: null, launch: null });
+    out.push({ id: "homework", label: "Homework", detail: "School comes first.", commitmentId: null, launch: null, sceneId: null });
   }
-  out.push({ id: "rest", label: "Rest", detail: fatigue(c) >= 4 ? "Your legs would thank you." : "Recover.", commitmentId: null, launch: null });
+  out.push({ id: "rest", label: "Rest", detail: fatigue(c) >= 4 ? "Your legs would thank you." : "Recover.", commitmentId: null, launch: null, sceneId: null });
   return out;
 }
 
@@ -132,10 +150,31 @@ function homeAction(c: CampaignState, a: Assignment): SlotAction {
     revisit: `Revisit the learning: ${a.title}`,
     done: a.title,
   };
-  return { id: "home_skill", label: "Home skill work", detail: detail[stage], commitmentId: null, launch: { kind: "home_skill", assignmentId: a.id } };
+  return { id: "home_skill", label: "Home skill work", detail: detail[stage], commitmentId: null, launch: { kind: "home_skill", assignmentId: a.id }, sceneId: null };
 }
 
+const lunchDetail = (s: Scene): string => (s.tone === "adversity" ? "Something is up." : s.tone === "reward" ? "Good news travels at lunch." : "Twenty minutes with the team.");
+
 export const CROSSBAR_DAY_FACT = "crossbar_last_day";
+export const PARK_DAY_FACT = "park_last_day";
+export const PARK_UNLOCK = "friend_park_sessions";
+export const PARK_EVENINGS_UNLOCK = "parent_trusts_you";
+
+/**
+ * Park sessions are an unlock (spec §19: relationships open shared activities), once a day on free
+ * afternoons and at weekends; school evenings need the parent's trust as well. What happens there is
+ * a verified first-touch session — the friendship opens the door, the evidence comes from the play.
+ */
+export function parkAvailable(c: CampaignState): boolean {
+  if (!c.progression.unlocked.includes(PARK_UNLOCK)) return false;
+  if (!c.roster.people.some((p) => p.id === FRIEND_ID)) return false;
+  if (c.story.facts[PARK_DAY_FACT] === c.day) return false;
+  const w = weekday(c.day);
+  const weekend = w === "Sat" || w === "Sun";
+  if (weekend) return true;
+  if (c.slot === "afternoon") return true;
+  return c.slot === "evening" && c.progression.unlocked.includes(PARK_EVENINGS_UNLOCK);
+}
 
 /** The friend is free after school and at weekends, once a day, and only where the phone is allowed (spec §7). */
 export function friendAvailable(c: CampaignState): boolean {
@@ -166,6 +205,15 @@ export function takeAction(c: CampaignState, id: ActionId): TakeResult {
     case "school":
       markAttended(c.schedule, action.commitmentId!);
       break;
+    case "lunch":
+      markAttended(c.schedule, action.commitmentId!);
+      break;
+    case "park_session":
+      addFatigue(c, FATIGUE.park);
+      c.story.facts[PARK_DAY_FACT] = c.day;
+      break;
+    case "car_ride":
+      break;
     case "skip_training":
       effects.push(...skipTraining(c, action.commitmentId!));
       break;
@@ -192,8 +240,12 @@ export function takeAction(c: CampaignState, id: ActionId): TakeResult {
   }
   const ctx = storyContext(c);
   for (const e of effects) applyEffect(ctx, e);
-  const ended = endSlot(c);
-  return { ok: true, launch: null, effects, ended };
+  if (action.sceneId) {
+    const moved = moveSlot(c);
+    enterScene(c, campaignScenes(c.kind), action.sceneId);
+    return { ok: true, launch: null, effects, ended: { ...moved, scene: action.sceneId } };
+  }
+  return { ok: true, launch: null, effects, ended: endSlot(c) };
 }
 
 export const MISSED_FACTS = { recent: "missed_training_recent", count: "trainings_missed", day: "missed_training_day" } as const;
@@ -302,8 +354,8 @@ export function nextSlot(day: CampaignDay, slot: Slot): Slot | null {
   return slots[slots.indexOf(slot) + 1] ?? null;
 }
 
-/** Move to the next slot, or to tomorrow morning; then let a due story scene in. */
-export function endSlot(c: CampaignState): SlotEnd {
+/** Move to the next slot, or to tomorrow morning. Queued scenes stay queued (an optional scene is about to play). */
+function moveSlot(c: CampaignState): Omit<SlotEnd, "scene"> {
   const next = nextSlot(c.day, c.slot);
   let advanced: DayAdvance | null = null;
   let missed: Commitment[] = [];
@@ -318,8 +370,15 @@ export function endSlot(c: CampaignState): SlotEnd {
     if (isTired(c)) applyEffect(ctx, { type: "queue_scene", sceneId: "week.tired", onDay: c.day });
   }
   touch(c);
+  if (playerClubId(c)) announceUnlocks(c);
+  return { advanced, missed };
+}
+
+/** Move to the next slot, or to tomorrow morning; then let a due story scene in. */
+export function endSlot(c: CampaignState): SlotEnd {
+  const moved = moveSlot(c);
   const entered = takeQueuedScene(c, campaignScenes(c.kind));
-  return { advanced, missed, scene: entered?.scene.id ?? null };
+  return { ...moved, scene: entered?.scene.id ?? null };
 }
 
 export const MAX_SKIPPED_SLOTS = 40;
