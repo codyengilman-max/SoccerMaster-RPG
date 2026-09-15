@@ -172,6 +172,260 @@
       "reviewStatus": "proposal"
     },
     {
+      "id": "week.coach_word",
+      "title": "A word by the cones",
+      "location": "pitch",
+      "tone": "everyday",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "last_result",
+          "exists": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Coach Code is stacking cones one-handed. He doesn't look up until you're close."
+        },
+        {
+          "speaker": "coach",
+          "text": "Three sessions this week, and I saw all three in that game. You knew where your people were.",
+          "requiresKnown": [
+            "week_trainings_attended"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "week_trainings_attended",
+              "min": 3
+            },
+            {
+              "type": "fact",
+              "id": "week_trainings_missed",
+              "max": 0
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "You were with us this week. It shows in the small things, whatever the scoreboard says.",
+          "requiresKnown": [
+            "week_trainings_attended"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "week_trainings_attended",
+              "min": 1
+            },
+            {
+              "type": "fact",
+              "id": "week_trainings_attended",
+              "max": 2
+            },
+            {
+              "type": "fact",
+              "id": "week_trainings_missed",
+              "max": 0
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "You missed a session this week. I'm not going to pretend I didn't notice. The scoreboard doesn't care either way — I do.",
+          "requiresKnown": [
+            "week_trainings_missed"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "week_trainings_missed",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "Your folks tell me you've been doing the home work too. Bring what you noticed on Tuesday.",
+          "requiresKnown": [
+            "week_home_reports"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "week_home_reports",
+              "min": 1
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "week.coach.lead_warmup",
+          "label": "\"Can I lead the warm-up next week?\"",
+          "eligibility": [
+            {
+              "type": "fact",
+              "id": "week_trainings_attended",
+              "min": 1
+            },
+            {
+              "type": "fact",
+              "id": "week_trainings_missed",
+              "max": 0
+            }
+          ],
+          "immediate": [
+            {
+              "type": "flag",
+              "id": "lead_warmup"
+            },
+            {
+              "type": "set_fact",
+              "id": "leads_warmup",
+              "value": true
+            },
+            {
+              "type": "track",
+              "track": "pathway",
+              "delta": 1
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "leads_warmup"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Tuesday. Cones are yours. Don't make it a race."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.coach.own_it",
+          "label": "\"I know. It won't happen again.\"",
+          "eligibility": [
+            {
+              "type": "fact",
+              "id": "week_trainings_missed",
+              "min": 1
+            }
+          ],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "promised_attendance",
+              "value": true
+            },
+            {
+              "type": "promise",
+              "id": "attendance",
+              "by": "player",
+              "text": "No more missed sessions."
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "promised_attendance"
+            }
+          ],
+          "delayed": [
+            {
+              "id": "attendance_checked",
+              "afterDays": 7,
+              "effects": [
+                {
+                  "type": "set_fact",
+                  "id": "coach_trust_dented",
+                  "value": true
+                },
+                {
+                  "type": "relationship",
+                  "personId": "coach",
+                  "delta": -1
+                }
+              ],
+              "unless": [
+                {
+                  "type": "fact",
+                  "id": "missed_training_recent",
+                  "exists": false
+                }
+              ]
+            }
+          ],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Good. I'll hold you to that — kindly, but I'll hold you to it."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.coach.shrug",
+          "label": "Shrug. \"We got the result we got.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "shrugged_at_coach",
+              "value": true
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": -1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "We did. Go find your ride."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "week.coach.thanks",
+          "label": "\"Thanks, Coach.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Go on. Your ride's waiting."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": false,
+      "reviewStatus": "proposal"
+    },
+    {
       "id": "week.postgame",
       "title": "The drive home",
       "location": "car",

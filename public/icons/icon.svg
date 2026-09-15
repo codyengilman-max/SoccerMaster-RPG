@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="25%" cy="10%" r="110%">
+      <stop offset="0" stop-color="#12274a"/>
+      <stop offset="1" stop-color="#06101f"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- pitch lines -->
+  <g fill="none" stroke="#7de6ff" stroke-opacity="0.35" stroke-width="10">
+    <rect x="76" y="116" width="360" height="280" rx="8"/>
+    <line x1="256" y1="116" x2="256" y2="396"/>
+    <circle cx="256" cy="256" r="62"/>
+  </g>
+  <!-- the drawn pass: player → receiver -->
+  <path d="M150 330 C 210 290, 250 230, 340 180" fill="none" stroke="#2fd3ff" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="150" cy="330" r="30" fill="#ffb85c"/>
+  <circle cx="340" cy="180" r="24" fill="#2fd3ff"/>
+  <!-- ball -->
+  <circle cx="176" cy="308" r="14" fill="#eaf6ff"/>
+</svg>
