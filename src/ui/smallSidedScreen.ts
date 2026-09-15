@@ -1,4 +1,5 @@
 import { attachPointer, type PointerAdapter } from "../gesture/pointer";
+import { paintBall, paintFigure, paintShadow, paintSurround, paintTurf, paintVignette } from "../render/figures";
 import type { Vec2 } from "../sim/geometry";
 import {
   ACTIVITY_LABEL,
@@ -270,12 +271,10 @@ export function mountSmallSidedScreen(root: HTMLElement, opts: SmallSidedScreenO
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const w = canvas.width / dpr;
     const hgt = canvas.height / dpr;
-    ctx.fillStyle = "#2e6b37";
-    ctx.fillRect(0, 0, w, hgt);
+    paintSurround(ctx, w, hgt);
     const a = toScreen({ x: 0, y: 0 });
     const b = toScreen({ x: AREA.length, y: AREA.width });
-    ctx.fillStyle = "#357a40";
-    ctx.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
+    paintTurf(ctx, { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y }, 8);
     ctx.strokeStyle = "rgba(255,255,255,0.7)";
     ctx.lineWidth = 2;
     ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
@@ -308,13 +307,7 @@ export function mountSmallSidedScreen(root: HTMLElement, opts: SmallSidedScreenO
       ctx.strokeRect(s1.x, s1.y, s2.x - s1.x, s2.y - s1.y);
       ctx.setLineDash([]);
     }
-    if (slow > 0.02) {
-      const g = ctx.createRadialGradient(w / 2, hgt / 2, Math.min(w, hgt) * 0.35, w / 2, hgt / 2, Math.max(w, hgt) * 0.75);
-      g.addColorStop(0, "rgba(6,16,31,0)");
-      g.addColorStop(1, `rgba(6,16,31,${0.55 * slow})`);
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, hgt);
-    }
+    paintVignette(ctx, w, hgt, slow);
     // option anchors during the window
     const m = me(d);
     if (d.phase === "window") {
@@ -353,23 +346,28 @@ export function mountSmallSidedScreen(root: HTMLElement, opts: SmallSidedScreenO
         ctx.setLineDash([]);
       }
     }
-    // people
-    for (const act of d.actors) {
-      if (act.id === USER_ID) continue;
-      const color = isKeeper(act) ? "#ffd34d" : act.team === "def" ? "#ff7a59" : "#eaf6ff";
-      const label = isKeeper(act) ? "GK" : act.team === "att" ? initials(act.name) : "";
-      dot(toScreen(act.pos), scale * 0.5, color, label);
+    // people: further down the screen draws later so figures overlap naturally
+    const r = Math.max(7, scale * 0.5);
+    const people = [...d.actors].sort((p, q2) => p.pos.y - q2.pos.y);
+    for (const act of people) {
+      const sp = toScreen(act.pos);
+      paintShadow(ctx, sp.x, sp.y, r);
     }
-    dot(toScreen(m.pos), scale * 0.5, "#2fd3ff", "");
+    for (const act of people) {
+      const sp = toScreen(act.pos);
+      if (act.id === USER_ID) {
+        paintFigure(ctx, sp.x, sp.y, r, { kit: "home", controlled: true, deciding: d.phase === "window" });
+        continue;
+      }
+      paintFigure(ctx, sp.x, sp.y, r, {
+        kit: isKeeper(act) ? "keeper" : act.team === "def" ? "away" : "neutral",
+        label: isKeeper(act) ? "GK" : act.team === "att" ? initials(act.name) : null,
+        outline: isKeeper(act),
+      });
+    }
     // ball
     const bp = toScreen(d.ball.pos);
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(bp.x, bp.y, Math.max(3, scale * 0.18), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#06101f";
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    paintBall(ctx, bp.x, bp.y, Math.max(3, scale * 0.18));
     // preview
     if (preview.length > 1) {
       ctx.strokeStyle = previewOption ? "#7de6ff" : "rgba(234,246,255,0.5)";
@@ -394,23 +392,6 @@ export function mountSmallSidedScreen(root: HTMLElement, opts: SmallSidedScreenO
       .slice(0, 2)
       .toUpperCase();
 
-  const dot = (p: Vec2, r: number, color: string, label: string): void => {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, Math.max(6, r), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(6,16,31,0.8)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    if (label) {
-      ctx.fillStyle = "#06101f";
-      ctx.font = `bold ${Math.max(9, r * 0.8)}px system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(label, p.x, p.y);
-      ctx.textBaseline = "alphabetic";
-    }
-  };
 
   const finish = (): void => {
     if (finished) return;

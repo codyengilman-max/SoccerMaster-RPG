@@ -1,4 +1,5 @@
 import { attachPointer, type PointerAdapter } from "../gesture/pointer";
+import { paintBall, paintFigure, paintShadow, paintSurround, paintTurf, paintVignette, type Kit } from "../render/figures";
 import type { Vec2 } from "../sim/geometry";
 import {
   AREA,
@@ -198,24 +199,14 @@ export function mountDrillScreen(root: HTMLElement, opts: DrillScreenOptions): H
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const w = canvas.width / dpr;
     const hgt = canvas.height / dpr;
-    ctx.fillStyle = "#2e6b37";
-    ctx.fillRect(0, 0, w, hgt);
-    // area
+    paintSurround(ctx, w, hgt);
     const a = toScreen({ x: 0, y: 0 });
     const b = toScreen({ x: AREA.length, y: AREA.width });
-    ctx.fillStyle = "#357a40";
-    ctx.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
+    paintTurf(ctx, { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y }, 8);
     ctx.strokeStyle = "rgba(255,255,255,0.7)";
     ctx.lineWidth = 2;
     ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
-    // slow-motion vignette
-    if (slow > 0.02) {
-      const g = ctx.createRadialGradient(w / 2, hgt / 2, Math.min(w, hgt) * 0.35, w / 2, hgt / 2, Math.max(w, hgt) * 0.75);
-      g.addColorStop(0, "rgba(6,16,31,0)");
-      g.addColorStop(1, `rgba(6,16,31,${0.55 * slow})`);
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, hgt);
-    }
+    paintVignette(ctx, w, hgt, slow);
     // gates
     const rec = current(d);
     for (const g of GATES) {
@@ -256,18 +247,24 @@ export function mountDrillScreen(root: HTMLElement, opts: DrillScreenOptions): H
       ctx.setLineDash([]);
     }
     // people
-    dot(toScreen(SERVER_POINT), scale * 0.45, "#eaf6ff", "C");
-    dot(toScreen(d.defender.pos), scale * 0.45, "#ff7a59", "");
-    dot(toScreen(d.player), scale * 0.45, "#2fd3ff", "");
+    const r = Math.max(7, scale * 0.45);
+    const people: Array<{ pos: Vec2; kit: Kit; label: string | null; controlled: boolean }> = [
+      { pos: SERVER_POINT, kit: "neutral", label: "C", controlled: false },
+      { pos: d.defender.pos, kit: "away", label: null, controlled: false },
+      { pos: d.player, kit: "home", label: null, controlled: true },
+    ];
+    people.sort((p, q2) => p.pos.y - q2.pos.y);
+    for (const who of people) {
+      const sp = toScreen(who.pos);
+      paintShadow(ctx, sp.x, sp.y, r);
+    }
+    for (const who of people) {
+      const sp = toScreen(who.pos);
+      paintFigure(ctx, sp.x, sp.y, r, { kit: who.kit, label: who.label, controlled: who.controlled, deciding: who.controlled && d.phase === "window" });
+    }
     // ball
     const bp = toScreen(d.ball.pos);
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(bp.x, bp.y, Math.max(3, scale * 0.16), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#06101f";
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    paintBall(ctx, bp.x, bp.y, Math.max(3, scale * 0.16));
     // preview
     if (preview.length > 1) {
       ctx.strokeStyle = previewGate ? "#7de6ff" : "rgba(234,246,255,0.5)";
@@ -284,23 +281,6 @@ export function mountDrillScreen(root: HTMLElement, opts: DrillScreenOptions): H
     }
   };
 
-  const dot = (p: Vec2, r: number, color: string, label: string): void => {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, Math.max(6, r), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(6,16,31,0.8)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    if (label) {
-      ctx.fillStyle = "#06101f";
-      ctx.font = `bold ${Math.max(10, r)}px system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(label, p.x, p.y);
-      ctx.textBaseline = "alphabetic";
-    }
-  };
 
   const finish = (): void => {
     if (finished) return;

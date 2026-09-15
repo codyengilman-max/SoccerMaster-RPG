@@ -1,3 +1,4 @@
+import { paintBall, paintSideView, paintStandingFigure } from "../render/figures";
 import {
   ACCESSIBLE_WINDOW_FACTOR,
   ballHeight,
@@ -175,11 +176,8 @@ export function mountJugglingScreen(root: HTMLElement, opts: JugglingScreenOptio
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
-    ctx.fillStyle = "#1f3b5c";
-    ctx.fillRect(0, 0, w, h);
     const ground = h * 0.86;
-    ctx.fillStyle = "#357a40";
-    ctx.fillRect(0, ground, w, h - ground);
+    paintSideView(ctx, w, h, ground);
     // fence
     ctx.strokeStyle = "rgba(255,255,255,0.15)";
     ctx.lineWidth = 2;
@@ -189,24 +187,12 @@ export function mountJugglingScreen(root: HTMLElement, opts: JugglingScreenOptio
       ctx.lineTo(x, ground - h * 0.18);
       ctx.stroke();
     }
-    // player: simple figure at centre-left
+    // player at centre, near leg swinging on each touch
     const px = w * 0.5;
     const footY = ground - 6;
-    ctx.strokeStyle = "#e8f1ff";
-    ctx.lineWidth = 5;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(px, footY - h * 0.42);
-    ctx.lineTo(px, footY - h * 0.2);
-    ctx.moveTo(px, footY - h * 0.2);
-    ctx.lineTo(px - w * 0.04, footY);
-    ctx.moveTo(px, footY - h * 0.2);
-    ctx.lineTo(px + w * 0.05, footY - h * 0.03);
-    ctx.stroke();
-    ctx.fillStyle = "#e8f1ff";
-    ctx.beginPath();
-    ctx.arc(px, footY - h * 0.47, h * 0.045, 0, Math.PI * 2);
-    ctx.fill();
+    const kickAge = now - lastTouchAt;
+    const kick = lastQuality && lastQuality !== "drop" && kickAge < 260 ? Math.sin((kickAge / 260) * Math.PI) : 0;
+    paintStandingFigure(ctx, px, footY, h * 0.5, "home", kick);
     // timing band at the foot: height in flight terms → good window as a band of ball travel
     const apex = ground - h * 0.68;
     const foot = footY - h * 0.03;
@@ -227,13 +213,7 @@ export function mountJugglingScreen(root: HTMLElement, opts: JugglingScreenOptio
     const bx = px + w * 0.06 + s.driftSide * s.drift * w * 0.14;
     const by = foot - hgt * (foot - apex);
     const r = Math.max(7, h * 0.03);
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(bx, by, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#06101f";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    paintBall(ctx, bx, foot, r, foot - by);
     // touch flash
     if (lastQuality && now - lastTouchAt < 350) {
       const a = 1 - (now - lastTouchAt) / 350;

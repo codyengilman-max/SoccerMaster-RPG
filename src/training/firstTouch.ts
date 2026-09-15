@@ -1,5 +1,5 @@
 import { gestureAccuracy, readGesture, tapAccuracy, type GestureRead } from "../gesture/gesture";
-import { SLOW_SCALE } from "../match/clock";
+import { DRILL_SLOW_SCALE } from "../match/clock";
 import { add, angleBetween, clamp, dist, dot, norm, rotate, scale, sub, type Vec2 } from "../sim/geometry";
 import { Rng } from "../sim/rng";
 
@@ -166,7 +166,7 @@ export const executionBand = (accuracy: number): ExecutionBand => (accuracy >= 0
 
 export const windowLimitMs = (d: DrillState): number => WINDOW_MS * (d.accessible ? ACCESSIBLE_WINDOW_FACTOR : 1);
 export const windowProgress = (d: DrillState): number => (d.phase === "window" ? clamp(d.windowMs / windowLimitMs(d), 0, 1) : 0);
-export const timeScale = (d: DrillState): number => (d.phase === "window" ? SLOW_SCALE : 1);
+export const timeScale = (d: DrillState): number => (d.phase === "window" ? DRILL_SLOW_SCALE : 1);
 export const current = (d: DrillState): RepRecord | undefined => d.records[d.index];
 
 /** Advance by real elapsed time; simulated time runs slower during the window. Returns events emitted. */

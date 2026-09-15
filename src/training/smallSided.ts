@@ -1,5 +1,5 @@
 import { gestureAccuracy, readGesture, tapAccuracy } from "../gesture/gesture";
-import { SLOW_SCALE } from "../match/clock";
+import { DRILL_SLOW_SCALE } from "../match/clock";
 import { add, angleBetween, clamp, dist, distToSegment, dot, norm, rotate, scale, sub, type Vec2 } from "../sim/geometry";
 import { Rng } from "../sim/rng";
 
@@ -491,7 +491,7 @@ export function gradeChoice(opts: readonly Option[], chosenId: string): Exclude<
 export const executionBand = (accuracy: number): ExecutionBand => (accuracy >= 0.75 ? "clean" : accuracy >= 0.45 ? "ok" : "loose");
 export const windowLimitMs = (d: DrillState): number => WINDOW_MS * (d.accessible ? ACCESSIBLE_WINDOW_FACTOR : 1) * d.windowScale;
 export const windowProgress = (d: DrillState): number => (d.phase === "window" ? clamp(d.windowMs / windowLimitMs(d), 0, 1) : 0);
-export const timeScale = (d: DrillState): number => (d.phase === "window" ? SLOW_SCALE : 1);
+export const timeScale = (d: DrillState): number => (d.phase === "window" ? DRILL_SLOW_SCALE : 1);
 export const current = (d: DrillState): RepRecord | undefined => d.records[d.index];
 
 /** Live anchor for an option (receivers move). */

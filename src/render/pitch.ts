@@ -1,15 +1,18 @@
 import type { GestureRead } from "../gesture/gesture";
 import type { ActiveWindow } from "../match/runtime";
-import { add, scale, sub, type Vec2 } from "../sim/geometry";
+import { add, len, scale, sub, type Vec2 } from "../sim/geometry";
 import { opponents, playerById, pressureAt } from "../sim/perception";
 import { buildOutLineX, goalPosts, type Rules } from "../sim/rules";
 import type { MatchState, PlayerState } from "../sim/types";
 import { toScreen, type Camera } from "./camera";
+import { LIGHT, paintBall, paintFigure, paintSurround, paintTurf } from "./figures";
 
 /**
- * Canvas 2D presentation of the live state (spec §21): warm pitch, navy/cyan interface. During a
- * moment the overlay keeps the ball, the controlled player, pressure and space readable; it shows
- * *where* each option would go (ghost markers) but never which one scores best.
+ * Canvas 2D presentation of the live state (spec §21): a sunlit pitch with depth, navy/cyan
+ * interface. During a moment the overlay keeps the ball, the controlled player, pressure and space
+ * readable; it shows *where* each option would go (ghost markers) but never which one scores best.
+ * Everything is drawn procedurally — no bitmap assets — so it costs nothing to load and scales to
+ * any device pixel ratio.
  */
 
 export interface RenderOptions {
@@ -19,19 +22,15 @@ export interface RenderOptions {
   optionAnchors: Map<string, Vec2>;
   /** 0..1 slow-motion intensity for vignette/desaturation. */
   slow: number;
+  /** 0..1 fast-forward intensity (ball trail, motion streaks). */
+  fast?: number;
+  /** Recent ball positions, oldest first, for the fast-forward trail. */
+  trail?: readonly Vec2[];
   major: boolean;
 }
 
 const COLORS = {
-  grassA: "#3f8f4a",
-  grassB: "#3a8444",
-  line: "rgba(255,255,255,0.85)",
-  home: "#2fd3ff",
-  homeDark: "#0d8fb3",
-  away: "#ff7a59",
-  awayDark: "#b7452b",
-  ball: "#fff5d6",
-  controlled: "#ffffff",
+  line: "rgba(255,255,255,0.88)",
   pressure: "rgba(255, 90, 70, 0.55)",
   space: "rgba(125, 230, 255, 0.28)",
   anchor: "rgba(234, 246, 255, 0.85)",
@@ -42,40 +41,51 @@ const COLORS = {
 export function render(ctx: CanvasRenderingContext2D, cam: Camera, state: MatchState, opts: RenderOptions): void {
   const { width, height } = cam;
   ctx.clearRect(0, 0, width, height);
+  drawSurround(ctx, cam, state.rules);
   drawGrass(ctx, cam, state.rules);
   drawMarkings(ctx, cam, state.rules);
 
   const controlled = opts.controlledId ? playerById(state, opts.controlledId) : null;
   if (opts.window && controlled) drawMomentField(ctx, cam, state, controlled, opts);
 
-  for (const p of state.players) drawPlayer(ctx, cam, p, p.id === opts.controlledId, opts.window?.moment.playerId === p.id);
+  const fast = opts.fast ?? 0;
+  if (fast > 0.05 && opts.trail && opts.trail.length > 1) drawTrail(ctx, cam, opts.trail, fast);
+
+  // painter's order: further down the screen draws later so figures overlap naturally
+  const sorted = [...state.players].sort((a, b) => a.pos.y - b.pos.y);
+  drawShadows(ctx, cam, sorted);
+  for (const p of sorted) drawPlayer(ctx, cam, p, p.id === opts.controlledId, opts.window?.moment.playerId === p.id);
   drawBall(ctx, cam, state);
 
   if (opts.window && controlled) drawMomentOverlay(ctx, cam, state, controlled, opts);
   if (opts.slow > 0) drawVignette(ctx, cam, opts.slow, opts.major);
+  if (fast > 0.05) drawFastFrame(ctx, cam, fast);
+}
+
+/** Beyond the touchlines: darker turf falling away into the evening, a hint of the stand. */
+function drawSurround(ctx: CanvasRenderingContext2D, cam: Camera, rules: Rules): void {
+  paintSurround(ctx, cam.width, cam.height);
+  // running track / edge band around the pitch
+  const tl = toScreen(cam, { x: -3, y: -3 });
+  const br = toScreen(cam, { x: rules.length + 3, y: rules.width + 3 });
+  ctx.fillStyle = "rgba(255, 235, 200, 0.06)";
+  ctx.fillRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
 }
 
 function drawGrass(ctx: CanvasRenderingContext2D, cam: Camera, rules: Rules): void {
-  const tl = toScreen(cam, { x: -6, y: -6 });
-  const br = toScreen(cam, { x: rules.length + 6, y: rules.width + 6 });
-  const g = ctx.createLinearGradient(0, tl.y, 0, br.y);
-  g.addColorStop(0, "#47a054");
-  g.addColorStop(1, "#347a3e");
-  ctx.fillStyle = g;
-  ctx.fillRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
-  const stripeW = rules.length / 14;
-  for (let i = 0; i < 14; i++) {
-    const a = toScreen(cam, { x: i * stripeW, y: 0 });
-    const b = toScreen(cam, { x: (i + 1) * stripeW, y: rules.width });
-    ctx.fillStyle = i % 2 === 0 ? COLORS.grassA : COLORS.grassB;
-    ctx.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
+  const tl = toScreen(cam, { x: 0, y: 0 });
+  const br = toScreen(cam, { x: rules.length, y: rules.width });
+  paintTurf(ctx, { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y }, 14);
+  // worn goalmouths: the pitch has been played on
+  for (const cx of [rules.penaltySpotDistance * 0.6, rules.length - rules.penaltySpotDistance * 0.6]) {
+    const c = toScreen(cam, { x: cx, y: rules.width / 2 });
+    const rad = 7 * cam.zoom;
+    const wear = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, rad);
+    wear.addColorStop(0, "rgba(120, 110, 60, 0.16)");
+    wear.addColorStop(1, "rgba(120, 110, 60, 0)");
+    ctx.fillStyle = wear;
+    ctx.fillRect(c.x - rad, c.y - rad, rad * 2, rad * 2);
   }
-  // warm afternoon light from the top-left
-  const light = ctx.createRadialGradient(tl.x, tl.y, 0, tl.x, tl.y, (br.x - tl.x) * 1.1);
-  light.addColorStop(0, "rgba(255, 220, 150, 0.18)");
-  light.addColorStop(1, "rgba(0, 20, 60, 0.18)");
-  ctx.fillStyle = light;
-  ctx.fillRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
 }
 
 function line(ctx: CanvasRenderingContext2D, cam: Camera, a: Vec2, b: Vec2): void {
@@ -96,6 +106,7 @@ function rect(ctx: CanvasRenderingContext2D, cam: Camera, x0: number, y0: number
 function drawMarkings(ctx: CanvasRenderingContext2D, cam: Camera, r: Rules): void {
   ctx.strokeStyle = COLORS.line;
   ctx.lineWidth = Math.max(1, 0.12 * cam.zoom);
+  ctx.lineCap = "butt";
   rect(ctx, cam, 0, 0, r.length, r.width);
   line(ctx, cam, { x: r.length / 2, y: 0 }, { x: r.length / 2, y: r.width });
   const c = toScreen(cam, { x: r.length / 2, y: r.width / 2 });
@@ -119,77 +130,108 @@ function drawMarkings(ctx: CanvasRenderingContext2D, cam: Camera, r: Rules): voi
       line(ctx, cam, { x: bx, y: 0 }, { x: bx, y: r.width });
       ctx.restore();
     }
-    // goal frame
-    const [p1, p2] = goalPosts(r, goalX);
-    ctx.lineWidth = Math.max(2, 0.25 * cam.zoom);
-    const depth = 1.6 * -dir;
-    line(ctx, cam, p1, { x: p1.x + depth, y: p1.y });
-    line(ctx, cam, p2, { x: p2.x + depth, y: p2.y });
-    line(ctx, cam, { x: p1.x + depth, y: p1.y }, { x: p2.x + depth, y: p2.y });
-    ctx.lineWidth = Math.max(1, 0.12 * cam.zoom);
+    drawGoal(ctx, cam, r, goalX, dir);
   }
+}
+
+/** Goal frame with a shaded net so it reads as a box, not three lines. */
+function drawGoal(ctx: CanvasRenderingContext2D, cam: Camera, r: Rules, goalX: number, dir: number): void {
+  const [p1, p2] = goalPosts(r, goalX);
+  const depth = 1.6 * -dir;
+  const a = toScreen(cam, p1);
+  const b = toScreen(cam, { x: p2.x + depth, y: p2.y });
+  ctx.fillStyle = "rgba(255,255,255,0.14)";
+  ctx.fillRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+  // net mesh
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1;
+  const step = Math.max(3, 0.4 * cam.zoom);
+  ctx.beginPath();
+  for (let y = Math.min(a.y, b.y) + step; y < Math.max(a.y, b.y); y += step) {
+    ctx.moveTo(Math.min(a.x, b.x), y);
+    ctx.lineTo(Math.max(a.x, b.x), y);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.95)";
+  ctx.lineWidth = Math.max(2, 0.25 * cam.zoom);
+  line(ctx, cam, p1, { x: p1.x + depth, y: p1.y });
+  line(ctx, cam, p2, { x: p2.x + depth, y: p2.y });
+  line(ctx, cam, { x: p1.x + depth, y: p1.y }, { x: p2.x + depth, y: p2.y });
+  ctx.lineWidth = Math.max(1, 0.12 * cam.zoom);
+  ctx.strokeStyle = COLORS.line;
+}
+
+const bodyRadius = (cam: Camera): number => Math.max(4, 0.55 * cam.zoom);
+
+function drawShadows(ctx: CanvasRenderingContext2D, cam: Camera, players: readonly PlayerState[]): void {
+  const r = bodyRadius(cam);
+  ctx.fillStyle = "rgba(0, 10, 25, 0.32)";
+  ctx.beginPath();
+  for (const p of players) {
+    const s = toScreen(cam, p.pos);
+    ctx.moveTo(s.x + r * LIGHT.x + r * 1.15, s.y + r * LIGHT.y);
+    ctx.ellipse(s.x + r * LIGHT.x, s.y + r * LIGHT.y, r * 1.15, r * 0.5, 0, 0, Math.PI * 2);
+  }
+  ctx.fill();
 }
 
 function drawPlayer(ctx: CanvasRenderingContext2D, cam: Camera, p: PlayerState, controlled: boolean, deciding: boolean): void {
   const s = toScreen(cam, p.pos);
-  const r = Math.max(4, 0.55 * cam.zoom);
-  const isHome = p.side === "home";
-  // shadow
-  ctx.fillStyle = "rgba(0,0,0,0.25)";
-  ctx.beginPath();
-  ctx.ellipse(s.x + r * 0.25, s.y + r * 0.45, r * 1.05, r * 0.5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // body
-  const g = ctx.createRadialGradient(s.x - r * 0.3, s.y - r * 0.3, r * 0.2, s.x, s.y, r);
-  g.addColorStop(0, isHome ? COLORS.home : COLORS.away);
-  g.addColorStop(1, isHome ? COLORS.homeDark : COLORS.awayDark);
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
-  ctx.fill();
-  if (p.role === 1) {
-    ctx.strokeStyle = "rgba(255,255,255,0.8)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
-  if (controlled) {
-    ctx.strokeStyle = COLORS.controlled;
-    ctx.lineWidth = Math.max(2, 0.18 * cam.zoom);
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, r * 1.45, 0, Math.PI * 2);
-    ctx.stroke();
-    if (deciding) {
-      ctx.strokeStyle = COLORS.preview;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, r * 1.9, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  }
-  if (cam.zoom > 9) {
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.font = `${Math.max(9, r * 1.1)}px system-ui, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(String(p.role), s.x, s.y);
-  }
+  const r = bodyRadius(cam);
+  const speed = len(p.vel);
+  paintFigure(ctx, s.x, s.y, r, {
+    kit: p.side === "home" ? "home" : "away",
+    lean: speed > 0.5 ? { x: p.vel.x / speed, y: p.vel.y / speed } : null,
+    fatigue: p.fatigue,
+    label: cam.zoom > 9 ? String(p.role) : null,
+    controlled,
+    deciding,
+    outline: p.role === 1,
+  });
 }
 
 function drawBall(ctx: CanvasRenderingContext2D, cam: Camera, state: MatchState): void {
   const s = toScreen(cam, state.ball.pos);
   const r = Math.max(2.5, 0.28 * cam.zoom);
-  ctx.fillStyle = "rgba(0,0,0,0.3)";
-  ctx.beginPath();
-  ctx.ellipse(s.x + r * 0.5, s.y + r * 0.9, r, r * 0.5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = COLORS.ball;
-  ctx.beginPath();
-  ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(20,30,50,0.6)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  const speed = len(state.ball.vel);
+  // a struck ball rises: lift it off its shadow in proportion to speed
+  const lift = state.ball.status === "loose" ? Math.min(r * 1.4, speed * 0.06 * cam.zoom) : 0;
+  paintBall(ctx, s.x, s.y, r, lift);
+}
+
+/** Fading streak behind the ball while play is fast-forwarded: motion you can read at a glance. */
+function drawTrail(ctx: CanvasRenderingContext2D, cam: Camera, trail: readonly Vec2[], fast: number): void {
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  // three bands of growing weight and opacity: a tapered streak in three strokes
+  const n = trail.length;
+  const bands = 3;
+  for (let b = 0; b < bands; b++) {
+    const from = Math.max(1, Math.floor((n * b) / bands));
+    const to = Math.floor((n * (b + 1)) / bands);
+    if (to <= from) continue;
+    const t = (b + 1) / bands;
+    ctx.strokeStyle = `rgba(255, 247, 224, ${0.55 * t * fast})`;
+    ctx.lineWidth = Math.max(1, 0.22 * cam.zoom * t);
+    ctx.beginPath();
+    const start = toScreen(cam, trail[from - 1]!);
+    ctx.moveTo(start.x, start.y);
+    for (let i = from; i < to; i++) {
+      const s = toScreen(cam, trail[i]!);
+      ctx.lineTo(s.x, s.y);
+    }
+    ctx.stroke();
+  }
+}
+
+/** Fast-forward frame: cinematic bars creep in so the eye knows the picture is accelerated. */
+function drawFastFrame(ctx: CanvasRenderingContext2D, cam: Camera, fast: number): void {
+  const { width, height } = cam;
+  const bar = Math.round(height * 0.035 * fast);
+  if (bar < 1) return;
+  ctx.fillStyle = "rgba(4, 12, 26, 0.85)";
+  ctx.fillRect(0, 0, width, bar);
+  ctx.fillRect(0, height - bar, width, bar);
 }
 
 /** Under the players: pressure around the controlled player and the space the options point at. */

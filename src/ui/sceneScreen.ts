@@ -36,7 +36,8 @@ export function mountSceneScreen(root: HTMLElement, session: Session, h: SceneHa
   }
   root.className = "in-scene";
   root.innerHTML = `
-    <section class="scene tone-${view.scene.tone}">
+    <section class="scene tone-${view.scene.tone} at-${view.scene.location}">
+      <div class="backdrop" aria-hidden="true"><span class="sky"></span><span class="ground"></span><span class="glow"></span></div>
       <header class="scene-head">
         <div class="where"><span class="loc">${escapeHtml(LOCATION_LABEL[view.scene.location])}</span><span class="day">${formatDay(c.day)}</span></div>
         <h2>${escapeHtml(view.scene.title)}</h2>

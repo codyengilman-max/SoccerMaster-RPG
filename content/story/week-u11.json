@@ -779,6 +779,265 @@
       "next": null,
       "once": false,
       "reviewStatus": "proposal"
+    },
+    {
+      "id": "u11.trial_review",
+      "title": "A month on",
+      "location": "car",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The car park empties out after training. {parent} doesn't start the engine straight away."
+        },
+        {
+          "speaker": "parent",
+          "text": "A month. That was the deal — a month, then an honest talk. So: honestly, how is it going?",
+          "requiresKnown": [
+            "trial_month"
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "And I've noticed the sessions you've skipped. That's part of the honest talk too.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "trainings_missed",
+              "min": 1
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "u11.trial_review.stay",
+          "label": "\"I want to keep going. I like who I am out there.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "clear_fact",
+              "id": "trial_month"
+            },
+            {
+              "type": "set_fact",
+              "id": "trial_review_stay",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "trial_review_stay"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 3
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Then we keep going. Same rules, same deal. Thank you for telling me straight."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "u11.trial_review.hard",
+          "label": "\"It's harder than I thought. But I don't want to stop.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "clear_fact",
+              "id": "trial_month"
+            },
+            {
+              "type": "set_fact",
+              "id": "trial_review_hard",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "trial_review_hard"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 4
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Hard is allowed. Hard and honest is what we agreed. If it gets too much, you tell me before it gets too much."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "u11.trial_review.fine",
+          "label": "\"It's fine.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "clear_fact",
+              "id": "trial_month"
+            },
+            {
+              "type": "set_fact",
+              "id": "trial_review_fine",
+              "value": true
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": -1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "\"Fine.\" Okay. We'll talk again when you've got more than one word for me."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "u11.school_check_in",
+      "title": "School first",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Homework is spread across the kitchen table. {parent} sits down opposite with a cup of tea."
+        },
+        {
+          "speaker": "parent",
+          "text": "Three weeks ago you said school comes first. I said I'd check. So I'm checking — is it still first?"
+        }
+      ],
+      "choices": [
+        {
+          "id": "u11.school_check_in.kept",
+          "label": "\"Yes. Homework's done before I touch a ball.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "school_check_kept",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "school_check_kept"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 3
+            },
+            {
+              "type": "track",
+              "track": "school",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Good. Keep it that way and I'll keep driving you to every session you want."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "u11.school_check_in.slipping",
+          "label": "\"Mostly. Some nights I'm too tired after training.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "school_check_slipping",
+              "value": true
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "school_check_slipping"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 2
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [
+            {
+              "id": "replan",
+              "afterDays": 7,
+              "effects": [
+                {
+                  "type": "track",
+                  "track": "school",
+                  "delta": 1
+                }
+              ],
+              "unless": [
+                {
+                  "type": "fact",
+                  "id": "trainings_missed",
+                  "min": 2
+                }
+              ]
+            }
+          ],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Then we plan it: homework straight after school on training days. Thank you for not pretending."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
     }
   ],
   "boys": [

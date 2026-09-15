@@ -1,5 +1,6 @@
 import { attachPointer, type PointerAdapter } from "../gesture/pointer";
-import { SLOW_SCALE } from "../match/clock";
+import { createCommentary, routineLine, scorelineLine } from "../match/commentary";
+import { formatRealTime, totalRealMs } from "../match/pace";
 import {
   cancel,
   frame,
@@ -37,6 +38,7 @@ export interface MatchScreenHandle {
 
 const MAX_FRAME_MS = 100;
 const TICKER_LINES = 5;
+const TRAIL_LENGTH = 18;
 
 export interface MatchScreenOptions {
   /** Label of the button under the full-time summary. */
@@ -51,7 +53,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       <header class="hud">
         <div class="score"><span class="team home">${runtime.state.home.shortName}</span> <b class="num">0 – 0</b> <span class="team away">${runtime.state.away.shortName}</span></div>
         <div class="clock"><span class="time">00:00</span><span class="half">1st</span></div>
-        <div class="speed" aria-live="polite">×1</div>
+        <div class="speed" aria-live="polite"><span class="rate">×1</span><span class="real" title="real time played">0:00</span></div>
       </header>
       <div class="stage">
         <canvas class="pitch" aria-label="match view"></canvas>
@@ -71,7 +73,6 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       </section>
       <footer class="controls">
         <button class="toggle accessible" aria-pressed="false">Tap targets</button>
-        <button class="toggle fast" aria-pressed="false">Fast play</button>
         <button class="toggle pause" aria-pressed="false">Pause</button>
         <span class="provisional" title="Tactical content is provisional and not coach-reviewed">provisional</span>
       </footer>
@@ -90,6 +91,8 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
   const timeEl = q<HTMLElement>(".clock .time");
   const halfEl = q<HTMLElement>(".clock .half");
   const speedEl = q<HTMLElement>(".speed");
+  const rateEl = q<HTMLElement>(".speed .rate");
+  const realEl = q<HTMLElement>(".speed .real");
   const perfEl = q<HTMLElement>(".perf");
   const probe = createProbe();
   const showPerf = new URLSearchParams(location.search).has("perf");
@@ -106,7 +109,6 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
   const feedbackEl = q<HTMLDivElement>(".feedback");
   const tickerEl = q<HTMLUListElement>(".ticker");
   const accessibleBtn = q<HTMLButtonElement>(".toggle.accessible");
-  const fastBtn = q<HTMLButtonElement>(".toggle.fast");
   const pauseBtn = q<HTMLButtonElement>(".toggle.pause");
 
   let cam: Camera = createCamera(runtime.state.rules, 300, 200);
@@ -125,10 +127,14 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
   ro.observe(stage);
 
   const optionAnchors = new Map<string, Vec2>();
+  const trail: Vec2[] = [];
+  const commentary = createCommentary();
   let slow = 0;
+  let fastMix = 0;
   let shownRecords = new WeakSet<MomentRecord>();
   let bannerTimer = 0;
   let feedbackTimer = 0;
+  const pendingTicker: string[] = [];
 
   const showBanner = (text: string, ms = 1800): void => {
     bannerEl.textContent = text;
@@ -204,12 +210,21 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     feedbackTimer = window.setTimeout(() => (feedbackEl.hidden = true), 7000);
   };
 
-  const pushTicker = (e: MatchEvent): void => {
-    const text = describeEvent(runtime, e);
-    if (!text) return;
-    const li = document.createElement("li");
-    li.textContent = `${fmtClock(runtime.state.clock.timeMs)} ${text}`;
-    tickerEl.prepend(li);
+  const pushTicker = (text: string): void => {
+    pendingTicker.push(`${fmtClock(runtime.state.clock.timeMs)} ${text}`);
+  };
+  /** One DOM update per frame however many events fast-forward produced. */
+  const flushTicker = (): void => {
+    if (pendingTicker.length === 0) return;
+    const lines = pendingTicker.splice(Math.max(0, pendingTicker.length - TICKER_LINES));
+    pendingTicker.length = 0;
+    const frag = document.createDocumentFragment();
+    for (const text of lines) {
+      const li = document.createElement("li");
+      li.textContent = text;
+      frag.prepend(li);
+    }
+    tickerEl.prepend(frag);
     while (tickerEl.children.length > TICKER_LINES) tickerEl.lastElementChild?.remove();
   };
 
@@ -244,10 +259,6 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     accessibleBtn.setAttribute("aria-pressed", String(runtime.accessible));
     renderOptions();
   });
-  fastBtn.addEventListener("click", () => {
-    runtime.fast = !runtime.fast;
-    fastBtn.setAttribute("aria-pressed", String(runtime.fast));
-  });
   pauseBtn.addEventListener("click", () => {
     runtime.paused = !runtime.paused;
     pauseBtn.setAttribute("aria-pressed", String(runtime.paused));
@@ -276,7 +287,17 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       renderOptions();
     }
     if (res.closed) onClosed(res.closed);
-    for (const e of res.events) pushTicker(e);
+    for (const e of res.events) {
+      const text = describeEvent(runtime, e);
+      if (text) pushTicker(text);
+      if (e.type === "half_time") showBanner(`Half time · ${scorelineLine(runtime.state)}`, 2400);
+      if (e.type === "goal") showBanner(`GOAL · ${runtime.state.home.shortName} ${runtime.state.score.home} – ${runtime.state.score.away} ${runtime.state.away.shortName}`, 2200);
+    }
+    if (runtime.pace.phase === "routine" && res.ticks > 0) {
+      const line = routineLine(commentary, runtime.state);
+      if (line) pushTicker(line);
+    }
+    flushTicker();
     for (const rec of runtime.session.records) {
       if (rec.outcome && !shownRecords.has(rec)) {
         shownRecords.add(rec);
@@ -290,11 +311,19 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     timeEl.textContent = fmtClock(st.clock.timeMs);
     halfEl.textContent = st.phase.kind === "half_time" ? "HT" : st.phase.kind === "full_time" ? "FT" : st.clock.half === 1 ? "1st" : "2nd";
     const scale = runtime.clock.scale;
-    speedEl.textContent = scale === SLOW_SCALE ? `slow ×${SLOW_SCALE}` : `×${scale}`;
-    speedEl.classList.toggle("slow", scale === SLOW_SCALE);
+    const phase = runtime.pace.phase;
+    rateEl.textContent = phase === "window" ? "slow motion" : phase === "aftermath" ? "live" : phase === "halftime" ? "half time" : scale >= 1.5 ? `▶▶ ×${Math.round(scale)}` : "live";
+    speedEl.classList.toggle("slow", phase === "window");
+    speedEl.classList.toggle("fast", phase === "routine" && scale >= 1.5);
+    realEl.textContent = formatRealTime(totalRealMs(runtime.pace));
 
     const w = runtime.active;
     slow += ((w ? 1 : 0) - slow) * 0.15;
+    fastMix += ((phase === "routine" && scale >= 1.5 ? Math.min(1, scale / 12) : 0) - fastMix) * 0.2;
+    if (res.ticks > 0) {
+      trail.push({ ...st.ball.pos });
+      if (trail.length > TRAIL_LENGTH) trail.shift();
+    }
     optionAnchors.clear();
     if (w) {
       for (const o of w.moment.options) {
@@ -314,6 +343,8 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       window: w,
       optionAnchors,
       slow,
+      fast: fastMix,
+      trail,
       major: w?.moment.major ?? false,
     });
     probe.sample({ frameMs: dt, simMs: t1 - t0, renderMs: performance.now() - t1, ticks: res.ticks });
@@ -335,10 +366,12 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
         return `<tr><td>${fmtClock(r.moment.timeMs)}</td><td>${escapeHtml(r.moment.title)}</td><td>${escapeHtml(chosen)}</td><td>${r.decision.band}</td><td>${r.execution?.band ?? "—"}</td><td>${r.outcome?.result ?? "—"}</td></tr>`;
       })
       .join("");
+    const pace = runtime.pace;
     const summary = document.createElement("section");
     summary.className = "summary";
     summary.innerHTML = `
       <h2>Full time · ${st.home.shortName} ${st.score.home} – ${st.score.away} ${st.away.shortName}</h2>
+      <p class="realtime">Played in <b>${formatRealTime(totalRealMs(pace))}</b> real time · decisions ${formatRealTime(pace.realMs.window)} · live replay ${formatRealTime(pace.realMs.aftermath)} · fast-forward ${formatRealTime(pace.realMs.routine)}</p>
       <p class="muted">${rep.total} tactical moments (${rep.onBall} with the ball) · easy ${rep.byDifficulty.easy} / medium ${rep.byDifficulty.medium} / hard ${rep.byDifficulty.hard}</p>
       <p class="muted">Reads: strong ${rep.decisions.strong} · acceptable ${rep.decisions.acceptable} · weak ${rep.decisions.weak} · timed out ${rep.decisions.timeout} · unavailable ${rep.decisions.intent_unavailable}</p>
       ${rep.shortfalls.length ? `<p class="muted">Coverage shortfalls: ${escapeHtml(rep.shortfalls.join("; "))}</p>` : ""}

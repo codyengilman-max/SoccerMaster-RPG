@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import catalogJson from "../../content/catalog/provisional-u11.json";
-import { NORMAL_SCALE, SLOW_SCALE, FAST_SCALE } from "../../src/match/clock";
+import { FAST_SCALE_MAX, NORMAL_SCALE, SLOW_SCALE } from "../../src/match/clock";
+import { DEFAULT_PACE } from "../../src/match/pace";
 import {
   ACCESSIBLE_WINDOW_FACTOR,
   cancel,
@@ -83,24 +84,41 @@ function contextualOption(m: TacticalMoment): TacticalOption {
 const line = (from: Vec2, to: Vec2, n = 8): Vec2[] => Array.from({ length: n }, (_, i) => ({ x: from.x + ((to.x - from.x) * i) / (n - 1), y: from.y + ((to.y - from.y) * i) / (n - 1) }));
 
 describe("match runtime", () => {
-  it("runs the simulation at 1×, 3× fast and 0.12× in a moment, on the same fixed tick", () => {
+  it("fast-forwards routine play, runs the maximum rate when forced, and slows to 0.3× in a moment, on the same fixed tick", () => {
     const rt = runtimeFor(3);
-    let ticks = 0;
-    for (let i = 0; i < 60; i++) ticks += frame(rt, FRAME).ticks;
-    expect(ticks).toBe(TICKS_PER_SECOND);
-    expect(rt.clock.scale).toBe(NORMAL_SCALE);
-    rt.fast = true;
-    ticks = 0;
-    for (let i = 0; i < 60; i++) ticks += frame(rt, FRAME).ticks;
-    expect(ticks).toBe(TICKS_PER_SECOND * FAST_SCALE);
-    expect(rt.clock.scale).toBe(FAST_SCALE);
-    rt.fast = false;
-    untilMoment(rt);
+    frame(rt, FRAME);
+    // routine play is accelerated from the first frame (never below the director's minimum)
+    expect(rt.clock.scale).toBeGreaterThanOrEqual(DEFAULT_PACE.routineMinScale);
+    const m = untilMoment(rt);
     expect(rt.clock.scale).toBe(SLOW_SCALE);
-    const before = rt.state.clock.tick;
+    expect(rt.pace.phase).toBe("window");
+    let before = rt.state.clock.tick;
     for (let i = 0; i < 60; i++) frame(rt, FRAME);
-    expect(rt.state.clock.tick - before).toBeGreaterThanOrEqual(2);
-    expect(rt.state.clock.tick - before).toBeLessThanOrEqual(3);
+    expect(rt.state.clock.tick - before).toBe(Math.round(TICKS_PER_SECOND * SLOW_SCALE));
+    // decide; the aftermath runs at real speed, then routine play accelerates; forced fast = the cap
+    select(rt, m.options[0]!.id);
+    if (rt.active) {
+      setAccessible(rt, true);
+      tapTarget(rt, liveAnchor(rt, m.options[0]!) ?? rt.state.ball.pos);
+      setAccessible(rt, false);
+    }
+    expect(rt.active).toBeNull();
+    expect(rt.pace.phase).toBe("aftermath");
+    expect(rt.clock.scale).toBe(NORMAL_SCALE);
+    before = rt.state.clock.tick;
+    for (let i = 0; i < 60; i++) frame(rt, FRAME);
+    expect(rt.state.clock.tick - before).toBe(TICKS_PER_SECOND);
+    for (let i = 0; i < 120 && rt.pace.phase === "aftermath"; i++) frame(rt, FRAME);
+    expect(rt.pace.phase).toBe("routine");
+    rt.fast = true;
+    for (let i = 0; i < 40; i++) frame(rt, FRAME);
+    if (!rt.active) {
+      expect(rt.clock.scale).toBe(FAST_SCALE_MAX);
+      before = rt.state.clock.tick;
+      let ticks = 0;
+      for (let i = 0; i < 30 && !rt.active; i++) ticks += frame(rt, FRAME).ticks;
+      if (!rt.active) expect(ticks).toBe((TICKS_PER_SECOND * FAST_SCALE_MAX) / 2);
+    }
   });
 
   it("the simulation keeps moving during a moment: players and ball advance while the window is open", () => {
@@ -108,7 +126,7 @@ describe("match runtime", () => {
     const m = untilMoment(rt);
     const snap = rt.state.players.map((p) => ({ ...p.pos }));
     const ballBefore = { ...rt.state.ball.pos };
-    for (let i = 0; i < 300; i++) frame(rt, FRAME); // ~5 real seconds ≈ 12 sim ticks
+    for (let i = 0; i < 120; i++) frame(rt, FRAME); // ~2 real seconds ≈ 12 sim ticks
     expect(rt.active?.moment.id).toBe(m.id);
     const moved = rt.state.players.filter((p, i) => dist(p.pos, snap[i]!) > 0.05).length;
     expect(moved).toBeGreaterThan(4);
@@ -128,6 +146,7 @@ describe("match runtime", () => {
     expect(["timeout", "play_stopped"]).toContain(closed!.reason);
     expect(rt.active).toBeNull();
     expect(rt.clock.scale).toBe(NORMAL_SCALE);
+    expect(rt.pace.phase).toBe("aftermath");
     expect(rt.session.records.at(-1)?.decision.band).toBe(closed!.reason === "timeout" ? "timeout" : "intent_unavailable");
   });
 
