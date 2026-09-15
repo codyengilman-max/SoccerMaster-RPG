@@ -34,12 +34,16 @@ self.addEventListener("fetch", (event) => {
   if (!sameOrigin(url)) return;
 
   // Navigations: try the network for a fresh shell, fall back to the cached one offline.
+  // Only a successful shell is cached: an error page from a mid-deploy host would otherwise
+  // become the offline fallback and every later offline start would show it.
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put("/index.html", copy));
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((cache) => cache.put("/index.html", copy));
+          }
           return res;
         })
         .catch(() => caches.match("/index.html").then((hit) => hit || Response.error()))

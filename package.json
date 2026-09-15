@@ -20,7 +20,8 @@
     "smoke:week": "tsx tools/smokeWeek.ts",
     "perf": "tsx tools/perfBench.ts",
     "smoke:season": "tsx tools/smokeSeason.ts",
-    "story:tones": "tsx tools/storyTones.ts"
+    "story:tones": "tsx tools/storyTones.ts",
+    "pace": "tsx tools/paceBench.ts"
   },
   "devDependencies": {
     "@types/node": "20.19.43",

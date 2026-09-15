@@ -1,4 +1,5 @@
 import { attachPointer, type PointerAdapter } from "../gesture/pointer";
+import { paintBall, paintSideView, paintStandingFigure } from "../render/figures";
 import type { Vec2 } from "../sim/geometry";
 import {
   ATTEMPTS_EACH,
@@ -188,12 +189,8 @@ export function mountCrossbarScreen(root: HTMLElement, opts: CrossbarScreenOptio
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
-    // sky + grass
-    ctx.fillStyle = "#1f3b5c";
-    ctx.fillRect(0, 0, w, h);
     const ground = toScreen({ x: 0, y: 0 }).y;
-    ctx.fillStyle = "#357a40";
-    ctx.fillRect(0, ground, w, h - ground);
+    paintSideView(ctx, w, h, ground);
     // frame
     const left = (VIEW.width - FRAME.width) / 2;
     const p1 = toScreen({ x: left, y: 0 });
@@ -242,6 +239,11 @@ export function mountCrossbarScreen(root: HTMLElement, opts: CrossbarScreenOptio
       ctx.arc(p.x, p.y, a.result === "bar" ? 6 : 4, 0, Math.PI * 2);
       ctx.fill();
     }
+    // the two of you in the foreground, taking turns; the near leg swings as a shot leaves
+    const swing = flight ? Math.max(0, Math.sin(Math.min(1, (now - flight.start) / 300) * Math.PI)) : 0;
+    const shooter = flight ? flight.attempt.shooter : s.turn;
+    paintStandingFigure(ctx, w * 0.2, h * 0.98, h * 0.26, "home", shooter === "you" ? swing : 0);
+    paintStandingFigure(ctx, w * 0.8, h * 0.98, h * 0.26, "away", shooter === "friend" ? swing : 0);
     // ball
     let bp = toScreen(BALL_SPOT);
     if (flight) {
@@ -250,13 +252,7 @@ export function mountCrossbarScreen(root: HTMLElement, opts: CrossbarScreenOptio
       const to = toScreen(flight.to);
       bp = { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t - Math.sin(t * Math.PI) * scale * 0.6 };
     }
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(bp.x, bp.y, Math.max(5, scale * 0.11), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#06101f";
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    paintBall(ctx, bp.x, bp.y, Math.max(5, scale * 0.11));
     // preview
     if (preview.length > 1) {
       ctx.strokeStyle = "#7de6ff";

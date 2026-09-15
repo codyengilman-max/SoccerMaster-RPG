@@ -17,6 +17,38 @@
   </head>
   <body>
     <div id="app"></div>
+    <noscript>SoccerMaster RPG needs JavaScript to run.</noscript>
+    <script>
+      // Boot watchdog: if the app module never runs (stale offline shell, failed asset, blocked
+      // script) the page would stay blank forever. Offer a retry that drops the offline cache.
+      (function () {
+        var BOOT_MS = 8000;
+        setTimeout(function () {
+          if (document.documentElement.classList.contains("booted")) return;
+          var app = document.getElementById("app");
+          if (!app || app.childElementCount > 0) return;
+          app.innerHTML =
+            '<section class="screen recovery"><div class="card"><h1>Still loading\u2026</h1>' +
+            '<p>The game did not start. Your saved campaign is safe.</p>' +
+            '<div class="actions"><button class="primary" id="boot-retry" type="button">Retry</button></div></div></section>';
+          document.getElementById("boot-retry").addEventListener("click", function () {
+            var done = function () { location.reload(); };
+            var work = [];
+            if ("serviceWorker" in navigator) {
+              work.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+                return Promise.all(rs.map(function (r) { return r.unregister(); }));
+              }));
+            }
+            if ("caches" in window) {
+              work.push(caches.keys().then(function (ks) {
+                return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+              }));
+            }
+            Promise.all(work).then(done, done);
+          });
+        }, BOOT_MS);
+      })();
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

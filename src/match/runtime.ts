@@ -1,13 +1,14 @@
 import { gestureAccuracy, isCancelGesture, readGesture, tapAccuracy, type GestureRead } from "../gesture/gesture";
 import { createMatch, isFinished, tick, type MatchConfig } from "../sim/engine";
 import { playerById } from "../sim/perception";
-import type { MatchEvent, MatchState } from "../sim/types";
+import { TICK_MS, type MatchEvent, type MatchState } from "../sim/types";
 import { type Vec2 } from "../sim/geometry";
 import type { Catalog } from "../tactics/catalog";
 import type { DifficultyBand, MomentRecord, TacticalMoment, TacticalOption } from "../tactics/moments";
 import { DEFAULT_PACING, type PacingConfig } from "../tactics/recognition";
 import { abandon, commit, createSession, observe, timeout, type CommitResult, type TacticalSession } from "../tactics/session";
-import { advanceClock, createClock, FAST_SCALE, NORMAL_SCALE, SLOW_SCALE, type RuntimeClock } from "./clock";
+import { advanceClock, createClock, NORMAL_SCALE, SLOW_SCALE, type RuntimeClock } from "./clock";
+import { beginAftermath, beginHalfTime, beginWindow, createPace, paceScale, paceTicked, type PaceConfig, type PaceState } from "./pace";
 
 /**
  * Match runtime / moment director (plan §3.1). Owns the real-time loop's *decisions*: when the sim
@@ -62,15 +63,18 @@ export interface FrameResult {
 export interface RuntimeOptions {
   pacing?: PacingConfig;
   accessible?: boolean;
+  pace?: PaceConfig;
 }
 
 export interface MatchRuntime {
   readonly state: MatchState;
   readonly session: TacticalSession;
   readonly clock: RuntimeClock;
+  /** Real-time budget director: which phase the match is in and what each phase has cost so far. */
+  readonly pace: PaceState;
   readonly active: ActiveWindow | null;
   accessible: boolean;
-  /** Accelerate routine play (ignored while a moment is open). */
+  /** Force routine play to the maximum rate (ignored while a moment is open). */
   fast: boolean;
   paused: boolean;
 }
@@ -86,6 +90,7 @@ export function createRuntime(cfg: MatchConfig, catalog: Catalog, opts: RuntimeO
     state,
     session: createSession(catalog, opts.pacing ?? DEFAULT_PACING),
     clock: createClock(NORMAL_SCALE),
+    pace: createPace(opts.pace),
     active: null,
     accessible: opts.accessible ?? false,
     fast: false,
@@ -113,15 +118,11 @@ export function windowProgress(rt: MatchRuntime): number {
   return span <= 0 ? 1 : Math.min(1, (rt.state.clock.tick - rt.active.openedTick) / span);
 }
 
-function currentScale(rt: Internal): number {
-  if (rt.active) return SLOW_SCALE;
-  return rt.fast ? FAST_SCALE : NORMAL_SCALE;
-}
-
 function close(rt: Internal, reason: MomentCloseReason, result: CommitResult): MomentClosed {
   const moment = rt.active!.moment;
   rt.active = null;
-  rt.clock.scale = currentScale(rt);
+  rt.clock.scale = NORMAL_SCALE;
+  beginAftermath(rt.pace);
   const record = rt.session.records[rt.session.records.length - 1]!;
   return { moment, reason, result, record };
 }
@@ -137,19 +138,25 @@ function open(rt: Internal, moment: TacticalMoment): void {
     previewPoints: [],
   };
   rt.clock.scale = SLOW_SCALE;
+  beginWindow(rt.pace);
 }
 
 /**
- * Advance one real-time frame. Runs however many whole ticks the clock owes at the current scale;
- * before each tick the director checks the window (expiry, play stopping) and lets the tactical
- * session recognise a new moment. Slow motion is literally fewer ticks per frame.
+ * Advance one real-time frame. The pace director picks the scale, then the clock says how many
+ * whole ticks that frame is worth; before each tick the director checks the window (expiry, play
+ * stopping) and lets the tactical session recognise a new moment. Slow motion is literally fewer
+ * ticks per frame; fast-forward is more of them.
  */
 export function frame(runtime: MatchRuntime, realDtMs: number): FrameResult {
   const rt = runtime as Internal;
   const result: FrameResult = { ticks: 0, opened: null, closed: null, events: [], finished: isFinished(rt.state) };
   if (rt.paused || result.finished) return result;
 
-  rt.clock.scale = currentScale(rt);
+  rt.clock.scale = paceScale(
+    rt.pace,
+    { state: rt.state, pacing: rt.session.pacing, momentsSoFar: rt.session.records.length, windowOpen: rt.active !== null, forceFast: rt.fast },
+    realDtMs,
+  );
   const ticks = advanceClock(rt.clock, realDtMs);
   for (let i = 0; i < ticks && !isFinished(rt.state); i++) {
     if (rt.active) {
@@ -164,11 +171,13 @@ export function frame(runtime: MatchRuntime, realDtMs: number): FrameResult {
     }
     tick(rt.state);
     result.ticks++;
+    paceTicked(rt.pace, TICK_MS);
     // the frame that opened a moment stops ticking at normal speed
     if (moment) break;
   }
   result.events = rt.state.events.slice(rt.eventCursor);
   rt.eventCursor = rt.state.events.length;
+  if (result.events.some((e) => e.type === "half_time")) beginHalfTime(rt.pace);
   result.finished = isFinished(rt.state);
   return result;
 }

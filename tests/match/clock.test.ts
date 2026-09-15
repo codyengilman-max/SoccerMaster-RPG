@@ -22,9 +22,9 @@ describe("runtime clock", () => {
       s += advanceClock(slow, 1000 / 60);
     }
     expect(n).toBe(1000 / TICK_MS);
-    expect(s).toBeGreaterThanOrEqual(2);
-    expect(s).toBeLessThanOrEqual(3); // 0.12 s of sim per real second ≈ 2.4 ticks
-    expect(realMsFor(slow, 2.5)).toBeCloseTo(20833, 0);
+    expect(s).toBeGreaterThanOrEqual(Math.floor(SLOW_SCALE * 20));
+    expect(s).toBeLessThanOrEqual(Math.ceil(SLOW_SCALE * 20)); // 0.3 s of sim per real second = 6 ticks
+    expect(realMsFor(slow, 2.5)).toBeCloseTo((2500 / SLOW_SCALE), 0); // a medium window ≈ 8.3 real seconds
   });
 
   it("caps the ticks run after a long stall and drops the backlog", () => {

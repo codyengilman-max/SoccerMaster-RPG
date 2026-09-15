@@ -40,6 +40,7 @@ npm run catalog:build            # regenerate content/catalog/provisional-u11.js
 npm run smoke:week               # headless: opening → first two campaign weeks (trainings, crossbar, juggling, a hobby)
 npm run smoke:season -- 11       # headless: a full U11 season (leagues, tournaments, season end, tryouts, transfer) for seed 11
 npm run perf                     # headless CPU budget check (docs/PERFORMANCE.md)
+npm run pace -- 4 CM all         # real-time pace check: complete 60-minute matches in 6–8 real minutes with 18–25 moments
 npm run story:tones              # editorial mix of authored scenes vs the 30/15/55 target (spec §6)
 npm run build     # static build → dist/
 ```

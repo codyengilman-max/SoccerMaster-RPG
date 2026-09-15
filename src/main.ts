@@ -1,4 +1,5 @@
 import catalogJson from "../content/catalog/provisional-u11.json";
+import { installRecovery } from "./app/recovery";
 import { AUTOSAVE_SLOT, newSession, resumeSession, savedSummary, type Session } from "./app/session";
 import { APP_NAME, APP_VERSION } from "./app/version";
 import { FRIEND_ID, PLAYER_ID, type PendingActivity } from "./campaign/campaign";
@@ -239,5 +240,7 @@ function startMatch(seed: number, role: RoleNumber): void {
   mountMatchScreen(root!, runtime, showQuickMatch);
 }
 
+installRecovery(root, { onRestart: showStart });
 registerServiceWorker();
 showStart();
+document.documentElement.classList.add("booted");

@@ -9,9 +9,14 @@
   --coral: #ff7a59;
   --text: #eaf6ff;
   --muted: #9db7d1;
+  --glass: linear-gradient(160deg, rgba(27, 58, 107, 0.62), rgba(11, 26, 51, 0.82));
+  --edge: rgba(125, 230, 255, 0.2);
+  --edge-strong: rgba(125, 230, 255, 0.42);
+  --glow: 0 0 0 1px rgba(47, 211, 255, 0.25), 0 0 24px rgba(47, 211, 255, 0.22);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--text);
-  background: radial-gradient(120% 120% at 20% 0%, var(--navy-700), var(--navy-900));
+  background: var(--navy-900);
 }
 
 html,
@@ -19,6 +24,19 @@ body {
   margin: 0;
   min-height: 100%;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Layered cinematic backdrop: cool sky light top-left, warm floodlight glow low-right. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(90% 60% at 15% -10%, rgba(47, 211, 255, 0.22), transparent 60%),
+    radial-gradient(70% 50% at 95% 100%, rgba(255, 184, 92, 0.12), transparent 60%),
+    radial-gradient(140% 120% at 50% 40%, var(--navy-700) 0%, var(--navy-800) 45%, var(--navy-900) 100%);
 }
 
 #app {
@@ -29,9 +47,49 @@ body {
     env(safe-area-inset-left);
 }
 
+/* Every screen is a <section> swapped into #app: fade + rise on entry (transform/opacity only → composited). */
+#app > section {
+  animation: screen-in 320ms var(--ease-out) both;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 button {
   font: inherit;
   color: inherit;
+  transition:
+    border-color 160ms var(--ease-out),
+    background-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    transform 120ms var(--ease-out);
+}
+
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--cyan-400);
+  outline-offset: 2px;
 }
 
 .muted {
@@ -58,6 +116,11 @@ button {
   letter-spacing: 0.04em;
   margin: 0 0 0.5rem;
   color: var(--cyan-300);
+  background: linear-gradient(180deg, #ffffff 0%, var(--cyan-300) 55%, var(--cyan-400) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 6px 24px rgba(47, 211, 255, 0.35));
 }
 
 .start > p {
@@ -65,13 +128,48 @@ button {
   margin: 0 0 1.5rem;
 }
 
+.recovery {
+  padding: 2rem 1rem;
+  max-width: 28rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.recovery h1 {
+  margin: 0 0 0.5rem;
+  color: var(--cyan-300);
+}
+
+.recovery pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8rem;
+  color: var(--muted);
+  max-height: 8rem;
+  overflow: auto;
+}
+
 .card {
-  background: linear-gradient(160deg, rgba(27, 58, 107, 0.55), rgba(11, 26, 51, 0.75));
-  border: 1px solid rgba(125, 230, 255, 0.18);
+  position: relative;
+  background: var(--glass);
+  border: 1px solid var(--edge);
   border-radius: 1rem;
   padding: 1.25rem;
   text-align: left;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Top-edge light catch, like a bevelled glass panel. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(125, 230, 255, 0.55), transparent);
+  pointer-events: none;
 }
 
 .card h2 {
@@ -111,6 +209,7 @@ button {
 .role:hover,
 .role:focus-visible {
   border-color: var(--cyan-400);
+  box-shadow: var(--glow);
   outline: none;
 }
 
@@ -300,6 +399,7 @@ button {
 }
 
 .scene {
+  position: relative;
   width: 100%;
   max-width: 44rem;
   margin: 0 auto;
@@ -308,6 +408,129 @@ button {
   display: grid;
   grid-template-rows: auto 1fr auto;
   padding: calc(env(safe-area-inset-top) + 0.75rem) 1rem calc(env(safe-area-inset-bottom) + 0.75rem);
+  isolation: isolate;
+}
+
+/* Procedural location backdrop: a sky band, a ground band and one light source, all gradients (no assets).
+   Colours are tuned per location so home/school/park/pitch read differently at a glance. */
+.scene .backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  --sky-a: #143a6a;
+  --sky-b: #0b1a33;
+  --ground: #0a1628;
+  --light: rgba(125, 230, 255, 0.35);
+  --horizon: 42%;
+}
+
+.scene .backdrop .sky {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--horizon);
+  background: linear-gradient(180deg, var(--sky-a) 0%, var(--sky-b) 100%);
+}
+
+.scene .backdrop .ground {
+  position: absolute;
+  inset: var(--horizon) 0 0;
+  background: linear-gradient(180deg, var(--sky-b) 0%, var(--ground) 22%, var(--navy-900) 100%);
+}
+
+.scene .backdrop .ground::before {
+  content: "";
+  position: absolute;
+  inset: -1px 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--light), transparent);
+  opacity: 0.6;
+}
+
+.scene .backdrop .glow {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  left: 65%;
+  top: var(--horizon);
+  transform: translate(-50%, -60%);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--light) 0%, transparent 60%);
+  animation: glow-breathe 9s ease-in-out infinite alternate;
+}
+
+@keyframes glow-breathe {
+  from {
+    opacity: 0.75;
+    transform: translate(-50%, -60%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -60%) scale(1.04);
+  }
+}
+
+/* Soft veil so dialogue stays readable over any backdrop. */
+.scene .backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 16, 31, 0.15) 0%, rgba(6, 16, 31, 0.55) 45%, rgba(6, 16, 31, 0.9) 100%);
+}
+
+.scene.at-home .backdrop {
+  --sky-a: #2a2340;
+  --sky-b: #12172e;
+  --ground: #1a1220;
+  --light: rgba(255, 184, 92, 0.42);
+  --horizon: 48%;
+}
+
+.scene.at-car .backdrop {
+  --sky-a: #0f2d52;
+  --sky-b: #0a1a33;
+  --ground: #0c0f18;
+  --light: rgba(255, 210, 140, 0.32);
+  --horizon: 55%;
+}
+
+.scene.at-school .backdrop,
+.scene.at-lunch_spot .backdrop {
+  --sky-a: #3b7fc4;
+  --sky-b: #163a66;
+  --ground: #1c2a3a;
+  --light: rgba(255, 255, 255, 0.35);
+  --horizon: 40%;
+}
+
+.scene.at-training_field .backdrop,
+.scene.at-pitch .backdrop {
+  --sky-a: #1f5a9e;
+  --sky-b: #0d2647;
+  --ground: #1f5a2e;
+  --light: rgba(125, 230, 255, 0.45);
+  --horizon: 44%;
+}
+
+.scene.at-park .backdrop {
+  --sky-a: #d98a4a;
+  --sky-b: #3a2e58;
+  --ground: #1e4a2a;
+  --light: rgba(255, 184, 92, 0.5);
+  --horizon: 46%;
+}
+
+.scene.at-tournament_hotel .backdrop {
+  --sky-a: #1a1f3d;
+  --sky-b: #0b0f22;
+  --ground: #1c1a2a;
+  --light: rgba(255, 210, 140, 0.35);
+  --horizon: 50%;
+}
+
+.scene.tone-adversity .backdrop {
+  --light: rgba(255, 184, 92, 0.22);
 }
 
 .scene-head .where {
@@ -323,6 +546,7 @@ button {
   margin: 0.25rem 0 0.75rem;
   color: var(--cyan-300);
   font-size: 1.4rem;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
 .tone-adversity .scene-head h2 {
@@ -361,8 +585,9 @@ button {
 .line.said {
   padding: 0.6rem 0.85rem;
   border-radius: 0.9rem 0.9rem 0.9rem 0.25rem;
-  background: rgba(27, 58, 107, 0.45);
-  border: 1px solid rgba(125, 230, 255, 0.15);
+  background: linear-gradient(160deg, rgba(27, 58, 107, 0.7), rgba(11, 26, 51, 0.8));
+  border: 1px solid rgba(125, 230, 255, 0.18);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   width: fit-content;
   max-width: 88%;
 }
@@ -413,6 +638,7 @@ button {
 .choice:hover,
 .choice:focus-visible {
   border-color: var(--cyan-400);
+  box-shadow: var(--glow);
   outline: none;
 }
 
@@ -457,10 +683,13 @@ button {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  gap: 0.6rem;
   padding: 0.5rem 0.9rem;
-  background: linear-gradient(180deg, rgba(6, 16, 31, 0.95), rgba(6, 16, 31, 0.7));
-  border-bottom: 1px solid rgba(125, 230, 255, 0.15);
+  background: linear-gradient(180deg, rgba(6, 16, 31, 0.97), rgba(11, 26, 51, 0.85));
+  border-bottom: 1px solid var(--edge);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
   font-variant-numeric: tabular-nums;
+  z-index: 1;
 }
 
 .hud .score {
@@ -469,9 +698,20 @@ button {
   align-items: baseline;
 }
 
+.hud .score .team {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .hud .score .num {
+  flex: none;
+  white-space: nowrap;
   font-size: 1.3rem;
+  font-weight: 700;
   color: var(--cyan-300);
+  text-shadow: 0 0 12px rgba(47, 211, 255, 0.45);
 }
 
 .hud .team.away {
@@ -502,13 +742,34 @@ button {
 .hud .speed.slow {
   color: var(--cyan-300);
   border-color: rgba(125, 230, 255, 0.4);
+  box-shadow: 0 0 14px rgba(47, 211, 255, 0.3);
+}
+
+.hud .speed.fast {
+  color: var(--amber);
+  border-color: rgba(255, 184, 92, 0.45);
+}
+
+.hud .speed .real {
+  margin-left: 0.4rem;
+  color: var(--muted);
+  opacity: 0.85;
 }
 
 .stage {
   position: relative;
   min-height: 0;
   overflow: hidden;
-  background: #2e6b37;
+  background: #1e4a2a;
+}
+
+/* Inner vignette on the stage edges: depth without touching the canvas draw budget. */
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 60px rgba(0, 8, 20, 0.45);
 }
 
 .stage canvas {
@@ -566,15 +827,16 @@ button {
   left: 50%;
   top: 22%;
   transform: translateX(-50%);
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.1rem;
   border-radius: 999px;
-  background: rgba(6, 16, 31, 0.8);
-  border: 1px solid rgba(125, 230, 255, 0.35);
+  background: linear-gradient(180deg, rgba(11, 26, 51, 0.92), rgba(6, 16, 31, 0.92));
+  border: 1px solid var(--edge-strong);
+  box-shadow: var(--glow), 0 10px 30px rgba(0, 0, 0, 0.4);
   color: var(--cyan-300);
   font-weight: 600;
   letter-spacing: 0.02em;
   pointer-events: none;
-  animation: rise 250ms ease-out;
+  animation: rise 250ms var(--ease-out);
 }
 
 @keyframes rise {
@@ -590,9 +852,13 @@ button {
 
 .panel {
   padding: 0.6rem 0.9rem 0.3rem;
-  background: linear-gradient(0deg, rgba(6, 16, 31, 0.98), rgba(6, 16, 31, 0.85));
-  border-top: 1px solid rgba(125, 230, 255, 0.15);
+  background: linear-gradient(0deg, rgba(6, 16, 31, 0.98), rgba(11, 26, 51, 0.9));
+  border-top: 1px solid var(--edge);
   min-height: 7.5rem;
+}
+
+.moment {
+  animation: fade-up 200ms var(--ease-out);
 }
 
 .moment .title {
@@ -634,10 +900,16 @@ button {
   text-align: left;
 }
 
+.option:hover,
+.option:focus-visible {
+  border-color: var(--edge-strong);
+  outline: none;
+}
+
 .option.selected {
   border-color: var(--cyan-400);
   background: rgba(47, 211, 255, 0.18);
-  box-shadow: 0 0 0 2px rgba(47, 211, 255, 0.25) inset;
+  box-shadow: 0 0 0 2px rgba(47, 211, 255, 0.25) inset, 0 0 18px rgba(47, 211, 255, 0.25);
 }
 
 .hint {
@@ -723,7 +995,10 @@ button {
   inset: 0;
   overflow: auto;
   padding: 1.5rem 1rem 2rem;
-  background: rgba(6, 16, 31, 0.96);
+  background:
+    radial-gradient(80% 50% at 50% -10%, rgba(47, 211, 255, 0.18), transparent 60%),
+    rgba(6, 16, 31, 0.96);
+  animation: screen-in 360ms var(--ease-out) both;
 }
 
 .summary h2 {
@@ -765,6 +1040,12 @@ button {
   color: var(--navy-900);
   font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 8px 24px rgba(47, 211, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.primary:hover,
+.primary:focus-visible {
+  box-shadow: 0 10px 30px rgba(47, 211, 255, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 @media (min-width: 900px), (orientation: landscape) and (max-height: 500px) {
@@ -940,7 +1221,9 @@ button {
 .hub .tracks .fill {
   display: block;
   height: 100%;
-  background: var(--cyan-300);
+  background: linear-gradient(90deg, var(--cyan-400), var(--cyan-300));
+  box-shadow: 0 0 10px rgba(47, 211, 255, 0.45);
+  transition: width 500ms var(--ease-out);
 }
 
 .hub .tracks .track-value {

@@ -7,17 +7,21 @@ import { TICK_MS } from "../sim/types";
  */
 
 export const NORMAL_SCALE = 1;
-/** Inside a tactical moment: 2.5 simulated seconds ≈ 21 real seconds. */
-export const SLOW_SCALE = 0.12;
-/** Routine passages may be accelerated; every event still reaches the timeline. */
+/** Inside a tactical moment: 2.5 simulated seconds ≈ 8 real seconds. */
+export const SLOW_SCALE = 0.3;
+/** Training activities keep a deeper slow motion: their windows are short and the ball is close. */
+export const DRILL_SLOW_SCALE = 0.12;
+/** Routine passages are accelerated by the pace director between this and `FAST_SCALE_MAX`. */
 export const FAST_SCALE = 3;
+export const FAST_SCALE_MAX = 32;
 /** Never run more than this many ticks in one frame (tab was hidden, long GC pause...). */
-export const MAX_TICKS_PER_FRAME = 8;
+export const MAX_TICKS_PER_FRAME = 24;
 
 export interface RuntimeClock {
   scale: number;
   /** Simulated milliseconds owed but not yet ticked (always in [0, TICK_MS)). */
   carryMs: number;
+  /** Real milliseconds fed to the clock while the match was running (pauses excluded). */
   realElapsedMs: number;
 }
 
