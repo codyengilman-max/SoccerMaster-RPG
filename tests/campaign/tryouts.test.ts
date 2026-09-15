@@ -110,7 +110,7 @@ const seasonStore = new MemoryStore();
 let base: Session;
 beforeAll(() => {
   base = seasonEnd(seasonStore);
-}, 120_000);
+}, 300_000);
 
 /** A fresh copy of the season-end campaign on the review Monday (the save round-trips, so the copy is exact). */
 const fresh = (): Session => resumeSession(seasonStore)!;

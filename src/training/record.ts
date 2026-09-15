@@ -2,6 +2,7 @@ import { storyContext, touch, type CampaignState } from "../campaign/campaign";
 import { applyEffect, type Effect } from "../story/consequences";
 import type { ChallengeSummary } from "./crossbar";
 import type { DrillSummary } from "./firstTouch";
+import { RUN_CAP, type JuggleSummary } from "./juggling";
 import type { Summary as SmallSidedSummary } from "./smallSided";
 
 /**
@@ -11,6 +12,13 @@ import type { Summary as SmallSidedSummary } from "./smallSided";
  */
 
 export const INTRO_FACTS = { reads: "intro_reads", touch: "intro_touch" } as const;
+export const JUGGLING_FACTS = { best: "juggling_best", last: "juggling_last", sessions: "juggling_sessions", day: "juggling_day" } as const;
+/** Personal bests that queue an authored moment (hobbies-u11.json); proposals (OPEN_QUESTIONS #38). */
+export const JUGGLING_MILESTONES: readonly { touches: number; sceneId: string }[] = [
+  { touches: 10, sceneId: "hobby.juggle_ten" },
+  { touches: 25, sceneId: "hobby.juggle_twenty_five" },
+  { touches: RUN_CAP, sceneId: "hobby.juggle_fifty" },
+];
 export const PARK_FACTS = { reads: "park_reads", touch: "park_touch", sessions: "park_sessions" } as const;
 
 /** The first-touch drill at the Thursday visit (coach and friend watching) or at the park (friend only). */
@@ -97,6 +105,35 @@ export const CROSSBAR_FACTS = { winner: "crossbar_winner", played: "crossbar_pla
  * The crossbar challenge is time with a friend, not training (spec §7): friendship and wellbeing
  * move, soccer tracks and verified evidence do not.
  */
+const numberFact = (c: CampaignState, id: string): number => (typeof c.story.facts[id] === "number" ? (c.story.facts[id] as number) : 0);
+
+/**
+ * Juggling in the yard: verified touches (the ball was kept up on screen, spec §8), a personal best
+ * the parent can see from the kitchen window, and a small technical nudge once the run is real
+ * (≥ 5). A new best past a milestone queues its authored moment. Never tactical evidence.
+ */
+export function recordJuggling(c: CampaignState, s: JuggleSummary): Effect[] {
+  const p = c.progression;
+  p.verified["juggling"] = (p.verified["juggling"] ?? 0) + s.total;
+  const previous = numberFact(c, JUGGLING_FACTS.best);
+  const best = Math.max(previous, s.best);
+  const effects: Effect[] = [
+    { type: "set_fact", id: JUGGLING_FACTS.last, value: s.best },
+    { type: "set_fact", id: JUGGLING_FACTS.best, value: best },
+    { type: "set_fact", id: JUGGLING_FACTS.sessions, value: numberFact(c, JUGGLING_FACTS.sessions) + 1 },
+    { type: "set_fact", id: JUGGLING_FACTS.day, value: c.day },
+    { type: "learn", personId: "parent", factId: JUGGLING_FACTS.best },
+  ];
+  if (s.best >= 5) effects.push({ type: "track", track: "technical", delta: 1 });
+  if (s.best > previous && previous > 0) effects.push({ type: "track", track: "wellbeing", delta: 1 });
+  const crossed = JUGGLING_MILESTONES.filter((m) => best >= m.touches && previous < m.touches).at(-1);
+  if (crossed) effects.push({ type: "queue_scene", sceneId: crossed.sceneId, onDay: c.day });
+  const ctx = storyContext(c);
+  for (const e of effects) applyEffect(ctx, e);
+  touch(c);
+  return effects;
+}
+
 export function recordCrossbar(c: CampaignState, s: ChallengeSummary): Effect[] {
   const played = typeof c.story.facts[CROSSBAR_FACTS.played] === "number" ? (c.story.facts[CROSSBAR_FACTS.played] as number) : 0;
   const effects: Effect[] = [

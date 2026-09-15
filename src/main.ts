@@ -4,7 +4,7 @@ import { APP_NAME, APP_VERSION } from "./app/version";
 import { FRIEND_ID, PLAYER_ID, type PendingActivity } from "./campaign/campaign";
 import { campaignMatchConfig, fixtureById, reportFromRuntime } from "./campaign/match";
 import { clubRule } from "./campaign/tryouts";
-import { abandonPending, cancelPending, completeCrossbar, completeHomeSkill, completeMatch, completeTraining, completeTryout, isTired, type Completion } from "./campaign/week";
+import { abandonPending, cancelPending, completeCrossbar, completeHomeSkill, completeJuggling, completeMatch, completeTraining, completeTryout, isTired, type Completion } from "./campaign/week";
 import { createRuntime } from "./match/runtime";
 import { registerServiceWorker } from "./pwa/register";
 import { LocalStorageStore, SaveError } from "./save/save";
@@ -15,12 +15,13 @@ import { continueScene } from "./story/flow";
 import type { Scene } from "./story/scenes";
 import { loadCatalog, type CatalogFile } from "./tactics/catalog";
 import { pacingFor } from "./tactics/recognition";
-import { recordFirstTouch } from "./training/record";
+import { JUGGLING_FACTS, recordFirstTouch } from "./training/record";
 import { mountCreateScreen } from "./ui/createScreen";
 import { mountCrossbarScreen } from "./ui/crossbarScreen";
 import { mountDrillScreen } from "./ui/drillScreen";
 import { mountHomeSkillScreen } from "./ui/homeSkillScreen";
 import { mountHubScreen } from "./ui/hubScreen";
+import { mountJugglingScreen } from "./ui/jugglingScreen";
 import { mountMatchScreen } from "./ui/matchScreen";
 import { mountSceneScreen } from "./ui/sceneScreen";
 import { mountSmallSidedScreen } from "./ui/smallSidedScreen";
@@ -93,7 +94,7 @@ function showPending(s: Session, p: PendingActivity): void {
       mountSmallSidedScreen(root!, {
         activity: p.activity,
         seed: c.seed ^ (c.day * 31),
-        names: { user: c.player.name, teammates: friendFirst.slice(0, 2).map((x) => x.name) },
+        names: { user: c.player.name, teammates: friendFirst.slice(0, 3).map((x) => x.name) },
         coachName: nameOf(s, "coach", "Coach"),
         windowScale: isTired(c) ? 0.7 : 1,
         onDone: (summary) => after(completeTraining(c, summary)),
@@ -129,6 +130,20 @@ function showPending(s: Session, p: PendingActivity): void {
         onDone: (summary) => after(completeCrossbar(c, summary)),
       });
       return;
+    case "juggling": {
+      const best = c.story.facts[JUGGLING_FACTS.best];
+      mountJugglingScreen(root!, {
+        seed: c.seed ^ (c.day * 23),
+        previousBest: typeof best === "number" ? best : 0,
+        onDone: (summary) => after(completeJuggling(c, summary)),
+        onQuit: () => {
+          cancelPending(c);
+          s.save();
+          showCampaign(s);
+        },
+      });
+      return;
+    }
     case "home_skill":
       mountHomeSkillScreen(root!, {
         campaign: c,

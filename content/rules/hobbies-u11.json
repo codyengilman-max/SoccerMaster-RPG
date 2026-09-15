@@ -1,0 +1,60 @@
+{
+  "reviewStatus": "proposal",
+  "note": "Hobbies (spec §4 'recovery, hobbies and minigames'; §19 'rest and friendship can be appropriate choices'). A hobby is a free-slot choice that is not soccer: it moves wellbeing and, for some, school or fatigue, and never a soccer attribute or verified evidence. One hobby at a time, one session a day; switching keeps the total but restarts the milestone count. `every` effects land on every n-th session of that hobby (a reading habit helps school; a gaming habit costs it). Milestones queue authored moments from content/story/hobbies-u11.json. Numbers are proposals (OPEN_QUESTIONS #38).",
+  "rules": {
+    "sessionsPerDay": 1,
+    "switchRestartsMilestones": true,
+    "slots": ["afternoon", "evening"],
+    "weekendMorning": true
+  },
+  "hobbies": [
+    {
+      "id": "drawing",
+      "label": "Drawing",
+      "detail": "A sketchbook and a quiet half hour. Rests the legs.",
+      "fatigue": -1,
+      "effects": [{ "type": "track", "track": "wellbeing", "delta": 1 }],
+      "every": [],
+      "milestones": [
+        { "sessions": 3, "sceneId": "hobby.drawing.noticed" },
+        { "sessions": 7, "sceneId": "hobby.drawing.share" }
+      ]
+    },
+    {
+      "id": "reading",
+      "label": "Reading",
+      "detail": "The series everyone at school is on. Rests the legs; every other book night helps at school.",
+      "fatigue": -1,
+      "effects": [{ "type": "track", "track": "wellbeing", "delta": 1 }],
+      "every": [{ "n": 2, "effects": [{ "type": "track", "track": "school", "delta": 1 }] }],
+      "milestones": [
+        { "sessions": 3, "sceneId": "hobby.reading.noticed" },
+        { "sessions": 7, "sceneId": "hobby.reading.share" }
+      ]
+    },
+    {
+      "id": "guitar",
+      "label": "Guitar",
+      "detail": "Four chords and a song that is nearly there. Rests the legs.",
+      "fatigue": -1,
+      "effects": [{ "type": "track", "track": "wellbeing", "delta": 1 }],
+      "every": [],
+      "milestones": [
+        { "sessions": 3, "sceneId": "hobby.guitar.noticed" },
+        { "sessions": 7, "sceneId": "hobby.guitar.share" }
+      ]
+    },
+    {
+      "id": "games",
+      "label": "Video games",
+      "detail": "Fun now. Every third session, something at school slips.",
+      "fatigue": 0,
+      "effects": [{ "type": "track", "track": "wellbeing", "delta": 1 }],
+      "every": [{ "n": 3, "effects": [{ "type": "track", "track": "school", "delta": -1 }] }],
+      "milestones": [
+        { "sessions": 3, "sceneId": "hobby.games.noticed" },
+        { "sessions": 7, "sceneId": "hobby.games.share" }
+      ]
+    }
+  ]
+}

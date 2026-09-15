@@ -4,8 +4,8 @@ import { add, angleBetween, clamp, dist, distToSegment, dot, norm, rotate, scale
 import { Rng } from "../sim/rng";
 
 /**
- * Small-sided training activities (spec §8): 1v1, 2v2 and 3v2 in one deterministic engine with a
- * scenario generator per activity. Each rep is a moving picture: the defenders keep closing while
+ * Small-sided training activities (spec §8): 1v1, 2v2, 3v2, a 4v2 rondo and a 2v2 transition in
+ * one deterministic engine with a scenario generator per activity. Each rep is a moving picture: the defenders keep closing while
  * the decision window is open (slow motion, spec §12), the user picks an option and draws it, and
  * the resolution is simulated — a carrier can be caught, a pass intercepted, a shot go wide. The
  * three layers are recorded separately (spec §13): `decision` is the option's rank among what the
@@ -16,10 +16,28 @@ import { Rng } from "../sim/rng";
  * something concrete. Balance values are proposals (OPEN_QUESTIONS #23, #24).
  */
 
-export type Activity = "1v1" | "2v2" | "3v2";
-export const ACTIVITIES: readonly Activity[] = ["1v1", "2v2", "3v2"];
+export type Activity = "1v1" | "2v2" | "3v2" | "rondo" | "transition";
+export const ACTIVITIES: readonly Activity[] = ["1v1", "2v2", "3v2", "rondo", "transition"];
 
-export const ACTIVITY_LABEL: Record<Activity, string> = { "1v1": "1v1 — beat your defender", "2v2": "2v2 — pass or carry", "3v2": "3v2 — find the free player" };
+export const ACTIVITY_LABEL: Record<Activity, string> = {
+  "1v1": "1v1 — beat your defender",
+  "2v2": "2v2 — pass or carry",
+  "3v2": "3v2 — find the free player",
+  rondo: "4v2 rondo — keep the ball",
+  transition: "2v2 transition — you've just won it",
+};
+
+/** The learning objective each activity is built around (spec §8). */
+export const ACTIVITY_OBJECTIVE: Record<Activity, { concepts: Concept[]; text: string }> = {
+  "1v1": { concepts: ["space", "timing"], text: "Read which way the defender leans and attack the space they leave." },
+  "2v2": { concepts: ["support", "pressure", "space"], text: "Pass or carry: see the support and use the pressure against the defender." },
+  "3v2": { concepts: ["transition", "support"], text: "Numbers up: find the free player early." },
+  rondo: { concepts: ["support", "pressure", "timing"], text: "Keep the ball under pressure: play away from the presser and pick the moment for the split." },
+  transition: { concepts: ["transition", "space"], text: "The moment you win it: release the runner or drive before the defence recovers." },
+};
+
+/** Rondos have no goal — the objective is keeping the ball. */
+export const hasGoal = (a: Activity): boolean => a !== "rondo";
 
 /** Playing area in metres; attackers play toward x = AREA.length where a small goal sits. */
 export const AREA = { length: 30, width: 24 } as const;
@@ -245,8 +263,60 @@ function scenario(d: DrillState, rng: Rng): Actor[] {
       }
       return [me, left, right, d1, d2, keeper()];
     }
+    case "rondo": {
+      // A 10 m square: you on the left edge, two teammates on the sides, one across; two defenders inside.
+      const c = { x: 15, y: AREA.width / 2 };
+      const meR = attacker(USER_ID, n.user, { x: c.x - 5, y: c.y });
+      const top = attacker("t1", n.teammates[0] ?? "Teammate A", { x: c.x + rng.range(-0.5, 0.5), y: c.y - 5 });
+      const bottom = attacker("t2", n.teammates[1] ?? "Teammate B", { x: c.x + rng.range(-0.5, 0.5), y: c.y + 5 });
+      const across = attacker("t3", n.teammates[2] ?? "Teammate C", { x: c.x + 5, y: c.y + rng.range(-0.5, 0.5) });
+      // Four pictures: both press you from either side (play across) · one presses, one screens the split
+      // (play to the side away from the presser) · both screen the sides (the split is on) · both sit
+      // deep and central (nobody is pressing — a touch and wait costs nothing, a hurried pass does).
+      const picture = rng.int(0, 4);
+      let d1: Actor;
+      let d2: Actor;
+      if (picture === 0) {
+        d1 = defender("d1", { x: c.x - rng.range(2, 3), y: c.y - rng.range(1, 2.6) }, rng, null);
+        d2 = defender("d2", { x: c.x - rng.range(2, 3), y: c.y + rng.range(1, 2.6) }, rng, null);
+      } else if (picture === 1) {
+        const s = rng.chance(0.5) ? -1 : 1;
+        d1 = defender("d1", { x: c.x - 3, y: c.y + s * 1.5 }, rng, null);
+        d2 = defender("d2", { x: c.x + 1, y: c.y - s * 0.5 }, rng, null);
+      } else if (picture === 2) {
+        d1 = defender("d1", { x: c.x - rng.range(1, 2), y: c.y - rng.range(2.6, 3.4) }, rng, null);
+        d2 = defender("d2", { x: c.x - rng.range(1, 2), y: c.y + rng.range(2.6, 3.4) }, rng, null);
+      } else {
+        d1 = defender("d1", { x: c.x + 1.5, y: c.y - 1 }, rng, null);
+        d2 = defender("d2", { x: c.x + 2, y: c.y + 1.2 }, rng, null);
+      }
+      d1.eagerness = Math.max(d1.eagerness, 0.5);
+      return [meR, top, bottom, across, d1, d2];
+    }
+    case "transition": {
+      // You have just won the ball. A runner is already going; one defender is behind you turning to
+      // recover, the other is retreating ahead. Four pictures: retreating defender central and near
+      // (release the runner) · covering the runner (drive into the space) · deep (either works, the
+      // recovering defender decides how long you have) · recovering defender already turned (play now).
+      const side = rng.chance(0.5) ? -1 : 1;
+      const runner = attacker("t1", n.teammates[0] ?? "Teammate", { x: START.x + rng.range(5, 7), y: START.y + side * rng.range(6, 8) });
+      const picture = rng.int(0, 4);
+      const behind = defender("d1", { x: START.x - rng.range(2.5, 4), y: START.y + rng.range(-2, 2) }, rng, null);
+      behind.frozenMs = picture === 3 ? 150 : Math.round(rng.range(700, 1300));
+      behind.eagerness = 1;
+      let ahead: Actor;
+      if (picture === 0) ahead = defender("d2", { x: START.x + rng.range(5, 6.5), y: START.y + rng.range(-1, 1) }, rng, null, 0, 1.5);
+      else if (picture === 1) ahead = defender("d2", { x: runner.pos.x + 1.5, y: runner.pos.y - side * 2 }, rng, null, 0, 1.5);
+      else if (picture === 2) ahead = defender("d2", { x: START.x + rng.range(11, 13), y: START.y + rng.range(-2, 2) }, rng, null, 0, 1.5);
+      else ahead = defender("d2", { x: START.x + rng.range(6, 8), y: START.y + side * rng.range(2, 3) }, rng, null, 0, 1.5);
+      ahead.eagerness = Math.min(ahead.eagerness, 0.5);
+      return [me, runner, behind, ahead, keeper()];
+    }
   }
 }
+
+/** Defenders who can still affect the ball now (a recovering defender who is still turning is not pressure yet). */
+const active = (defs: readonly Actor[]): Actor[] => defs.filter((df) => df.frozenMs <= 0);
 
 function startRep(d: DrillState, rng: Rng): void {
   d.index++;
@@ -256,7 +326,7 @@ function startRep(d: DrillState, rng: Rng): void {
     return;
   }
   d.actors = scenario(d, rng);
-  d.ball = { pos: { ...START }, vel: { x: 0, y: 0 }, holder: USER_ID };
+  d.ball = { pos: { ...me(d).pos }, vel: { x: 0, y: 0 }, holder: USER_ID };
   d.action = null;
   d.phase = "setup";
   d.windowMs = 0;
@@ -318,6 +388,43 @@ export function options(d: DrillState): Option[] {
   const out: Option[] = [];
   const nearest = defs.reduce((a, b) => (dist(a.pos, m.pos) <= dist(b.pos, m.pos) ? a : b));
   const dNear = dist(nearest.pos, m.pos);
+
+  if (d.activity === "rondo") {
+    const live = active(defs);
+    const pressOnMe = pressureAt(m.pos, live);
+    for (const mate of mates) {
+      const p = pressureAt(mate.pos, live);
+      const lane = laneOpen(m.pos, mate.pos, live);
+      if (mate.id === "t3") {
+        out.push(opt("split", "pass", `Split them to ${mate.name}`, "timing", mate.pos, mate.id, 0.1 + 0.75 * lane * (1 - p) + 0.15 * pressOnMe, [lane > 0.6 ? "the split is on" : "a body is in the split lane", p < 0.4 ? `${mate.name} is free` : `${mate.name} is covered`]));
+      } else {
+        out.push(opt(`pass_${mate.id}`, "pass", `Play to ${mate.name}`, "support", mate.pos, mate.id, 0.2 + 0.5 * (1 - p) + 0.3 * lane, [p < 0.4 ? `${mate.name} is away from the pressure` : `${mate.name} has a defender on them`, lane < 0.5 ? "the lane is partly closed" : "the lane is open"]));
+      }
+    }
+    out.push(opt("hold", "hold", "Take a touch and wait", "pressure", null, null, dNear > 5 ? 0.6 : 0.15, [dNear > 5 ? "nobody is pressing yet — a touch costs nothing" : "the press is arriving — a touch now is a tackle"]));
+    return out;
+  }
+
+  if (d.activity === "transition") {
+    const runner = mates[0]!;
+    const live = active(defs);
+    const ahead = defs.find((df) => df.id === "d2")!;
+    const behind = defs.find((df) => df.id === "d1")!;
+    const p = pressureAt(runner.pos, live);
+    const lane = laneOpen(m.pos, runner.pos, live);
+    const runnerPast = runner.pos.x >= ahead.pos.x - 1;
+    out.push(opt("pass_t1", "pass", `Release ${runner.name} early`, "transition", runner.pos, runner.id, 0.2 + 0.45 * (1 - p) * lane + 0.35 * (runnerPast ? 1 : 0.4), [p < 0.4 ? `${runner.name} is running free` : `${runner.name} is being covered`, runnerPast ? "the runner is past the last defender" : "the runner is not past the defender yet"]));
+    const straight = { x: BEAT_LINE_X, y: m.pos.y };
+    const room = spaceToward(m.pos, straight, live);
+    const aheadFar = dist(ahead.pos, m.pos) > 7;
+    out.push(opt("carry", "carry", "Drive into the space", "space", straight, null, 0.15 + 0.85 * room * (aheadFar ? 1 : 0.45), [aheadFar ? "the retreating defender is far off" : "the retreating defender is set in front of you"]));
+    const shotLane = laneOpen(m.pos, GOAL.center, live);
+    const range = clamp(1 - (GOAL.center.x - m.pos.x - 12) / 12, 0, 1);
+    out.push(opt("shoot", "shoot", "Shoot from here", "timing", GOAL.center, null, 0.05 + 0.6 * shotLane * range, [range > 0.5 ? "in range" : "a long way out"]));
+    const turning = behind.frozenMs > 0;
+    out.push(opt("hold", "hold", "Slow it down", "timing", null, null, turning ? 0.2 : 0.1, [turning ? "the recovering defender is still turning — slowing down gives them time" : "the recovering defender is on you"]));
+    return out;
+  }
 
   if (d.activity === "1v1") {
     const df = nearest;
@@ -450,6 +557,10 @@ function tick(d: DrillState): void {
 /** Defenders close their mark (or the ball) at a share of their speed, stopping at their standoff; a leaning 1v1 defender drifts to their side. */
 function moveDefenders(d: DrillState, dt: number, share: number): void {
   for (const df of defenders(d)) {
+    if (df.frozenMs > 0) {
+      df.frozenMs -= TICK_MS;
+      continue;
+    }
     const mark = df.marks ? d.actors.find((a) => a.id === df.marks) : null;
     const goal = mark && mark.id !== USER_ID ? add(mark.pos, { x: 1.2, y: 0 }) : d.ball.pos;
     const standoff = mark && mark.id !== USER_ID ? df.standoff : 1.5;
@@ -470,9 +581,11 @@ function moveKeeper(d: DrillState, dt: number): void {
   gk.pos = { x: gk.pos.x, y: gk.pos.y + clamp(dy, -gk.speed * dt, gk.speed * dt) };
 }
 
-/** Teammates drift into support: a little wider and a little further forward. */
+/** Teammates drift into support (a little further forward); a transition runner sprints; a rondo holds its shape. */
 function moveTeammates(d: DrillState, dt: number): void {
-  for (const t of teammates(d)) t.pos = { x: Math.min(t.pos.x + 0.8 * dt, BEAT_LINE_X - 2), y: t.pos.y };
+  if (d.activity === "rondo") return;
+  const speed = d.activity === "transition" ? 3.5 : 0.8;
+  for (const t of teammates(d)) t.pos = { x: Math.min(t.pos.x + speed * dt, BEAT_LINE_X - 2), y: t.pos.y };
 }
 
 function timeoutRep(d: DrillState): void {

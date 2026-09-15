@@ -30,6 +30,7 @@ for (const kind of KINDS) {
   line("week", all.filter((s) => s.id.startsWith("week.")));
   line("season/tournament", all.filter((s) => s.id.startsWith("season.") || s.id.startsWith("tournament.")));
   line("tryouts", all.filter((s) => s.id.startsWith("tryouts.")));
+  line("hobbies", all.filter((s) => s.id.startsWith("hobby.")));
   const arc = arcScenes(kind);
   line("U11 arc", arc);
   line("  milestones", milestoneScenes(kind));
