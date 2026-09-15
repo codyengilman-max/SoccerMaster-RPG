@@ -1,5 +1,7 @@
+import clubsFile from "../../content/story/clubs.json";
 import { slotsFor } from "../calendar/schedule";
 import type { CampaignState } from "../campaign/campaign";
+import type { Club } from "../roster/roster";
 
 /**
  * Versioned saves (spec §22; plan §3.4). A save is plain JSON: `{ version, savedAt, campaign }`.
@@ -8,7 +10,7 @@ import type { CampaignState } from "../campaign/campaign";
  * one code path.
  */
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface SaveFile {
   version: number;
@@ -45,6 +47,25 @@ export const MIGRATIONS: readonly Migration[] = [
     const c = isObj(raw.campaign) ? raw.campaign : {};
     const day = typeof c.day === "number" ? c.day : 0;
     return { ...raw, campaign: { ...c, slot: c.slot ?? slotsFor(day)[0]!, pending: c.pending ?? null } };
+  },
+  // 2 → 3: tournaments brought guest clubs; older rosters only know the six league clubs.
+  (raw) => {
+    const c = isObj(raw.campaign) ? raw.campaign : {};
+    const roster = isObj(c.roster) ? c.roster : {};
+    const clubs = Array.isArray(roster.clubs) ? (roster.clubs as Club[]) : [];
+    const rosters = Array.isArray(roster.rosters) ? (roster.rosters as { clubId: string }[]) : [];
+    const guests = (clubsFile as { clubs: Club[] }).clubs.filter((k) => k.guest && !clubs.some((x) => x.id === k.id));
+    return {
+      ...raw,
+      campaign: {
+        ...c,
+        roster: {
+          ...roster,
+          clubs: [...clubs, ...structuredClone(guests)],
+          rosters: [...rosters, ...guests.filter((g) => !rosters.some((r) => r.clubId === g.id)).map((g) => ({ clubId: g.id, ageGroup: "U11", playerIds: [], capacity: 12 }))],
+        },
+      },
+    };
   },
 ];
 

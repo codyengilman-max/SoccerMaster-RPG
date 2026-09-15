@@ -26,6 +26,7 @@ export type ActionId =
   | "train"
   | "skip_training"
   | "play_match"
+  | "skip_match"
   | "home_skill"
   | "friend_crossbar"
   | "family"
@@ -92,7 +93,10 @@ export function slotActions(c: CampaignState): SlotAction[] {
       }
       case "match":
       case "tournament":
-        return [{ id: "play_match", label: "Play the match", detail: k.title, commitmentId: k.id, launch: { kind: "match", commitmentId: k.id, fixtureId: k.refId! } }];
+        return [
+          { id: "play_match", label: "Play the match", detail: k.title, commitmentId: k.id, launch: { kind: "match", commitmentId: k.id, fixtureId: k.refId! } },
+          { id: "skip_match", label: "Miss the match", detail: "The team plays without you. The result still counts.", commitmentId: k.id, launch: null },
+        ];
       default:
         return [{ id: "free", label: k.title, detail: "", commitmentId: k.id, launch: null }];
     }
@@ -165,6 +169,11 @@ export function takeAction(c: CampaignState, id: ActionId): TakeResult {
     case "skip_training":
       effects.push(...skipTraining(c, action.commitmentId!));
       break;
+    case "skip_match": {
+      const k = c.schedule.commitments.find((x) => x.id === action.commitmentId);
+      if (k && k.status === "scheduled") k.status = "missed";
+      break;
+    }
     case "family":
       effects.push({ type: "track", track: "responsibility", delta: 1 }, { type: "relationship", personId: "parent", delta: 1 });
       break;
@@ -311,6 +320,33 @@ export function endSlot(c: CampaignState): SlotEnd {
   touch(c);
   const entered = takeQueuedScene(c, campaignScenes(c.kind));
   return { advanced, missed, scene: entered?.scene.id ?? null };
+}
+
+export const MAX_SKIPPED_SLOTS = 40;
+
+export interface SkipResult {
+  /** Slots passed without an action (school was attended on the way). */
+  slots: number;
+  /** Why the skip stopped: a commitment that needs the player, a scene, or the safety cap. */
+  stoppedAt: "commitment" | "scene" | "cap";
+}
+
+/**
+ * Let free time pass until something needs the player: a training or match, a scene, or the cap.
+ * School is attended on the way (it is mandatory and has no choice). Free slots pass without the
+ * rest bonus — skipping is not resting — and sleep still lowers fatigue at each day end.
+ */
+export function skipToNextEvent(c: CampaignState): SkipResult {
+  let slots = 0;
+  while (slots < MAX_SKIPPED_SLOTS) {
+    if (c.scene || c.pending) return { slots, stoppedAt: "scene" };
+    const k = currentCommitment(c);
+    if (k && k.kind !== "school") return { slots, stoppedAt: "commitment" };
+    if (k) markAttended(c.schedule, k.id);
+    endSlot(c);
+    slots++;
+  }
+  return { slots, stoppedAt: "cap" };
 }
 
 /** The week at a glance for the hub: Monday..Sunday of the current week with each slot's commitment. */

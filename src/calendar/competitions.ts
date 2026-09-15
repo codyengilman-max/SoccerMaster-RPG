@@ -32,6 +32,8 @@ export interface Fixture {
   awayClubId: string;
   source: FixtureSource;
   result: FixtureResult | null;
+  /** Original day when the fixture was moved to a reserve date (a tournament clash). */
+  movedFromDay?: CampaignDay;
 }
 
 export interface League {
@@ -42,6 +44,8 @@ export interface League {
   clubIds: string[];
   startDay: CampaignDay;
   endDay: CampaignDay;
+  /** Round-robin legs (1 = each pair meets once, 2 = home and away). Default 1. */
+  legs?: number;
 }
 
 export type TournamentRequirement = "open" | "record_500" | "state_qualification";
@@ -112,15 +116,17 @@ export function generateLeagueFixtures(league: League, seed: number): Fixture[] 
   }
   if (clubs.length % 2 === 1) clubs.push("__bye__");
   const n = clubs.length;
-  const rounds = n - 1;
+  const perLeg = n - 1;
+  const rounds = perLeg * Math.max(1, league.legs ?? 1);
   const out: Fixture[] = [];
   let saturday = nextWeekday(league.startDay, "Sat");
   for (let r = 0; r < rounds && saturday <= league.endDay; r++) {
+    const secondLeg = Math.floor(r / perLeg) % 2 === 1;
     for (let i = 0; i < n / 2; i++) {
       const a = clubs[i]!;
       const b = clubs[n - 1 - i]!;
       if (a === "__bye__" || b === "__bye__") continue;
-      const homeFirst = (r + i) % 2 === 0;
+      const homeFirst = (((r % perLeg) + i) % 2 === 0) !== secondLeg;
       out.push({
         id: `${league.id}-r${r + 1}-${i + 1}`,
         kind: "league",
@@ -286,6 +292,14 @@ export function entriesAllowed(state: CompetitionState, clubId: string, asOfDay:
   return BASE_ENTRIES + (atLeast500(leagueRecord(state, clubId, asOfDay)) ? EARNED_ENTRIES : 0);
 }
 
+/**
+ * Entries spent against the season allowance. A qualification event (the state championships) is
+ * earned through the league, not chosen, so it is not counted (proposal, OPEN_QUESTIONS #12).
+ */
+export function entriesUsed(state: CompetitionState): number {
+  return state.entered.filter((id) => state.tournaments.find((t) => t.id === id)?.requirement !== "state_qualification").length;
+}
+
 export type EnterResult = { ok: true; fixtures: Fixture[] } | { ok: false; reasons: string[] };
 
 /** Enter a tournament: eligibility is decided and recorded on the day of entry. */
@@ -296,7 +310,9 @@ export function enterTournament(
 ): EnterResult {
   if (state.entered.includes(tournament.id)) return { ok: false, reasons: ["already entered"] };
   if (ctx.asOfDay > tournament.cutoffDay) return { ok: false, reasons: ["registration closed"] };
-  if (state.entered.length >= entriesAllowed(state, ctx.clubId, ctx.asOfDay)) return { ok: false, reasons: ["no tournament entries left this season"] };
+  if (tournament.requirement !== "state_qualification" && entriesUsed(state) >= entriesAllowed(state, ctx.clubId, ctx.asOfDay)) {
+    return { ok: false, reasons: ["no tournament entries left this season"] };
+  }
   const e = tournamentEligibility(state, tournament, ctx);
   if (!e.eligible) return { ok: false, reasons: e.reasons };
   if (tournament.requirement === "state_qualification" && ctx.leagueId) {
@@ -319,6 +335,76 @@ export function enterTournament(
   }
   state.fixtures.push(...fixtures);
   return { ok: true, fixtures };
+}
+
+/** Days a fixture may be pushed past the league's end to find a reserve date (proposal). */
+export const RESERVE_WINDOW_DAYS = 21;
+
+/** First Saturday after `afterDay` on which none of `clubIds` has a fixture, within the league's reserve window. */
+export function reserveDay(state: CompetitionState, league: League, clubIds: readonly string[], afterDay: CampaignDay): CampaignDay | null {
+  const busy = (d: CampaignDay) => state.fixtures.some((f) => f.day === d && (clubIds.includes(f.homeClubId) || clubIds.includes(f.awayClubId)));
+  for (let d = nextWeekday(afterDay + 1, "Sat"); d <= league.endDay + RESERVE_WINDOW_DAYS; d += 7) {
+    if (!busy(d) && d > afterDay) return d;
+  }
+  return null;
+}
+
+/**
+ * Move an unplayed fixture to another day (spec §17: a calendar conflict is resolved explicitly,
+ * never by silently dropping a match). The original day is kept so the move stays visible.
+ */
+export function rescheduleFixture(state: CompetitionState, fixtureId: string, toDay: CampaignDay): Fixture {
+  const f = state.fixtures.find((x) => x.id === fixtureId);
+  if (!f) throw new Error(`no fixture ${fixtureId}`);
+  if (f.result) throw new Error(`fixture ${fixtureId} already has a result`);
+  if (f.movedFromDay === undefined) f.movedFromDay = f.day;
+  f.day = toDay;
+  return f;
+}
+
+export type TournamentOutcome = "champions" | "runners_up" | "placement_won" | "placement_lost" | "in_progress" | "not_entered";
+
+export interface TournamentSummary {
+  tournamentId: string;
+  played: number;
+  total: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  /** Proposal: the last fixture is a final when the earlier ones were won or drawn on aggregate points, else a placement match. */
+  finalIsFinal: boolean;
+  outcome: TournamentOutcome;
+}
+
+/** A club's record in one tournament, derived from its fixtures alone — never from league standings. */
+export function tournamentSummary(state: CompetitionState, tournamentId: string, clubId: string): TournamentSummary {
+  const fx = state.fixtures
+    .filter((f) => f.kind === "tournament" && f.competitionId === tournamentId && (f.homeClubId === clubId || f.awayClubId === clubId))
+    .sort((a, b) => a.day - b.day || a.id.localeCompare(b.id));
+  const s: TournamentSummary = { tournamentId, played: 0, total: fx.length, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, finalIsFinal: false, outcome: "not_entered" };
+  if (!fx.length) return s;
+  const results = fx.map((f) => {
+    if (!f.result) return null;
+    const gf = f.homeClubId === clubId ? f.result.homeGoals : f.result.awayGoals;
+    const ga = f.homeClubId === clubId ? f.result.awayGoals : f.result.homeGoals;
+    s.played++;
+    s.goalsFor += gf;
+    s.goalsAgainst += ga;
+    if (gf > ga) s.won++;
+    else if (gf < ga) s.lost++;
+    else s.drawn++;
+    return gf > ga ? "W" : gf < ga ? "L" : "D";
+  });
+  const group = results.slice(0, -1);
+  const groupPoints = group.reduce((n, r) => n + (r === "W" ? 3 : r === "D" ? 1 : 0), 0);
+  s.finalIsFinal = group.length > 0 && groupPoints >= 2 * group.length;
+  const last = results.at(-1) ?? null;
+  if (s.played < s.total || last === null) s.outcome = "in_progress";
+  else if (s.finalIsFinal) s.outcome = last === "L" ? "runners_up" : "champions";
+  else s.outcome = last === "L" ? "placement_lost" : "placement_won";
+  return s;
 }
 
 export interface EligibilityPath {

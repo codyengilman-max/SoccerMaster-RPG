@@ -37,6 +37,9 @@ npm run typecheck # strict TypeScript
 npm run sim:headless -- 5        # AI-vs-AI match report for seed 5
 npm run sim:tactics -- 5 CM random  # controlled CM, scripted user; prints tactical coverage
 npm run catalog:build            # regenerate content/catalog/provisional-u11.json
+npm run smoke:week               # headless: opening → first two campaign weeks
+npm run smoke:season -- 11       # headless: a full U11 season (leagues, tournaments, season end) for seed 11
+npm run perf                     # headless CPU budget check (docs/PERFORMANCE.md)
 npm run build     # static build → dist/
 ```
 

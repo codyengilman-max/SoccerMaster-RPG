@@ -23,8 +23,10 @@ import { createRosterState, joinRoster, squadFor, type Club, type Person, type R
 import type { SquadPlayer } from "../sim/engine";
 import { hashSeed } from "../sim/rng";
 import type { RoleNumber } from "../sim/types";
-import { createStoryState, processDue, type Fired, type StoryContext, type StoryState } from "../story/consequences";
+import { createStoryState, processDue, type Fired, type StoryState } from "../story/consequences";
 import { createProgression, refreshUnlocks, type Progression } from "../story/progression";
+import { attendsTournament, closeSeason, currentLeagueId, planTournaments, settleFixtures, syncTournamentChoice } from "./season";
+import { FRIEND_ID, HOME_CLUB_ID, MUST_START, PLAYER_ID, playerClubId, storyContext, touch } from "./state";
 
 /**
  * The whole campaign in one serialisable object (plan §3.4). Every subsystem gets its own slice;
@@ -45,11 +47,8 @@ export interface PlayerProfile {
   position: RoleNumber;
 }
 
-export const PLAYER_ID = "player";
-export const FRIEND_ID = "friend";
-export const HOME_CLUB_ID = "batavia";
-/** People who start whenever they are on the roster: the user and the best friend (spec §4). */
-export const MUST_START: readonly string[] = [PLAYER_ID, FRIEND_ID];
+export { FRIEND_ID, HOME_CLUB_ID, MUST_START, PLAYER_ID, playerClubId, storyContext, touch };
+export { currentLeagueId };
 
 export interface CampaignState {
   id: string;
@@ -89,7 +88,7 @@ export interface CreateOptions {
 
 interface CompetitionsFile {
   season: { ageGroup: AgeGroup; startDate: string; tryoutsDate: string };
-  leagues: { id: string; name: string; term: "fall" | "spring"; startDate: string; endDate: string }[];
+  leagues: { id: string; name: string; term: "fall" | "spring"; legs?: number; startDate: string; endDate: string }[];
   tournaments: {
     id: string;
     name: string;
@@ -130,9 +129,10 @@ export function loadLeagues(ageGroup: AgeGroup): League[] {
     name: l.name,
     ageGroup,
     term: l.term,
-    clubIds: clubs.map((c) => c.id),
+    clubIds: clubs.filter((c) => !c.guest).map((c) => c.id),
     startDay: dayOfIso(l.startDate),
     endDay: dayOfIso(l.endDate),
+    legs: l.legs ?? 1,
   }));
 }
 
@@ -180,15 +180,6 @@ export function createCampaign(opts: CreateOptions): CampaignState {
     pending: null,
   };
   return state;
-}
-
-export const storyContext = (c: CampaignState): StoryContext => ({ story: c.story, progression: c.progression, day: c.day });
-
-export const touch = (c: CampaignState): number => ++c.revision;
-
-/** The user's club, if they have joined one. */
-export function playerClubId(c: CampaignState): string | null {
-  return c.roster.people.find((p) => p.id === PLAYER_ID)?.clubId ?? null;
 }
 
 /** Join FC Batavia (or another club). Roster capacity is enforced by the roster module. */
@@ -257,13 +248,30 @@ export function syncStoryFlags(c: CampaignState): string[] {
     if (playerClubId(c) === clubId) continue;
     if (joinClub(c, clubId).ok) joined.push(clubId);
   }
+  syncTournamentChoice(c);
   return joined;
+}
+
+const WEEKEND_MATCH_SLOTS: readonly Slot[] = ["morning", "afternoon", "evening"];
+
+/** Commitment title for a fixture; tournament games are numbered within the club's weekend. */
+export function fixtureTitle(c: CampaignState, fx: Fixture): string {
+  if (fx.kind === "league") return fx.movedFromDay !== undefined ? "League match (moved)" : "League match";
+  if (fx.kind === "friendly") return "Friendly";
+  const t = c.competitions.tournaments.find((x) => x.id === fx.competitionId);
+  const mine = playerClubId(c);
+  const games = c.competitions.fixtures
+    .filter((f) => f.competitionId === fx.competitionId && (f.homeClubId === mine || f.awayClubId === mine))
+    .sort((a, b) => a.day - b.day || a.id.localeCompare(b.id));
+  const n = games.findIndex((f) => f.id === fx.id) + 1;
+  return `${t?.name ?? "Tournament"} · G${n || 1}`;
 }
 
 /**
  * Regular week (spec §7; OPEN_QUESTIONS #15): school on weekday school slots, team training
- * Tue/Thu/Fri afternoons, the club's league match on Saturday if one is scheduled. Idempotent:
- * commitment ids are derived from day + kind.
+ * Tue/Thu/Fri afternoons, and every fixture of the club that falls on the weekend — one per slot,
+ * so a tournament Saturday is two games and Sunday one. A skipped tournament adds nothing.
+ * Idempotent: commitment ids are derived from day + kind.
  */
 export function scheduleWeek(c: CampaignState, monday: CampaignDay): Commitment[] {
   const clubId = playerClubId(c);
@@ -281,21 +289,23 @@ export function scheduleWeek(c: CampaignState, monday: CampaignDay): Commitment[
     if (clubId && (w === "Tue" || w === "Thu" || w === "Fri")) {
       put({ id: `training-${d}`, day: d, slot: "afternoon", kind: "training", title: "Team training", mandatory: true, refId: `training-${d}`, minutes: 90, status: "scheduled" });
     }
-    if (clubId && w === "Sat") {
-      const fx = fixturesFor(c, clubId).find((f) => f.day === d);
-      if (fx) {
+    if (clubId && (w === "Sat" || w === "Sun")) {
+      const onDay = fixturesFor(c, clubId)
+        .filter((f) => f.day === d && !(f.kind === "tournament" && !attendsTournament(c, f.competitionId)))
+        .sort((a, b) => a.id.localeCompare(b.id));
+      onDay.forEach((fx, i) => {
         put({
           id: `${fx.kind}-${fx.id}`,
           day: d,
-          slot: "morning",
+          slot: WEEKEND_MATCH_SLOTS[Math.min(i, WEEKEND_MATCH_SLOTS.length - 1)]!,
           kind: fx.kind === "tournament" ? "tournament" : "match",
-          title: fx.kind === "league" ? "League match" : fx.kind === "friendly" ? "Friendly" : "Tournament match",
+          title: fixtureTitle(c, fx),
           mandatory: true,
           refId: fx.id,
           minutes: 120,
           status: "scheduled",
         });
-      }
+      });
     }
   }
   if (added.length) touch(c);
@@ -321,22 +331,42 @@ export interface DayAdvance {
   missed: Commitment[];
   fired: Fired[];
   unlocked: string[];
+  /** Fixtures that received a modelled result because their day passed unplayed. */
+  settled: Fixture[];
+  /** Tournament the club entered today, if any. */
+  entered: string | null;
 }
 
-/** Move the campaign forward; schedules the new week when a Monday is crossed, expires missed commitments, fires due consequences. */
+/**
+ * Move the campaign forward: schedule the new week when a Monday is crossed, expire missed
+ * commitments, settle the season's unplayed fixtures, fire due consequences, open tournament
+ * registrations, close the season when its last day has passed.
+ */
 export function advanceDays(c: CampaignState, days: number): DayAdvance {
   if (days <= 0) throw new Error("days must be positive");
   const from = c.day;
   const to = from + days;
-  for (let d = from + 1; d <= to; d++) if (weekday(d) === "Mon") scheduleWeek(c, d);
-  c.day = to;
+  const settled: Fixture[] = [];
+  const entered: string[] = [];
+  // Day by day, so results land and registration windows open on the day they fall.
+  for (let d = from + 1; d <= to; d++) {
+    if (weekday(d) === "Mon") scheduleWeek(c, d);
+    c.day = d;
+    settled.push(...settleFixtures(c).map((s) => s.fixture));
+    const e = planTournaments(c);
+    if (e) {
+      entered.push(e.tournament.id);
+      scheduleWeek(c, mondayOf(c.day));
+    }
+  }
   c.slot = slotsFor(to)[0]!;
   const missed = advanceTo(c.schedule, to);
   const fired = processDue(storyContext(c));
   syncStoryFlags(c);
+  closeSeason(c);
   const unlocked = refreshUnlocks(c.progression);
   touch(c);
-  return { from, to, missed, fired, unlocked };
+  return { from, to, missed, fired, unlocked, settled, entered: entered.at(-1) ?? null };
 }
 
 export const nextDayOf = (c: CampaignState, w: Parameters<typeof nextWeekday>[1]): CampaignDay => nextWeekday(c.day, w);
@@ -357,10 +387,6 @@ export function recordMatch(c: CampaignState, report: MatchReport): IngestResult
   if (r.ok) touch(c);
   return r;
 }
-
-/** The league in progress or next to start (qualification evidence comes from it). */
-export const currentLeagueId = (c: CampaignState): string | null =>
-  [...c.competitions.leagues].sort((a, b) => a.startDay - b.startDay).find((l) => l.endDay >= c.day)?.id ?? null;
 
 export function eligibilityNow(c: CampaignState): Eligibility[] {
   const clubId = playerClubId(c);

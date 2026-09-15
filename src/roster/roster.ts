@@ -22,6 +22,8 @@ export interface Club {
   /** Ambient squad quality used for generated opponents (0–100, provisional). */
   quality: number;
   colors: { primary: string; secondary: string };
+  /** Met only at tournaments: never in the metro league, never a tryout destination. */
+  guest?: boolean;
   reviewStatus: ReviewStatus;
 }
 

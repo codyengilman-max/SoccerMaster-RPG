@@ -1,15 +1,16 @@
 /*
  * Emit autosave JSON for the visual review states (docs/VISUAL_REVIEW.md): a fresh campaign paused
  * on the best-friend invitation, a joined campaign at the weekly hub, and the same campaign at its
- * first training slot. Prints one JSON object `{ invite, hub, training }` whose values go straight
- * into localStorage key `smrpg:save:auto`.
+ * first training slot, the day the club enters its first tournament (family scene queued), and the
+ * Monday after that weekend. Prints one JSON object `{ invite, hub, training, entered, afterCup }`
+ * whose values go straight into localStorage key `smrpg:save:auto`.
  * Usage: npx tsx tools/reviewSaves.ts [kind=boys]
  */
 import { newSession, type Session } from "../src/app/session";
-import type { CreateOptions } from "../src/campaign/campaign";
+import { advanceDays, type CreateOptions } from "../src/campaign/campaign";
 import { slotActions, takeAction } from "../src/campaign/week";
 import { MemoryStore } from "../src/save/save";
-import { chooseInScene, continueScene, viewScene } from "../src/story/flow";
+import { chooseInScene, continueScene, takeQueuedScene, viewScene } from "../src/story/flow";
 import { createDrill, runHeadless, summarize } from "../src/training/firstTouch";
 import { recordFirstTouch } from "../src/training/record";
 
@@ -71,4 +72,38 @@ function training(): string {
   return store.read("auto")!;
 }
 
-console.log(JSON.stringify({ invite: invite(), hub: hub(), training: training() }));
+/** Live day by day (scenes answered with their first choice, matches left to the model) until `stop` says so. */
+function liveUntil(s: Session, stop: () => boolean): void {
+  const c = s.campaign;
+  for (let guard = 0; guard < 400 && !stop(); guard++) {
+    if (!c.scene) takeQueuedScene(c, s.scenes);
+    if (c.scene) {
+      const v = viewScene(c, s.scenes)!;
+      if (v.choices.length) chooseInScene(c, s.scenes, v.choices[0]!.id);
+      else continueScene(c, s.scenes);
+      continue;
+    }
+    advanceDays(c, 1);
+  }
+}
+
+function entered(): string {
+  const store = new MemoryStore();
+  const s = joined(store);
+  liveUntil(s, () => s.campaign.competitions.entered.length > 0);
+  s.save();
+  return store.read("auto")!;
+}
+
+function afterCup(): string {
+  const store = new MemoryStore();
+  const s = joined(store);
+  const c = s.campaign;
+  liveUntil(s, () => c.competitions.entered.length > 0);
+  const t = c.competitions.tournaments.find((x) => x.id === c.competitions.entered[0])!;
+  liveUntil(s, () => c.day > t.day + 2);
+  s.save();
+  return store.read("auto")!;
+}
+
+console.log(JSON.stringify({ invite: invite(), hub: hub(), training: training(), entered: entered(), afterCup: afterCup() }));
