@@ -109,6 +109,11 @@ for (const u of unlockViews(c.progression)) {
 console.log(`\n== tryouts (${formatDay(c.tryouts.day)}) ==`);
 let relationshipsChangedByTransfer = false;
 const positionBefore = c.roster.people.find((p) => p.id === "player")!.shirt;
+// Everything about the player a transfer must leave alone (club membership is the one thing it changes).
+const transferInvariants = (): string => {
+  const { clubId: _club, ...person } = c.roster.people.find((p) => p.id === "player")!;
+  return JSON.stringify([c.progression.relationships, c.progression.tracks, person, c.roster.attributes["player"], c.player.position]);
+};
 let sessionsPlayed = 0;
 for (let step = 0; step < 500 && !c.tryouts.offersDecidedDay; step++) {
   if (!c.scene) takeQueuedScene(c, s.scenes);
@@ -142,9 +147,9 @@ for (const k of tv.clubs) {
 const offers = tv.clubs.filter((k) => k.offer?.status === "open");
 const away = offers.find((k) => k.clubId !== club) ?? offers[0];
 if (away) {
-  const before = JSON.stringify([c.progression.relationships, c.progression.tracks, c.roster.people.find((p) => p.id === "player")]);
+  const before = transferInvariants();
   const acc = acceptOffer(c, away.clubId);
-  relationshipsChangedByTransfer = JSON.stringify([c.progression.relationships, c.progression.tracks, c.roster.people.find((p) => p.id === "player")]) !== before;
+  relationshipsChangedByTransfer = transferInvariants() !== before;
   console.log(`  accepted ${away.name}: ${acc.ok ? "ok" : acc.reason}`);
 }
 for (let step = 0; step < 60; step++) {
