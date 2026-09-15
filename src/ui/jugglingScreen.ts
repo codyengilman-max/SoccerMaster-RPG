@@ -59,7 +59,7 @@ export function mountJugglingScreen(root: HTMLElement, opts: JugglingScreenOptio
       </div>
       <div class="controls">
         <button type="button" class="toggle accessible" aria-pressed="false">Wider timing</button>
-        <button type="button" class="link quit">Go inside</button>
+        <button type="button" class="link quit">Go inside without finishing</button>
         <span class="provisional">the yard · on your own</span>
       </div>
     </section>`;
@@ -254,6 +254,7 @@ export function mountJugglingScreen(root: HTMLElement, opts: JugglingScreenOptio
   const finish = (): void => {
     if (finished) return;
     finished = true;
+    quitBtn.hidden = true;
     const sum = summarize(s);
     const record = sum.best > opts.previousBest;
     const summary = document.createElement("section");
