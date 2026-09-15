@@ -38,7 +38,7 @@ npm run sim:headless -- 5        # AI-vs-AI match report for seed 5
 npm run sim:tactics -- 5 CM random  # controlled CM, scripted user; prints tactical coverage
 npm run catalog:build            # regenerate content/catalog/provisional-u11.json
 npm run smoke:week               # headless: opening → first two campaign weeks
-npm run smoke:season -- 11       # headless: a full U11 season (leagues, tournaments, season end) for seed 11
+npm run smoke:season -- 11       # headless: a full U11 season (leagues, tournaments, season end, tryouts, transfer) for seed 11
 npm run perf                     # headless CPU budget check (docs/PERFORMANCE.md)
 npm run story:tones              # editorial mix of authored scenes vs the 30/15/55 target (spec §6)
 npm run build     # static build → dist/
@@ -66,7 +66,7 @@ Static site, no server functions required.
 spec/       specification and open questions
 docs/       implementation plan
 src/        application source (see docs/IMPLEMENTATION_PLAN.md §2 for module map)
-content/    authored data: tactical catalog, story (opening, week, season, U11 arc), rules profiles
-            (U11 9v9, competitions, progression tracks + unlock rules)
+content/    authored data: tactical catalog, story (opening, week, season, U11 arc, tryouts), rules profiles
+            (U11 9v9, competitions, progression tracks + unlock rules, tryouts + U12 roster capacity)
 tests/      Vitest suites
 ```

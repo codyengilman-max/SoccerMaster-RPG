@@ -1,7 +1,8 @@
 import openingFile from "../../content/story/opening-u11.json";
 import seasonFile from "../../content/story/season-u11.json";
+import tryoutsFile from "../../content/story/tryouts-u11.json";
 import weekFile from "../../content/story/week-u11.json";
-import { nextWeekday, weekday } from "../calendar/date";
+import { formatDay, nextWeekday, weekday } from "../calendar/date";
 import { addCommitment, markAttended, slotsFor } from "../calendar/schedule";
 import {
   advanceDays,
@@ -36,6 +37,7 @@ interface SceneFile {
 const opening = openingFile as unknown as SceneFile;
 const week = weekFile as unknown as SceneFile;
 const season = seasonFile as unknown as SceneFile;
+const tryouts = tryoutsFile as unknown as SceneFile;
 
 export const OPENING_START = "open.kickabout";
 
@@ -50,9 +52,16 @@ function merge(file: SceneFile, kind: CampaignKind): Scene[] {
 export const openingScenes = (kind: CampaignKind): Scene[] => merge(opening, kind);
 export const weekScenes = (kind: CampaignKind): Scene[] => merge(week, kind);
 export const seasonScenes = (kind: CampaignKind): Scene[] => merge(season, kind);
+export const tryoutScenes = (kind: CampaignKind): Scene[] => merge(tryouts, kind);
 
-/** Everything authored for a campaign: opening, regular-week, season and story-arc scenes. */
-export const campaignScenes = (kind: CampaignKind): Scene[] => [...openingScenes(kind), ...weekScenes(kind), ...seasonScenes(kind), ...arcScenes(kind)];
+/** Everything authored for a campaign: opening, regular-week, season, story-arc and tryout scenes. */
+export const campaignScenes = (kind: CampaignKind): Scene[] => [
+  ...openingScenes(kind),
+  ...weekScenes(kind),
+  ...seasonScenes(kind),
+  ...arcScenes(kind),
+  ...tryoutScenes(kind),
+];
 
 /**
  * Choice ids are the consequence reducer's idempotency keys. A repeatable scene (`once: false`,
@@ -110,6 +119,16 @@ export function sceneVars(c: CampaignState): Record<string, string> {
     newcomer: name("newcomer"),
     league_played: factText("league_matches_played"),
     streak: factText("result_streak"),
+    tryout_day: formatDay(c.tryouts.day),
+    invited_clubs: factText("tryout_invited_clubs"),
+    invite_count: factText("tryout_invite_count"),
+    tryout_last_club: factText("tryout_last_club"),
+    offers: factText("tryout_offers"),
+    offer_count: factText("tryout_offer_count"),
+    broken_club: factText("tryout_promise_broken_club"),
+    next_club: factText("tryout_next_club"),
+    friend_club: factText("tryout_friend_club"),
+    striker_club: factText("tryout_striker_club"),
     fall_finish: typeof c.story.facts["fall_position"] === "number" && c.story.facts["fall_position"] > 0 ? ordinal(c.story.facts["fall_position"]) : "{fall_finish}",
   };
 }

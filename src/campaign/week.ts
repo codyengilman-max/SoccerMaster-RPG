@@ -11,6 +11,7 @@ import { recordCrossbar, recordTraining } from "../training/record";
 import { ACTIVITIES, type Activity, type Summary as SmallSidedSummary } from "../training/smallSided";
 import { FRIEND_ID, advanceDays, playerClubId, storyContext, touch, type CampaignState, type DayAdvance, type PendingActivity } from "./campaign";
 import { completeCampaignMatch, type CompleteMatchResult } from "./match";
+import { openSpots, recordTryoutSession, sessionOptions, syncTryouts } from "./tryouts";
 
 /**
  * The regular week (spec §7): the campaign is lived one slot at a time. Each slot offers a small
@@ -37,6 +38,8 @@ export type ActionId =
   | "lunch"
   | "car_ride"
   | "park_session"
+  | "tryout"
+  | "skip_tryout"
   | "free";
 
 export interface SlotAction {
@@ -44,6 +47,8 @@ export interface SlotAction {
   label: string;
   detail: string;
   commitmentId: string | null;
+  /** The club a tryout session is with; the same action id repeats per club. */
+  clubId?: string;
   /** What the screen must run before calling the matching `complete*`; null for immediate actions. */
   launch: PendingActivity | null;
   /** An optional authored scene the action opens (lunch, car ride, park); null otherwise. */
@@ -109,6 +114,24 @@ export function slotActions(c: CampaignState): SlotAction[] {
           { id: "play_match", label: "Play the match", detail: k.title, commitmentId: k.id, launch: { kind: "match", commitmentId: k.id, fixtureId: k.refId! }, sceneId: null },
           { id: "skip_match", label: "Miss the match", detail: "The team plays without you. The result still counts.", commitmentId: k.id, launch: null, sceneId: null },
         ];
+      case "tryout": {
+        const out: SlotAction[] = sessionOptions(c)
+          .filter((o) => !o.played)
+          .map((o) => {
+            const places = openSpots(c, o.clubId);
+            return {
+              id: "tryout" as const,
+              label: `Try out at ${o.name}`,
+              detail: `${ACTIVITY_TITLE[o.activity]} · ${o.invited ? "invited" : "open session"} · ${places} place${places === 1 ? "" : "s"} open${isTired(c) ? " · you're tired" : ""}`,
+              commitmentId: k.id,
+              clubId: o.clubId,
+              launch: { kind: "tryout", commitmentId: k.id, clubId: o.clubId, activity: o.activity },
+              sceneId: null,
+            };
+          });
+        out.push({ id: "skip_tryout", label: "Sit this session out", detail: "No session, no session evidence.", commitmentId: k.id, launch: null, sceneId: null });
+        return out;
+      }
       default:
         return [{ id: "free", label: k.title, detail: "", commitmentId: k.id, launch: null, sceneId: null }];
     }
@@ -191,9 +214,9 @@ export type TakeResult =
   | { ok: false; reason: "unavailable" | "busy" };
 
 /** Take an action. Immediate ones finish the slot; playable ones become `pending` for the screen to run. */
-export function takeAction(c: CampaignState, id: ActionId): TakeResult {
+export function takeAction(c: CampaignState, id: ActionId, clubId?: string): TakeResult {
   if (c.scene || c.pending) return { ok: false, reason: "busy" };
-  const action = slotActions(c).find((a) => a.id === id);
+  const action = slotActions(c).find((a) => a.id === id && (clubId === undefined || a.clubId === clubId));
   if (!action) return { ok: false, reason: "unavailable" };
   if (action.launch) {
     c.pending = action.launch;
@@ -217,7 +240,8 @@ export function takeAction(c: CampaignState, id: ActionId): TakeResult {
     case "skip_training":
       effects.push(...skipTraining(c, action.commitmentId!));
       break;
-    case "skip_match": {
+    case "skip_match":
+    case "skip_tryout": {
       const k = c.schedule.commitments.find((x) => x.id === action.commitmentId);
       if (k && k.status === "scheduled") k.status = "missed";
       break;
@@ -297,6 +321,17 @@ export function completeMatch(c: CampaignState, report: MatchReport): Completion
   return { effects: match.ok && !match.duplicate ? match.effects : [], ended: endSlot(c), match };
 }
 
+/** A tryout session played: the club's evidence is recorded against that club only. */
+export function completeTryout(c: CampaignState, summary: SmallSidedSummary): Completion {
+  const p = c.pending;
+  if (!p || p.kind !== "tryout") throw new Error("no tryout pending");
+  markAttended(c.schedule, p.commitmentId);
+  const effects = recordTryoutSession(c, p.clubId, summary);
+  addFatigue(c, FATIGUE.training);
+  c.pending = null;
+  return { effects, ended: endSlot(c) };
+}
+
 export function completeCrossbar(c: CampaignState, summary: ChallengeSummary): Completion {
   const p = c.pending;
   if (!p || p.kind !== "crossbar") throw new Error("no crossbar pending");
@@ -370,7 +405,10 @@ function moveSlot(c: CampaignState): Omit<SlotEnd, "scene"> {
     if (isTired(c)) applyEffect(ctx, { type: "queue_scene", sceneId: "week.tired", onDay: c.day });
   }
   touch(c);
-  if (playerClubId(c)) announceUnlocks(c);
+  if (playerClubId(c)) {
+    announceUnlocks(c);
+    syncTryouts(c);
+  }
   return { advanced, missed };
 }
 

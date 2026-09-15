@@ -4,7 +4,8 @@ import { formatDay } from "../src/calendar/date";
 import { fixturesFor, playerClubId, type CreateOptions } from "../src/campaign/campaign";
 import { campaignMatchConfig } from "../src/campaign/match";
 import { seasonPhase, seasonSummary, tournamentViews } from "../src/campaign/season";
-import { completeMatch, completeTraining, skipToNextEvent, slotActions, takeAction } from "../src/campaign/week";
+import { acceptOffer, destinationClubs, tryoutsView } from "../src/campaign/tryouts";
+import { completeMatch, completeTraining, completeTryout, skipToNextEvent, slotActions, takeAction } from "../src/campaign/week";
 import { buildReport } from "../src/match/report";
 import { isPoolPlayer } from "../src/roster/roster";
 import { MemoryStore } from "../src/save/save";
@@ -104,6 +105,73 @@ for (const u of unlockViews(c.progression)) {
   console.log(`  ${u.unlocked ? "[x]" : "[ ]"} ${u.rule.id.padEnd(22)} ${reqs.join(", ")}`);
 }
 
+// Season-end tryouts: play every session on offer, then accept the first open offer away from home (or stay).
+console.log(`\n== tryouts (${formatDay(c.tryouts.day)}) ==`);
+let relationshipsChangedByTransfer = false;
+const positionBefore = c.roster.people.find((p) => p.id === "player")!.shirt;
+// Everything about the player a transfer must leave alone (club membership is the one thing it changes).
+const transferInvariants = (): string => {
+  const { clubId: _club, ...person } = c.roster.people.find((p) => p.id === "player")!;
+  return JSON.stringify([c.progression.relationships, c.progression.tracks, person, c.roster.attributes["player"], c.player.position]);
+};
+let sessionsPlayed = 0;
+for (let step = 0; step < 500 && !c.tryouts.offersDecidedDay; step++) {
+  if (!c.scene) takeQueuedScene(c, s.scenes);
+  if (c.scene) {
+    const view = viewScene(c, s.scenes)!;
+    seenScenes.set(view.scene.id, (seenScenes.get(view.scene.id) ?? 0) + 1);
+    if (view.scene.id.startsWith("tryouts.") || view.scene.id.startsWith("season.")) console.log(`  scene ${view.scene.id}: ${view.lines.map((l) => l.text).join(" | ").slice(0, 200)}`);
+    if (view.choices.length) chooseInScene(c, s.scenes, view.choices[0]!.id);
+    else continueScene(c, s.scenes);
+    continue;
+  }
+  const tryout = slotActions(c).find((a) => a.id === "tryout");
+  if (!tryout) {
+    skipToNextEvent(c);
+    continue;
+  }
+  const r = takeAction(c, tryout.id, tryout.clubId);
+  if (!r.ok || !r.launch || r.launch.kind !== "tryout") throw new Error("tryout did not launch");
+  const d = runHeadless(createDrill(r.launch.activity, c.seed ^ c.day ^ sessionsPlayed, { reps: 6 }), (_d, o) => ({ optionId: [...o].sort((a, b) => b.score - a.score)[0]!.id, accuracy: 0.85 }));
+  completeTryout(c, summarize(d));
+  sessionsPlayed++;
+  console.log(`  ${formatDay(c.day)} session at ${r.launch.clubId} (${r.launch.activity})`);
+  s.save();
+}
+const tv = tryoutsView(c);
+console.log(`  invitations ${tv.clubs.filter((k) => k.invited).map((k) => k.name).join(", ") || "none"}`);
+for (const k of tv.clubs) {
+  const reqs = k.requirements.map((r) => `${r.evidence} ${r.value ?? "?"}/${r.min}${r.met ? "" : "!"}`).join(", ");
+  console.log(`  ${k.name.padEnd(18)} ${String(k.places ?? "?").padStart(2)}/${k.capacity ?? "?"} open  ${k.invited ? "invited " : ""}${k.session ? `session ${k.session.played ? "played" : "open"} ` : ""}${k.promise ? `promise:${k.promise.status} ` : ""}${k.offer ? `OFFER:${k.offer.status} ` : ""}${k.eligible ? "eligible" : "not eligible"}  [${reqs}]`);
+}
+const offers = tv.clubs.filter((k) => k.offer?.status === "open");
+const away = offers.find((k) => k.clubId !== club) ?? offers[0];
+if (away) {
+  const before = transferInvariants();
+  const acc = acceptOffer(c, away.clubId);
+  relationshipsChangedByTransfer = transferInvariants() !== before;
+  console.log(`  accepted ${away.name}: ${acc.ok ? "ok" : acc.reason}`);
+}
+for (let step = 0; step < 60; step++) {
+  if (!c.scene) takeQueuedScene(c, s.scenes);
+  if (c.scene) {
+    const view = viewScene(c, s.scenes)!;
+    seenScenes.set(view.scene.id, (seenScenes.get(view.scene.id) ?? 0) + 1);
+    if (view.scene.id.startsWith("tryouts.")) console.log(`  scene ${view.scene.id}: ${view.lines.map((l) => l.text).join(" | ").slice(0, 200)}`);
+    if (view.choices.length) chooseInScene(c, s.scenes, view.choices[0]!.id);
+    else continueScene(c, s.scenes);
+    continue;
+  }
+  if (step > 40) break;
+  skipToNextEvent(c);
+}
+const after = tryoutsView(c);
+console.log(`  next season: ${after.decided ? `${after.decided.name}${after.decided.moved ? " (moved)" : " (stayed)"}` : "undecided"}; friend at ${after.friend?.clubName ?? "?"} (${after.friend?.apart ? "apart" : "together"})`);
+console.log(`  promises ${JSON.stringify(c.story.promises.map((p) => ({ id: p.id, delivered: p.delivered, broken: p.brokenDay !== undefined })))}`);
+
+const destinations = destinationClubs(c);
+const nextRosters = c.roster.rosters.filter((r) => r.ageGroup === "U12");
+const overfull = nextRosters.filter((r) => r.playerIds.length + (r.reserved ?? 0) > r.capacity);
 const league = c.competitions.fixtures.filter((f) => f.kind === "league");
 const unplayed = league.filter((f) => !f.result);
 const dup = new Set(c.competitions.appliedEventIds).size !== c.competitions.appliedEventIds.length;
@@ -115,6 +183,12 @@ const problems = [
   c.story.facts["season_reviewed"] !== true ? "season never closed" : null,
   played < 15 ? `only ${played} matches played on screen` : null,
   arcPlayed < 6 ? `only ${arcPlayed} arc milestones played` : null,
+  destinations.length !== 5 || destinations.some((k) => k.guest) ? `expected five non-guest destination clubs, got ${destinations.map((k) => k.id).join(",")}` : null,
+  sessionsPlayed === 0 ? "no tryout session was played" : null,
+  !c.tryouts.offersDecidedDay ? "offers were never decided" : null,
+  overfull.length ? `next-season rosters over capacity: ${overfull.map((r) => r.clubId).join(",")}` : null,
+  relationshipsChangedByTransfer ? "relationships, tracks or the player record changed by the transfer itself" : null,
+  c.roster.people.find((p) => p.id === "player")!.shirt !== positionBefore ? "position changed across the transfer" : null,
 ];
 const bad = problems.filter((x): x is string => x !== null);
 console.log(bad.length ? `FAIL: ${bad.join("; ")}` : `PASS (${played} matches played, day ${c.day})`);

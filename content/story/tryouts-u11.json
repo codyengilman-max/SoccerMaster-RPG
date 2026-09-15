@@ -1,0 +1,1080 @@
+{
+  "note": "Season-end tryouts and the first transfer opportunity (spec §18, §20). These scenes read tryout state — invitations, sessions played, offers, kept and broken promises, the accepted club, where the friend lands — and never create it: src/campaign/tryouts.ts issues invitations and offers from verified evidence and roster capacity, and the transfer happens only when the user accepts an offer in the hub. Boys'/girls' entries override same-id shared scenes. Every line is a proposal for the owner's review.",
+  "shared": [
+    {
+      "id": "tryouts.week",
+      "title": "One thing on the calendar",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Monday. The season is over and the fridge calendar has exactly one thing on it, circled twice: Saturday {tryout_day}. Tryouts."
+        },
+        {
+          "speaker": "parent",
+          "text": "Two sessions on the day — morning and afternoon. You can go to two clubs, or one, or none. Every club in the valley is holding one."
+        },
+        {
+          "speaker": "parent",
+          "text": "{invited_clubs} asked for you by name. That's nice. It's still an invitation, not a place.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_invite_count",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Nobody asked for you by name. That's fine. Open sessions are open. You turn up and play.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_invite_count",
+              "equals": 0
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "And {club} doesn't need you to try out. {coach} already said what {coach} thinks, to your face. Hold on to that."
+        },
+        {
+          "speaker": "friend",
+          "text": "Whatever you pick, I pick. I said that already. I'm not un-saying it.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_stance",
+              "equals": "together"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "You're going to look. Fine. I'm coming to watch. Somebody has to heckle the goalkeeper.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_stance",
+              "equals": "look"
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "tryouts.week.minutes",
+          "label": "\"I want to play. Every minute I can.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_priority",
+              "value": "minutes"
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "tryout_priority"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Then look at their benches on Saturday, not their kits."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "tryouts.week.coaching",
+          "label": "\"I want to get better. Whoever coaches best.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_priority",
+              "value": "coaching"
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "tryout_priority"
+            },
+            {
+              "type": "track",
+              "track": "pathway",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Then listen to how they talk to the kid who gets it wrong. That's the coaching."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "tryouts.week.people",
+          "label": "\"I want to be where my people are.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_priority",
+              "value": "people"
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "tryout_priority"
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "That's allowed. Just make sure it's your reason and not somebody else's."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "tryouts.day",
+      "title": "Bibs",
+      "location": "pitch",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Saturday. Five clubs, one complex, a hundred kids in five colours of bib, and somebody's dad with a clipboard nobody gave him."
+        },
+        {
+          "speaker": "parent",
+          "text": "Pick your sessions from the board. Watch how they coach, not just how they look. I'll be by the fence with the bad coffee."
+        },
+        {
+          "speaker": "friend",
+          "text": "Okay. Same sessions or split up and compare notes?",
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_stance",
+              "equals": "together"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "I'm on the fence with {parent}. Literally. Go show them the thing you do.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_stance",
+              "not": "together"
+            }
+          ]
+        },
+        {
+          "speaker": null,
+          "text": "The thing about a tryout is that nobody has seen your season. They see today. Play it."
+        }
+      ],
+      "choices": [],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "tryouts.offers",
+      "title": "The phone rings",
+      "location": "home",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Sunday evening. The phone has been face down on the table since dinner and everyone has been pretending not to look at it."
+        },
+        {
+          "speaker": "parent",
+          "text": "One offer. {offers}. A real one — a place on a roster, in writing, with a date to answer by.",
+          "requiresKnown": [
+            "tryout_offer_count"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_offer_count",
+              "equals": 1
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "{offer_count} offers. {offers}. Real ones — a place on a roster, in writing, with a date to answer by.",
+          "requiresKnown": [
+            "tryout_offer_count"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_offer_count",
+              "min": 2
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "{coach} rang as well. {club} wants you back. That's an offer too, not a hint.",
+          "requiresKnown": [
+            "tryout_offer_home"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_offer_home",
+              "equals": true
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "{coach} didn't ring. I'd rather that than a promise nobody meant.",
+          "requiresKnown": [
+            "tryout_offer_home"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_offer_home",
+              "equals": false
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "{broken_club} promised and then didn't. Keep that in a drawer somewhere. It's useful.",
+          "requiresKnown": [
+            "tryout_promise_broken_club"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_promise_broken_club",
+              "exists": true
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Nothing decides itself. You've got a week, and the offers will be there in the morning."
+        },
+        {
+          "speaker": "friend",
+          "text": "So? SO?",
+          "requiresKnown": [
+            "tryout_offer_count"
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "tryouts.offers.friend_first",
+          "label": "Talk it through with {friend} before deciding anything",
+          "eligibility": [
+            {
+              "type": "fact",
+              "id": "tryout_stance",
+              "equals": "together"
+            }
+          ],
+          "immediate": [
+            {
+              "type": "deliver",
+              "promiseId": "promise.together"
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 2
+            },
+            {
+              "type": "learn",
+              "personId": "friend",
+              "factId": "tryout_offer_count"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Good. Because I've got a list. It's colour-coded. Don't laugh."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "tryouts.offers.parent",
+          "label": "\"What would you do?\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "I'd pick the place that keeps its small promises. The big ones are easy to say."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "tryouts.offers.sleep",
+          "label": "Sleep on it",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": null,
+              "text": "The offers are on the fridge under a magnet, next to the calendar. Circled once this time."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "tryouts.no_offer",
+      "title": "Nothing on the fridge",
+      "location": "home",
+      "tone": "adversity",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Sunday evening. The phone stays face down and stays quiet."
+        },
+        {
+          "speaker": "parent",
+          "text": "No offers. Not from Saturday — and not from {club} either.",
+          "requiresKnown": [
+            "tryout_offer_count"
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "{broken_club} promised you a place. I heard it. So did you. That wasn't an offer, and now we both know the difference.",
+          "requiresKnown": [
+            "tryout_promise_broken_club"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_promise_broken_club",
+              "exists": true
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "I'm not going to pretend that doesn't sting. It does. It's also May, and nothing about you has stopped."
+        },
+        {
+          "speaker": "friend",
+          "text": "Rec league has a team. I checked. I'm on it if you are.",
+          "requiresKnown": [
+            "tryout_offer_count"
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "tryouts.no_offer.own",
+          "label": "\"The sessions were fair. I wasn't there yet.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 2
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": -1
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "That's the hardest sentence there is, and you just said it at eleven."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "tryouts.no_offer.blame",
+          "label": "\"They didn't even watch me properly.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": -1
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": -1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Maybe. Sleep, and tell me again in the morning if you still believe it."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "tryouts.promise_broken",
+      "title": "A promise and an offer",
+      "location": "car",
+      "tone": "adversity",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The drive home from the complex. The radio is off; nobody turned it off, it's just off."
+        },
+        {
+          "speaker": "parent",
+          "text": "{broken_club}'s coach told you there was a place for you. Told me too, by the fence. Then the sheet went up and your name wasn't on it.",
+          "requiresKnown": [
+            "tryout_promise_broken_club"
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "I'm not saying they lied. Squads fill. I'm saying a promise is a sentence and an offer is a piece of paper, and you only ever count the paper."
+        }
+      ],
+      "choices": [
+        {
+          "id": "tryouts.promise_broken.lesson",
+          "label": "\"Promises aren't offers.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "pathway",
+              "delta": 2
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "tryout_lesson"
+            },
+            {
+              "type": "set_fact",
+              "id": "tryout_lesson",
+              "value": "paper"
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Write that on something. You'll need it at fourteen, and again at eighteen."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "tryouts.promise_broken.angry",
+          "label": "\"They lied to me.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": -1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Maybe they did. Be angry tonight. Tomorrow, look at what's actually on the fridge."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "tryouts.stay",
+      "title": "August, then",
+      "location": "training_field",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The training field with no training on it. {coach} is collecting cones that were already collected."
+        },
+        {
+          "speaker": "coach",
+          "text": "Good. I meant what I said in April and I mean it now. August. Come back a year better and we'll see what this team is.",
+          "requiresKnown": [
+            "tryout_next_club"
+          ]
+        },
+        {
+          "speaker": "coach",
+          "text": "You had a real offer and you turned it down for us. I won't waste that.",
+          "requiresKnown": [
+            "tryout_offer_count"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_offer_count",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Same team. SAME TEAM. I'm not crying, the sprinklers are on.",
+          "requiresKnown": [
+            "tryout_friend_club"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_friend_apart",
+              "equals": false
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "You stayed and I'm going. That's — yeah. That's a weird one. Park's still the park though.",
+          "requiresKnown": [
+            "tryout_friend_club"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_friend_apart",
+              "equals": true
+            }
+          ]
+        }
+      ],
+      "choices": [],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "tryouts.leave",
+      "title": "Say it out loud",
+      "location": "car",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The car, after. The form is signed and in the glovebox because nobody trusts a bag."
+        },
+        {
+          "speaker": "parent",
+          "text": "{next_club}. Say it out loud so it's real.",
+          "requiresKnown": [
+            "tryout_next_club"
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "{coach} shook your hand and meant it. No grudges from that one, ever. That's rarer than you think.",
+          "requiresKnown": [
+            "tryout_next_club"
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "You're going. Okay. Okay. Sundays at the park still stand — that was never a club thing.",
+          "requiresKnown": [
+            "tryout_next_club"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_friend_apart",
+              "equals": true
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Same club, new badge. I've already worked out the car-share. You're welcome.",
+          "requiresKnown": [
+            "tryout_next_club"
+          ],
+          "when": [
+            {
+              "type": "fact",
+              "id": "tryout_friend_apart",
+              "equals": false
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "tryouts.leave.thanks",
+          "label": "Text {coach} a proper thank-you, not a short one",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 2
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "That's how you leave a place. Well done."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "tryouts.leave.forward",
+          "label": "Look forward, not back",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "pathway",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Fair. Just send the text sometime this week. Forward doesn't mean rude."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "tryouts.friend_apart",
+      "title": "Different badges",
+      "location": "park",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The park. The goal with the bent post. Neither of you has said the thing yet."
+        },
+        {
+          "speaker": "friend",
+          "text": "So. {friend_club} for me, {next_club} for you.",
+          "requiresKnown": [
+            "tryout_friend_club"
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "We'll play each other. You know that, right? Like, actually against. I'm going to be so annoying."
+        },
+        {
+          "speaker": null,
+          "text": "The ball comes back off the bent post the way it always has. Some things don't check which club you're at."
+        }
+      ],
+      "choices": [
+        {
+          "id": "tryouts.friend_apart.sundays",
+          "label": "\"Every Sunday. Here. Whatever badge.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "promise",
+              "id": "promise.park_sundays",
+              "by": "player",
+              "text": "Sundays at the park with {friend}, whatever club either of you plays for."
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Deal. And if you miss one I'm telling {parent}."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "tryouts.friend_apart.honest",
+          "label": "\"It's going to be different.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Yeah. Different isn't worse. Probably. Kick it, I'm cold."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "tryouts.friend_with",
+      "title": "Same badge",
+      "location": "park",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The park. The goal with the bent post. Somebody is doing a victory lap of it for no reason."
+        },
+        {
+          "speaker": "friend",
+          "text": "{friend_club}. Both of us. I said whatever you pick, I pick, and then I had to actually go and earn it, which, rude.",
+          "requiresKnown": [
+            "tryout_friend_club"
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "New kit, same bent post. Kick it."
+        }
+      ],
+      "choices": [],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "tryouts.expired",
+      "title": "The date passed",
+      "location": "home",
+      "tone": "adversity",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The offers on the fridge have a date on them. It was yesterday."
+        },
+        {
+          "speaker": "parent",
+          "text": "They lapsed. Nobody's roster has your name on it for August — not because you weren't wanted. Because you didn't answer.",
+          "requiresKnown": [
+            "tryout_unattached"
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "That's a lesson too. It's just a more expensive one than I'd have picked."
+        }
+      ],
+      "choices": [
+        {
+          "id": "tryouts.expired.own",
+          "label": "\"That one's on me.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "It is. Summer's long. We'll find you somewhere to play."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "tryouts.declined_all",
+      "title": "Nobody's roster",
+      "location": "car",
+      "tone": "adversity",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The last offer is turned down. The car is quiet for three streets."
+        },
+        {
+          "speaker": "parent",
+          "text": "So that's every club told no — including ours. You know that means no roster for August.",
+          "requiresKnown": [
+            "tryout_unattached"
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "I'm not angry. I just want to hear the reason from you, not guess at it."
+        }
+      ],
+      "choices": [
+        {
+          "id": "tryouts.declined_all.reason",
+          "label": "\"None of them felt right. I'd rather wait than pick wrong.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_declined_reason",
+              "value": "wait"
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "tryout_declined_reason"
+            },
+            {
+              "type": "track",
+              "track": "responsibility",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Then we wait together. Summer sessions still happen; I'll drive."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "tryouts.declined_all.unsure",
+          "label": "\"I don't know. I panicked.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "tryout_declined_reason",
+              "value": "panic"
+            },
+            {
+              "type": "learn",
+              "personId": "parent",
+              "factId": "tryout_declined_reason"
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "That's honest. Honest we can work with. Nobody's closing a door on a ten-year-old for good."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "boys": [
+    {
+      "id": "tryouts.friend_with",
+      "title": "Same badge",
+      "location": "park",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The park. The goal with the bent post. {friend} is doing a victory lap of it for no reason."
+        },
+        {
+          "speaker": "friend",
+          "text": "{friend_club}. Both of us. I said whatever you pick, I pick, and then I had to actually go and earn it, which, rude.",
+          "requiresKnown": [
+            "tryout_friend_club"
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "First training I'm nutmegging you in front of the new lot. Just so you know it's coming."
+        }
+      ],
+      "choices": [],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "girls": [
+    {
+      "id": "tryouts.friend_with",
+      "title": "Same badge",
+      "location": "park",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The park. The goal with the bent post. {friend} has drawn the new badge on the back of her hand in biro."
+        },
+        {
+          "speaker": "friend",
+          "text": "{friend_club}. Both of us. I said whatever you pick, I pick, and then I had to actually go and earn it, which, rude.",
+          "requiresKnown": [
+            "tryout_friend_club"
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "I've already made a playlist for the drive. It's mostly one song. You'll like it eventually."
+        }
+      ],
+      "choices": [],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ]
+}

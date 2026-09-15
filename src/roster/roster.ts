@@ -44,9 +44,11 @@ export interface Person {
 export interface Roster {
   clubId: string;
   ageGroup: AgeGroup;
-  /** Person ids. Length ≤ capacity. */
+  /** Person ids. `playerIds.length + reserved` ≤ capacity. */
   playerIds: string[];
   capacity: number;
+  /** Places already taken by squad members who are not modelled as people (a club's returning players). */
+  reserved?: number;
 }
 
 export interface RosterState {
@@ -73,7 +75,7 @@ export function joinRoster(st: RosterState, personId: string, clubId: string, ag
   const roster = rosterOf(st, clubId, ageGroup);
   if (!roster) return { ok: false, reason: "no_roster" };
   if (roster.playerIds.includes(personId)) return { ok: false, reason: "already_member" };
-  if (roster.playerIds.length >= roster.capacity) return { ok: false, reason: "full" };
+  if (openPlaces(roster) <= 0) return { ok: false, reason: "full" };
   for (const r of st.rosters) {
     const i = r.playerIds.indexOf(personId);
     if (i >= 0) r.playerIds.splice(i, 1);
@@ -82,6 +84,9 @@ export function joinRoster(st: RosterState, personId: string, clubId: string, ag
   person.clubId = clubId;
   return { ok: true };
 }
+
+/** Places still open on a roster: the explicit capacity minus reserved places and named members. */
+export const openPlaces = (r: Roster): number => Math.max(0, r.capacity - (r.reserved ?? 0) - r.playerIds.length);
 
 export function leaveRoster(st: RosterState, personId: string): void {
   for (const r of st.rosters) {
