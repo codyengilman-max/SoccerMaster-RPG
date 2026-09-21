@@ -34,6 +34,13 @@ const CONTINUATION_TEXT: Record<Continuation, string> = {
 
 const continuationOf = (r: MinigameResult): Continuation => (r.exitReason === "completed" ? r.outcomeTier : r.exitReason);
 
+/** Enter/Space on a focused button, link or field is the browser's activation — leave it to the control. */
+const activatesFocusedControl = (e: KeyboardEvent): boolean => {
+  if (e.code !== "Enter" && e.code !== "NumpadEnter" && e.code !== "Space") return false;
+  const t = e.target;
+  return t instanceof HTMLButtonElement || t instanceof HTMLAnchorElement || t instanceof HTMLInputElement || t instanceof HTMLSelectElement;
+};
+
 const mmss = (ms: number): string => {
   const s = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -113,6 +120,7 @@ export function mountMinigameScreen(root: HTMLElement, opts: MinigameScreenOptio
       for (const b of actionsEl.querySelectorAll<HTMLButtonElement>("button.mg-action")) {
         b.addEventListener("click", (e) => {
           e.preventDefault();
+          if (e.detail > 0) b.blur();
           onPick(b.dataset["id"]!);
         });
       }
@@ -297,6 +305,7 @@ export function mountMinigameScreen(root: HTMLElement, opts: MinigameScreenOptio
     }
     if (!overlay.hidden) return;
     if (session.phase !== "active") return;
+    if (activatesFocusedControl(e)) return;
     if (view.onKey(e)) e.preventDefault();
   };
   window.addEventListener("keydown", onKey);

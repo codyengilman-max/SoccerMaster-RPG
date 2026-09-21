@@ -58,20 +58,24 @@ export function mountDrillScreen(root: HTMLElement, opts: DrillScreenOptions): H
         <div class="window" hidden><div class="bar"></div><span class="left"></span></div>
         <div class="banner" hidden></div>
       </div>
-      <div class="panel">
-        <div class="moment">
-          <div class="title">Look before it arrives</div>
-          <ul class="cues"><li>Where is the defender coming from?</li><li>Draw your first touch from the ball through the open gate</li><li>Or tap a gate</li></ul>
+      <div class="dock">
+        <div class="panel">
+          <div class="moment">
+            <div class="title">Look before it arrives</div>
+            <ul class="cues"><li>Where is the defender coming from?</li><li>Draw your first touch from the ball through the open gate</li><li>Or tap a gate</li></ul>
+          </div>
+          <div class="feedback" hidden></div>
         </div>
-        <div class="feedback" hidden></div>
-      </div>
-      <div class="controls">
-        <button type="button" class="toggle accessible" aria-pressed="false">Longer windows</button>
-        <span class="provisional">${escapeHtml(opts.coachName)} · intro drill</span>
+        <div class="controls">
+          <button type="button" class="toggle accessible" aria-pressed="false">Longer windows</button>
+          <span class="provisional">${escapeHtml(opts.coachName)} · intro drill</span>
+        </div>
       </div>
     </section>`;
 
   const stage = q<HTMLDivElement>(root, ".stage");
+  const hud = q<HTMLElement>(root, ".hud");
+  const dock = q<HTMLDivElement>(root, ".dock");
   const canvas = q<HTMLCanvasElement>(root, "canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d context unavailable");
@@ -96,13 +100,17 @@ export function mountDrillScreen(root: HTMLElement, opts: DrillScreenOptions): H
     canvas.height = Math.round(h * dpr);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
-    scale = Math.min(w / (AREA.length + PAD * 2), h / (AREA.width + PAD * 2));
+    // The HUD and dock float over the stage; frame the area in the uncovered band between them.
+    const top = hud.offsetHeight;
+    const free = Math.max(1, h - top - dock.offsetHeight);
+    scale = Math.min(w / (AREA.length + PAD * 2), free / (AREA.width + PAD * 2));
     ox = (w - AREA.length * scale) / 2;
-    oy = (h - AREA.width * scale) / 2;
+    oy = top + (free - AREA.width * scale) / 2;
   };
   fit();
   const ro = new ResizeObserver(fit);
   ro.observe(stage);
+  ro.observe(dock);
   const toScreen = (p: Vec2): Vec2 => ({ x: ox + p.x * scale, y: oy + p.y * scale });
   const toField = (s: Vec2): Vec2 => ({ x: (s.x - ox) / scale, y: (s.y - oy) / scale });
 

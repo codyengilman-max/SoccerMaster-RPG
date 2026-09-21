@@ -37,15 +37,27 @@ export function presentationView(host: ViewHost): GameView {
   const send = (i: GpInput): void => host.send(i);
   const scale = (): number => gpWindowScale(host.session.config);
 
+  /** Selector that re-finds the focused board control after the board is rebuilt, so keyboard users keep their place. */
+  const focusKey = (a: Element | null): string | null => {
+    if (!(a instanceof HTMLButtonElement) || !el.contains(a)) return null;
+    const d = a.dataset;
+    if (d["sec"] !== undefined && d["who"] !== undefined) return `button[data-sec="${d["sec"]}"][data-who="${d["who"]}"]`;
+    if (d["move"] !== undefined && d["i"] !== undefined) return `button[data-move="${d["move"]}"][data-i="${d["i"]}"]`;
+    if (d["i"] !== undefined) return `button.gp-card[data-i="${d["i"]}"]`;
+    return null;
+  };
+
   const render = (): void => {
     const s = state();
     const t = topic();
     const key = signature(s);
     if (key !== sig) {
       sig = key;
+      const focused = focusKey(document.activeElement);
       el.innerHTML = board(s);
       wire(s);
       actions(s);
+      if (focused) el.querySelector<HTMLElement>(focused)?.focus();
     }
     // timers every frame
     const bar = el.querySelector<HTMLElement>(".gp-bar > i");
