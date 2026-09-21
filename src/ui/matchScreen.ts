@@ -15,9 +15,11 @@ import {
   type MatchRuntime,
   type MomentClosed,
 } from "../match/runtime";
-import { createCamera, follow, frameFor, resize, toField, type Camera } from "../render/camera";
+import { createCamera, follow, frameFor, resize, setInsets, toField, type Camera } from "../render/camera";
 import { createProbe, formatSummary, type ProbeSummary } from "../perf/probe";
 import { render } from "../render/pitch";
+import { ballHeightM, createPresentation, deriveVisuals } from "../render/presentation";
+import { spriteAssets, type SpriteSet } from "../render/sprites";
 import type { Vec2 } from "../sim/geometry";
 import type { MatchEvent } from "../sim/types";
 import { coverageReport } from "../tactics/coverage";
@@ -37,7 +39,8 @@ export interface MatchScreenHandle {
 }
 
 const MAX_FRAME_MS = 100;
-const TICKER_LINES = 5;
+const TICKER_LINES = 3;
+const TICK_MS = 50;
 const TRAIL_LENGTH = 18;
 
 export interface MatchScreenOptions {
@@ -48,34 +51,39 @@ export interface MatchScreenOptions {
 /** `onExit` is called once the user leaves the full-time summary; the runtime holds the finished state and records. */
 export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExit: (runtime: MatchRuntime) => void, opts: MatchScreenOptions = {}): MatchScreenHandle {
   root.classList.add("in-match");
+  const params = new URLSearchParams(location.search);
+  const debug = params.has("debug");
   root.innerHTML = `
-    <section class="match">
-      <header class="hud">
-        <div class="score"><span class="team home">${runtime.state.home.shortName}</span> <b class="num">0 – 0</b> <span class="team away">${runtime.state.away.shortName}</span></div>
-        <div class="clock"><span class="time">00:00</span><span class="half">1st</span></div>
-        <div class="speed" aria-live="polite"><span class="rate">×1</span><span class="real" title="real time played">0:00</span></div>
-      </header>
+    <section class="match${debug ? " debug" : ""}">
       <div class="stage">
         <canvas class="pitch" aria-label="match view"></canvas>
+        <header class="hud">
+          <div class="score"><span class="team home">${escapeHtml(runtime.state.home.shortName)}</span><b class="num">0 – 0</b><span class="team away">${escapeHtml(runtime.state.away.shortName)}</span></div>
+          <div class="clock"><span class="time">00:00</span><span class="half">1st</span></div>
+          <div class="speed" aria-live="polite"><span class="rate">live</span><span class="real" title="real time played">0:00</span></div>
+        </header>
         <div class="window" hidden><div class="bar"></div><span class="left"></span></div>
         <div class="banner" hidden></div>
         <div class="perf" hidden></div>
-      </div>
-      <section class="panel">
-        <div class="moment" hidden>
-          <div class="title"></div>
-          <ul class="cues"></ul>
-          <div class="options" role="group" aria-label="tactical options"></div>
-          <div class="hint" hidden></div>
+        <div class="dock">
+          <section class="panel">
+            <div class="moment" hidden>
+              <div class="title"></div>
+              <ul class="cues"></ul>
+              <div class="options" role="group" aria-label="tactical options"></div>
+              <div class="hint" hidden></div>
+            </div>
+            <div class="feedback" hidden></div>
+            <ul class="ticker" aria-live="polite"></ul>
+          </section>
+          <footer class="controls">
+            <button type="button" class="toggle accessible" aria-pressed="false" title="Choose targets by tapping instead of drawing">Tap targets</button>
+            <button type="button" class="toggle fast" aria-pressed="false" title="Fast-forward routine play">Fast play</button>
+            <button type="button" class="toggle pause" aria-pressed="false">Pause</button>
+            <span class="provisional" title="Tactical content is provisional and not coach-reviewed"${debug ? "" : " hidden"}>provisional</span>
+          </footer>
         </div>
-        <div class="feedback" hidden></div>
-        <ul class="ticker" aria-live="polite"></ul>
-      </section>
-      <footer class="controls">
-        <button class="toggle accessible" aria-pressed="false">Tap targets</button>
-        <button class="toggle pause" aria-pressed="false">Pause</button>
-        <span class="provisional" title="Tactical content is provisional and not coach-reviewed">provisional</span>
-      </footer>
+      </div>
     </section>`;
 
   const q = <T extends Element>(sel: string): T => {
@@ -95,7 +103,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
   const realEl = q<HTMLElement>(".speed .real");
   const perfEl = q<HTMLElement>(".perf");
   const probe = createProbe();
-  const showPerf = new URLSearchParams(location.search).has("perf");
+  const showPerf = params.has("perf");
   perfEl.hidden = !showPerf;
   const windowEl = q<HTMLDivElement>(".window");
   const windowBar = q<HTMLDivElement>(".window .bar");
@@ -109,22 +117,41 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
   const feedbackEl = q<HTMLDivElement>(".feedback");
   const tickerEl = q<HTMLUListElement>(".ticker");
   const accessibleBtn = q<HTMLButtonElement>(".toggle.accessible");
+  const fastBtn = q<HTMLButtonElement>(".toggle.fast");
   const pauseBtn = q<HTMLButtonElement>(".toggle.pause");
+  const hudEl = q<HTMLElement>(".hud");
+  const dockEl = q<HTMLElement>(".dock");
+  const matchEl = q<HTMLElement>(".match");
 
-  let cam: Camera = createCamera(runtime.state.rules, 300, 200);
+  const cam: Camera = createCamera(runtime.state.rules, 300, 200);
   const dpr = Math.min(2, window.devicePixelRatio || 1);
+  /** Canvas fills the stage; the HUD and the bottom dock overlay it and are declared as camera insets. */
   const fit = (): void => {
     const w = Math.max(1, stage.clientWidth);
     const h = Math.max(1, stage.clientHeight);
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+    }
     resize(cam, w, h);
+    setInsets(cam, hudEl.offsetHeight, dockEl.offsetHeight);
   };
   fit();
   const ro = new ResizeObserver(fit);
   ro.observe(stage);
+  ro.observe(dockEl);
+  ro.observe(hudEl);
+
+  // sprites load in the background; frames paint procedural figures until (or unless) they arrive
+  let sprites: SpriteSet | null = null;
+  let disposed = false;
+  void spriteAssets().then((set) => {
+    if (!disposed) sprites = set;
+  });
+  const presentation = createPresentation();
+  const startedAt = performance.now();
 
   const optionAnchors = new Map<string, Vec2>();
   const trail: Vec2[] = [];
@@ -259,11 +286,32 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     accessibleBtn.setAttribute("aria-pressed", String(runtime.accessible));
     renderOptions();
   });
+  fastBtn.addEventListener("click", () => {
+    runtime.fast = !runtime.fast;
+    fastBtn.setAttribute("aria-pressed", String(runtime.fast));
+  });
   pauseBtn.addEventListener("click", () => {
     runtime.paused = !runtime.paused;
     pauseBtn.setAttribute("aria-pressed", String(runtime.paused));
     pauseBtn.textContent = runtime.paused ? "Resume" : "Pause";
   });
+  /** Keyboard: digits pick options, Space pauses, F toggles fast play, Escape backs out of a drawing. */
+  const onKey = (ev: KeyboardEvent): void => {
+    if (ev.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)) return;
+    if (ev.key === " " && !(ev.target instanceof HTMLButtonElement)) {
+      ev.preventDefault();
+      pauseBtn.click();
+    } else if (ev.key === "f" || ev.key === "F") {
+      fastBtn.click();
+    } else if (ev.key === "Escape" && runtime.active && runtime.active.stage !== "reading") {
+      cancel(runtime);
+      renderOptions();
+    } else if (/^[1-9]$/.test(ev.key) && runtime.active?.stage === "reading") {
+      const o = runtime.active.moment.options[Number(ev.key) - 1];
+      if (o) onSelect(o.id);
+    }
+  };
+  document.addEventListener("keydown", onKey);
   const onVisibility = (): void => {
     if (document.hidden) last = 0;
   };
@@ -335,8 +383,9 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       windowEl.classList.toggle("urgent", windowProgress(runtime) > 0.7);
     }
     const me = st.controlled ? st.players.find((p) => p.id === st.controlled!.playerId) : null;
-    follow(cam, st.rules, frameFor(st.rules, st.ball.pos, me?.pos ?? null, !!w, w?.moment.major ?? false), w ? 0.12 : 0.08);
+    follow(cam, st.rules, frameFor(st.rules, cam, st.ball.pos, me?.pos ?? null, !!w, w?.moment.major ?? false), w ? 0.12 : 0.08);
 
+    const visuals = deriveVisuals(presentation, st, cam, res.ticks * TICK_MS, Math.max(0.05, scale));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     render(ctx, cam, st, {
       controlledId: st.controlled?.playerId ?? null,
@@ -346,6 +395,11 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       fast: fastMix,
       trail,
       major: w?.moment.major ?? false,
+      visuals,
+      sprites,
+      ballHeightM: ballHeightM(st),
+      timeS: (now - startedAt) / 1000,
+      debug,
     });
     probe.sample({ frameMs: dt, simMs: t1 - t0, renderMs: performance.now() - t1, ticks: res.ticks });
     if (showPerf && ++perfFrames % 30 === 0) perfEl.textContent = formatSummary(probe.summary());
@@ -381,16 +435,20 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       handle.destroy();
       onExit(runtime);
     });
-    root.querySelector(".match")?.appendChild(summary);
+    matchEl.classList.add("finished");
+    matchEl.appendChild(summary);
+    summary.querySelector<HTMLElement>("h2")?.focus();
   };
 
   const handle: MatchScreenHandle = {
     perf: () => probe.summary(),
     destroy() {
+      disposed = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
       pointer.detach();
       document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("keydown", onKey);
       window.clearTimeout(bannerTimer);
       window.clearTimeout(feedbackTimer);
       shownRecords = new WeakSet();

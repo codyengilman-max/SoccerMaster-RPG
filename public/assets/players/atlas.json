@@ -1,0 +1,95 @@
+{
+  "generator": "tools/spriteGen.ts (procedural, original)",
+  "frameWidth": 64,
+  "frameHeight": 80,
+  "anchor": {
+    "x": 32,
+    "y": 74
+  },
+  "figureHeight": 68,
+  "columns": [
+    "S",
+    "SE",
+    "E",
+    "NE",
+    "N"
+  ],
+  "mirrored": {
+    "SW": "SE",
+    "W": "E",
+    "NW": "NE"
+  },
+  "rows": [
+    "stand/look0",
+    "stand/look1",
+    "stand/look2",
+    "run1/look0",
+    "run1/look1",
+    "run1/look2",
+    "run2/look0",
+    "run2/look1",
+    "run2/look2",
+    "ready/look0",
+    "ready/look1",
+    "ready/look2",
+    "carry/look0",
+    "carry/look1",
+    "carry/look2"
+  ],
+  "sheets": {
+    "blue": "players/blue/outfield.png",
+    "coral": "players/coral/outfield.png",
+    "keeperHome": "players/goalkeepers/home.png",
+    "keeperAway": "players/goalkeepers/away.png"
+  },
+  "kits": {
+    "blue": {
+      "shirt": "#2160d8",
+      "shade": "#153f96",
+      "trim": "#35d6ff",
+      "shorts": "#0c1f44",
+      "socks": "#2160d8",
+      "sockTop": "#35d6ff"
+    },
+    "coral": {
+      "shirt": "#f2634a",
+      "shade": "#b83f2c",
+      "trim": "#ffd9c9",
+      "shorts": "#4a1d16",
+      "socks": "#f2634a",
+      "sockTop": "#ffd9c9"
+    },
+    "keeperHome": {
+      "shirt": "#1fb896",
+      "shade": "#147a63",
+      "trim": "#e6fff8",
+      "shorts": "#0c1f44",
+      "socks": "#1fb896",
+      "sockTop": "#e6fff8",
+      "gloves": "#eafff9"
+    },
+    "keeperAway": {
+      "shirt": "#f0be2f",
+      "shade": "#b8891a",
+      "trim": "#4a3300",
+      "shorts": "#2b1d0e",
+      "socks": "#f0be2f",
+      "sockTop": "#4a3300",
+      "gloves": "#fff3c4"
+    }
+  },
+  "looks": [
+    {
+      "skin": "#f3c9a3",
+      "hair": "#2b1c12"
+    },
+    {
+      "skin": "#c68b5b",
+      "hair": "#1a120c"
+    },
+    {
+      "skin": "#7a4a2e",
+      "hair": "#0f0a08"
+    }
+  ]
+}

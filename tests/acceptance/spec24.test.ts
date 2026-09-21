@@ -659,8 +659,8 @@ describe("spec §24 acceptance checks", () => {
       if (!m) throw new Error(`no rule for ${selector}`);
       return m[1]!;
     };
-    // the option panel is a solid, high-contrast surface, not text over moving grass
-    expect(rule(".panel")).toMatch(/rgba\(6, 16, 31, 0\.9\d?\)/);
+    // the option dock is a solid, high-contrast surface, not text over moving grass
+    expect(rule(".dock")).toMatch(/rgba\(6, 16, 31, 0\.9\d?\)/);
     expect(rule(".moment .title")).toMatch(/font-weight:\s*700/);
     // touch targets ≥ 44 CSS px (2.9rem ≈ 46px at 16px root)
     const minHeight = Number(rule(".option").match(/min-height:\s*([\d.]+)rem/)![1]);
@@ -669,8 +669,13 @@ describe("spec §24 acceptance checks", () => {
     expect(rule(".window .left")).toMatch(/text-shadow/);
     // nothing in the theme shrinks match text below ~12px
     for (const m of css.matchAll(/font-size:\s*([\d.]+)rem/g)) expect(Number(m[1])).toBeGreaterThanOrEqual(0.75);
-    // the HUD and panel are part of the match grid, never hidden while a moment is open
-    expect(rule(".match")).toMatch(/grid-template-rows:\s*auto 1fr auto auto/);
+    // the HUD and dock are pinned over the stage (top / bottom) and only leave at full time
+    expect(rule(".hud")).toMatch(/position:\s*absolute/);
+    expect(rule(".hud")).toMatch(/top:\s*0/);
+    expect(rule(".dock")).toMatch(/position:\s*absolute/);
+    expect(rule(".dock")).toMatch(/bottom:\s*0/);
+    expect(css).toMatch(/\.match\.finished \.hud,\s*\.match\.finished \.dock/);
+    expect(css).not.toMatch(/\.match:not\(\.finished\)[^{]*\.dock\s*{[^}]*display:\s*none/);
     const screen = readFileSync(join(ROOT, "src/ui/matchScreen.ts"), "utf8");
     expect(screen).toMatch(/aria-live="polite"/);
     expect(screen).toMatch(/role="group" aria-label="tactical options"/);

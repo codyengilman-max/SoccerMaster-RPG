@@ -7,14 +7,18 @@
  * establish that the per-frame work fits the budget with headroom. Device evidence must come from
  * the in-app probe (`?perf` in the URL) on representative phones.
  *
- * Usage: npm run perf -- [seeds=3] [role=CM] [json]
+ * Usage: npm run perf -- [seeds=3] [role=CM] [json] [fallback]
+ *   `fallback` benches the procedural-figure path used when a sprite sheet failed to load.
  */
 import catalogJson from "../content/catalog/provisional-u11.json";
 import { createRuntime, frame, releaseGesture, select, type MatchRuntime } from "../src/match/runtime";
 import { isFinished } from "../src/sim/engine";
 import { formatSummary, summarize, type FrameSample, type ProbeSummary } from "../src/perf/probe";
-import { createCamera, follow, frameFor } from "../src/render/camera";
+import { createCamera, follow, frameFor, setInsets } from "../src/render/camera";
 import { render } from "../src/render/pitch";
+import { ballHeightM, createPresentation, deriveVisuals } from "../src/render/presentation";
+import { SPRITE_KITS, SPRITE_LAYOUT } from "../src/render/spriteLayout";
+import type { SpriteSet } from "../src/render/sprites";
 import { Rng } from "../src/sim/rng";
 import { U11_9V9 } from "../src/sim/rules";
 import { generateSquad } from "../src/sim/squad";
@@ -25,9 +29,18 @@ import { pacingFor } from "../src/tactics/recognition";
 const seeds = Number(process.argv[2] ?? 3);
 const roleArg = (process.argv[3] ?? "CM") as RoleId;
 const asJson = process.argv.includes("json");
+const fallbackFigures = process.argv.includes("fallback");
 const FRAME_MS = 1000 / 60;
-/** Phone-sized canvas at 2× device pixel ratio. */
-const VIEW = { w: 390 * 2, h: 560 * 2 };
+const TICK_MS = 50;
+/** Phone-sized stage at 2× device pixel ratio; HUD and dock bands in device px. */
+const VIEW = { w: 390 * 2, h: 844 * 2, hud: 52 * 2, dock: 120 * 2 };
+
+/** Sprite sheets stand-in: the stub context accepts any object, so the drawImage path is exercised. */
+const STUB_SPRITES: SpriteSet = {
+  layout: SPRITE_LAYOUT,
+  sheets: Object.fromEntries(SPRITE_KITS.map((k) => [k, {} as CanvasImageSource])),
+  failed: [],
+};
 
 const roleNumber = (Object.keys(ROLE_BY_NUMBER) as unknown as string[]).map(Number).find((n) => ROLE_BY_NUMBER[n as RoleNumber] === roleArg) as RoleNumber | undefined;
 if (!roleNumber) throw new Error(`unknown role ${roleArg}`);
@@ -85,6 +98,8 @@ function benchMatch(seed: number): MatchBench {
   );
   const user = new Rng(seed ^ 0x51ed270b);
   const cam = createCamera(U11_9V9, VIEW.w, VIEW.h);
+  setInsets(cam, VIEW.hud, VIEW.dock);
+  const presentation = createPresentation();
   const { ctx, calls, reset } = countingContext();
   const samples: FrameSample[] = [];
   const drawCalls: number[] = [];
@@ -114,9 +129,20 @@ function benchMatch(seed: number): MatchBench {
     slow += ((w ? 1 : 0) - slow) * 0.15;
     anchors.clear();
     const ctrl = st.players.find((p) => p.id === me.id) ?? null;
-    follow(cam, st.rules, frameFor(st.rules, st.ball.pos, ctrl?.pos ?? null, !!w, w?.moment.major ?? false), w ? 0.12 : 0.08);
+    follow(cam, st.rules, frameFor(st.rules, cam, st.ball.pos, ctrl?.pos ?? null, !!w, w?.moment.major ?? false), w ? 0.12 : 0.08);
     reset();
-    render(ctx, cam, st, { controlledId: me.id, window: w, optionAnchors: anchors, slow, major: w?.moment.major ?? false });
+    const visuals = deriveVisuals(presentation, st, cam, res.ticks * TICK_MS, 1);
+    render(ctx, cam, st, {
+      controlledId: me.id,
+      window: w,
+      optionAnchors: anchors,
+      slow,
+      major: w?.moment.major ?? false,
+      visuals,
+      sprites: fallbackFigures ? null : STUB_SPRITES,
+      ballHeightM: ballHeightM(st),
+      timeS: (f * FRAME_MS) / 1000,
+    });
     drawCalls.push(calls());
     samples.push({ frameMs: FRAME_MS, simMs: t1 - t0, renderMs: performance.now() - t1, ticks: res.ticks });
   }
@@ -140,7 +166,7 @@ const worstDraw = Math.max(...results.map((r) => r.drawCallsP95));
 if (asJson) {
   console.log(JSON.stringify({ role: roleArg, view: VIEW, results, worst: { simP95: worstSim, renderP95: worstRender, drawCallsP95: worstDraw } }, null, 2));
 } else {
-  console.log(`perf bench · role ${roleArg} · ${seeds} full matches at 60 Hz · stub canvas ${VIEW.w}×${VIEW.h}`);
+  console.log(`perf bench · role ${roleArg} · ${seeds} full matches at 60 Hz · stub canvas ${VIEW.w}×${VIEW.h} · ${fallbackFigures ? "procedural figures" : "sprite sheets"}`);
   for (const r of results) {
     console.log(`  seed ${r.seed}: ${r.summary.frames} frames, ${r.simMinutes.toFixed(0)} sim min, ${r.moments} moments · sim p50 ${r.summary.simP50.toFixed(3)} p95 ${r.summary.simP95.toFixed(3)} ms · draw-call path p95 ${r.summary.renderP95.toFixed(3)} ms · draw calls p95 ${r.drawCallsP95}`);
   }
