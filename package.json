@@ -21,7 +21,8 @@
     "perf": "tsx tools/perfBench.ts",
     "smoke:season": "tsx tools/smokeSeason.ts",
     "story:tones": "tsx tools/storyTones.ts",
-    "pace": "tsx tools/paceBench.ts"
+    "pace": "tsx tools/paceBench.ts",
+    "sprites": "tsx tools/spriteGen.ts"
   },
   "devDependencies": {
     "@types/node": "20.19.43",

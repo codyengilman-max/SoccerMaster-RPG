@@ -12,7 +12,7 @@ from the PWA manifest or run in a tab.
 | Area | Target | Why |
 |------|--------|-----|
 | Match frame rate | 60 fps typical; **≥ 30 fps floor** — p95 frame time ≤ 33 ms, no frame > 100 ms during a moment | Slow-motion decisions depend on smooth motion; a 100 ms hitch shifts the anchor the player is drawing towards |
-| Match frame budget | `frame()` (simulation + tactical recognition) p95 ≤ 4 ms; canvas render p95 ≤ 4 ms; ≤ 600 draw calls per frame | Leaves ≥ 8 ms of a 16.7 ms frame for layout, input and compositing on a phone-class CPU (~5–8× slower than a desktop core) |
+| Match frame budget | `frame()` (simulation + tactical recognition) p95 ≤ 4 ms; canvas render p95 ≤ 4 ms; ≤ 320 draw calls (fill / stroke / drawImage / text / clip) and ≤ 1200 context calls in total per frame | Leaves ≥ 8 ms of a 16.7 ms frame for layout, input and compositing on a phone-class CPU (~5–8× slower than a desktop core) |
 | Input latency | pointer move → preview redraw within the next frame (no async work between `pointermove` and `previewGesture`) | Drawing must feel attached to the finger |
 | Cold load (4G, empty cache) | interactive ≤ 3 s; JS ≤ 150 kB gzip; CSS ≤ 20 kB gzip | Casual return visits between weeks |
 | Warm / installed load | interactive ≤ 1 s offline | Service worker precaches the shell (`pwa/sw.js`) |
@@ -33,8 +33,12 @@ npm run perf -- 3 CM json # machine-readable
 
 `tools/perfBench.ts` drives the real `MatchRuntime` at a fixed 60 Hz cadence with a scripted user
 who answers every tactical moment (half drawn, half chosen), times `frame()` and the renderer, and
-counts canvas draw calls against a phone-sized stub context (780×1120 device pixels). It exits
-non-zero if any p95 breaks the frame budget above. It measures *CPU work per frame on the machine
+counts canvas calls against a phone-sized stub context (780×1120 device pixels). Two counts are
+kept: *draw calls* are the rasterising methods (`fill`, `stroke`, `fillRect`, `drawImage`,
+`fillText`, …), *ctx calls* include path building (`moveTo`, `lineTo`, `arc`) and `save`/`restore`.
+`npm run perf -- 3 CM fallback` benches the procedural-figure path used when a sprite sheet failed
+to load. `npx tsx tools/drawCallProfile.ts` attributes one frame's counts to the render layers. The
+bench exits non-zero if any p95 breaks the frame budget above. It measures *CPU work per frame on the machine
 running it*; it does **not** measure phone frame rate, GPU raster or compositing.
 
 ### Real match duration (repeatable, any machine)
@@ -83,7 +87,11 @@ or WebPageTest on a real device. Bundle sizes come from `npm run build`.
 | Desktop Chrome, in-app probe | not yet recorded in this repo | — |
 | Representative phones | **not measured** — no representative phone has been available to this project | — |
 | Real match duration, CM | 12/12 matches (4 seeds × quick / typical / slow) **6:59–7:03**, 25 moments (14 on ball), 60 simulated minutes; decisions ≈ 3:30, live aftermath ≈ 1:00, fast-forward ≈ 2:20 at peak ×21–×32 (≤ 11 ticks/frame), half time 0:02 | `npm run pace -- 4 CM all`, 2026-09 |
-| Stabilization build | sim p95 0.21 ms, render path p95 0.05 ms, draw calls **554** (richer turf / figures / trails); JS 502 kB / **125 kB gzip**, CSS 17.2 kB / 4.6 kB gzip, shell 2.7 kB (boot watchdog inline) | `npm run perf`, `npm run build`, 2026-09 |
+| Stabilization build | sim p95 0.21 ms, render path p95 0.05 ms, 554 context calls (richer turf / figures / trails; the bench counted every context method at the time); JS 502 kB / **125 kB gzip**, CSS 17.2 kB / 4.6 kB gzip, shell 2.7 kB (boot watchdog inline) | `npm run perf`, `npm run build`, 2026-09 |
+| Graphics build, sprite sheets | sim p95 0.20 ms, render path p95 **0.07 ms**, draw calls p95 **141**, ctx calls p95 622 over 2 × 60-minute matches at a portrait phone viewport; 0 long frames | `npm run perf -- 2 CM`, 2026-09 |
+| Graphics build, procedural fallback figures | render path p95 0.09 ms, draw calls p95 **199**, ctx calls p95 855 | `npm run perf -- 2 CM fallback`, 2026-09 |
+| Graphics build, one frame by layer (phone portrait, zoom 15.6) | backdrop 5 / grass 17 / fence-benches-flags 27 / markings+goals+ball ≈ 34 / 18 figures ≈ 55 draw calls with sprites (≈ 110 procedural); total 138 with sprites, 194 fallback | `npx tsx tools/drawCallProfile.ts`, 2026-09 |
+| Graphics build, bundle | JS 540 kB / **134 kB gzip**, CSS 19.1 kB / 5.0 kB gzip; four sprite sheets ≈ 100 kB PNG each, fetched once per kit in parallel after the match screen mounts (6 s timeout, fallback figures meanwhile) | `npm run build`, `ls -l public/assets/players`, 2026-09 |
 
 The headless margin is large (≈100× under the CPU budget) so the per-frame work should fit on a
 phone-class CPU with room to spare, but that is an inference, not a device result. The spec's
@@ -98,7 +106,12 @@ the two device classes above and records the lines here (see `spec/OPEN_QUESTION
   `DRILL_SLOW_SCALE` 0.12. The pace director's fast-forward is capped at `FAST_SCALE_MAX` (×32 ≈ 11
   ticks per 60 Hz frame) so accelerated play stays well inside the per-frame budget.
 - Tactical recognition runs once per tick, not per frame, and only opens a moment when none is active.
-- The renderer is immediate-mode 2D with ~550 draw calls per frame, a handful of gradients (pitch,
-  ball, selection ring, slow-motion vignette) and flat ellipse shadows; no canvas `filter` or
-  `shadowBlur`.
+- The renderer is immediate-mode 2D with ~140 draw calls per frame (≈200 when a sprite sheet is
+  missing and figures are painted from shapes), a handful of gradients (sky, turf lighting, ball,
+  selection ring, slow-motion vignette) and flat ellipse shadows; no canvas `filter` or `shadowBlur`.
+  Fence posts and figure shadows are batched into one path each; the turf grain is a 48 px
+  `createPattern` tile built once; sprites are a single `drawImage` per figure (mirrored facings add
+  a `save`/`scale`/`restore`).
+- Sub-tick interpolation is display-only: the fixed 20 Hz simulation is never advanced or read back
+  from the interpolated positions (`src/render/presentation.ts`).
 - All content is bundled JSON; there is no network traffic during play.
