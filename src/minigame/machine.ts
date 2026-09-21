@@ -108,8 +108,8 @@ function settle<S, I>(s: MinigameSession<S, I>, logic: GameLogic<S, I>, now: num
     s.lastCheckpoint = cp;
     s.events.push({ type: "checkpoint", atMs: s.elapsedMs, detail: cp });
   }
-  if (logic.done(s.game)) finish(s, logic, "completed", now);
-  else if (s.elapsedMs >= logic.timeLimitMs(s.config)) finish(s, logic, "timeout", now);
+  if (s.elapsedMs >= logic.timeLimitMs(s.config)) finish(s, logic, "timeout", now);
+  else if (logic.done(s.game)) finish(s, logic, "completed", now);
 }
 
 function finish<S, I>(s: MinigameSession<S, I>, logic: GameLogic<S, I>, exitReason: ExitReason, now: number): void {

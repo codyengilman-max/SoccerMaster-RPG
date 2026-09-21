@@ -237,6 +237,8 @@ describe("Episode One: the full story → minigame → match → Monday loop", (
     expect(typeof faced).toBe("number");
     expect(faced).toBe(rep.moments.faced.filter((m) => cue!.entryIds.includes(m.entryId)).length);
     expect(validateLedger(c.story.ledger)).toEqual([]);
+    expect(c.story.facts[LESSON_FACTS.active]).toBeUndefined();
+    expect(activeLessonCue(c.story.facts, ROLE_BY_NUMBER[c.player.position])).toBeNull();
 
     // 8. Monday consequence: only what was recorded is talked about; the rival still remembers recess.
     untilScene(s, "ep1.monday");

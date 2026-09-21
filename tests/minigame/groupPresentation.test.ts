@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { continuationOf, validateResult } from "../../src/minigame/contract";
 import { exit, input, pause, replay, restore, resume, tick } from "../../src/minigame/machine";
 import { gameLogic } from "../../src/minigame/registry";
-import { computeGrades, GP_TIMING, gradeOf, groupPresentation, TOPICS, topicById, type GpInput, type GpState } from "../../src/minigame/groupPresentation";
+import { computeGrades, GP_ASSIST_SCALE, GP_TIMING, gpWindowScale, gradeOf, groupPresentation, TOPICS, topicById, type GpInput, type GpState } from "../../src/minigame/groupPresentation";
 import { cfg, GP_PERFECT, GP_PLAYERS, idle, newGp, playGp, STEP } from "./helpers";
 
 const withFrozenPartner = (seedFrom = 1): ReturnType<typeof newGp> => {
@@ -254,6 +254,21 @@ describe("Group Presentation", () => {
     expect(groupPresentation.timeLimitMs(b.config)).toBe(2 * groupPresentation.timeLimitMs(a.config));
     for (const s of [a, b]) while (s.phase === "active" && s.game.phase !== "rehearsal") playGp(s, GP_PERFECT, s.elapsedMs + STEP);
     expect(Math.abs(b.game.rehearsal.windowInMs - a.game.rehearsal.windowInMs * 2)).toBeLessThanOrEqual(2 * STEP);
+    expect(computeGrades(a.game, a.config)).toEqual(computeGrades(b.game, b.config));
+  });
+
+  it("assist widens the answer, hand-off and rescue windows but not the bell", () => {
+    const a = newGp({ accessibility: { reducedMotion: false, highContrast: false, timerScale: 1, assist: false } });
+    const b = newGp({ accessibility: { reducedMotion: false, highContrast: false, timerScale: 1, assist: true } });
+    expect(gpWindowScale(b.config)).toBe(GP_ASSIST_SCALE);
+    expect(groupPresentation.timeLimitMs(b.config)).toBe(groupPresentation.timeLimitMs(a.config));
+    for (const s of [a, b]) while (s.phase === "active" && s.game.phase !== "rehearsal") playGp(s, GP_PERFECT, s.elapsedMs + STEP);
+    expect(Math.abs(b.game.rehearsal.windowInMs - a.game.rehearsal.windowInMs * GP_ASSIST_SCALE)).toBeLessThanOrEqual(2 * STEP);
+    for (const s of [a, b]) {
+      while (s.phase === "active" && !(s.game.phase === "delivery" && !s.game.delivery.intro && s.game.delivery.limitMs > 0)) playGp(s, GP_PERFECT, s.elapsedMs + STEP);
+    }
+    expect(b.game.delivery.limitMs).toBe(a.game.delivery.limitMs * GP_ASSIST_SCALE);
+    for (const s of [a, b]) while (s.phase === "active") playGp(s, GP_PERFECT, s.elapsedMs + STEP);
     expect(computeGrades(a.game, a.config)).toEqual(computeGrades(b.game, b.config));
   });
 });

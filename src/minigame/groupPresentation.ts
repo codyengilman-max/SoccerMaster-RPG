@@ -74,6 +74,11 @@ export const GP_TIMING = {
   timeLimitMs: 8 * 60_000,
 } as const;
 
+/** Assist widens every answer, handoff and rescue window on top of the timer scale; the eight-minute bell is unchanged. */
+export const GP_ASSIST_SCALE = 1.5;
+
+export const gpWindowScale = (cfg: MinigameConfig): number => cfg.accessibility.timerScale * (cfg.accessibility.assist ? GP_ASSIST_SCALE : 1);
+
 const STRENGTHS: Strength[] = ["explaining", "reading", "numbers"];
 
 const q = (x: ActionQuality): number => (x === "strong" ? 1 : x === "acceptable" ? 0.5 : 0);
@@ -122,7 +127,7 @@ export const groupPresentation: GameLogic<GpState, GpInput> = {
   tick(s, cfg, dtMs) {
     if (s.phase === "feedback") return;
     s.elapsedMs += dtMs;
-    const scale = cfg.accessibility.timerScale;
+    const scale = gpWindowScale(cfg);
     if (s.phase === "rehearsal") {
       const r = s.rehearsal;
       if (r.index >= r.total) return;
@@ -216,7 +221,7 @@ export const groupPresentation: GameLogic<GpState, GpInput> = {
         if (s.phase !== "rehearsal") return;
         const r = s.rehearsal;
         if (r.index >= r.total) return;
-        const quality: ActionQuality = r.windowOpen ? (s.delivery.stepMs >= (GP_TIMING.handoffWindowMs * cfg.accessibility.timerScale) / 2 ? "strong" : "acceptable") : "weak";
+        const quality: ActionQuality = r.windowOpen ? (s.delivery.stepMs >= (GP_TIMING.handoffWindowMs * gpWindowScale(cfg)) / 2 ? "strong" : "acceptable") : "weak";
         r.results.push(quality);
         s.actions.push({ atMs: s.elapsedMs, kind: "handoff", actorId: me, quality, detail: { early: !r.windowOpen } });
         nextTransition(s, cfg);
@@ -351,7 +356,7 @@ function scheduleTransition(s: GpState, cfg: MinigameConfig): void {
   const rng = new Rng(0);
   rng.restore(s.rng);
   s.rehearsal.windowOpen = false;
-  s.rehearsal.windowInMs = rng.range(GP_TIMING.handoffLeadMinMs, GP_TIMING.handoffLeadMaxMs) * cfg.accessibility.timerScale;
+  s.rehearsal.windowInMs = rng.range(GP_TIMING.handoffLeadMinMs, GP_TIMING.handoffLeadMaxMs) * gpWindowScale(cfg);
   s.rng = rng.snapshot();
 }
 

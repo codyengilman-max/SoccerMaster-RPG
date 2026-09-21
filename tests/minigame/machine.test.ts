@@ -99,6 +99,20 @@ describe("minigame state machine", () => {
     expect(continuationOf(s.result!)).toBe("timeout");
   });
 
+  it("a game that finishes on the tick that reaches the deadline is a timeout, not a completion", () => {
+    const s = make();
+    start(s);
+    input(s, counting, { type: "hit" });
+    input(s, counting, { type: "hit" });
+    for (let i = 0; i < 39; i++) tick(s, counting, 50);
+    expect(s.phase).toBe("active");
+    tick(s, { ...counting, done: (g) => g.hits >= 2 }, 50);
+    expect(s.phase).toBe("resolved");
+    expect(s.elapsedMs).toBe(2000);
+    expect(s.result!.exitReason).toBe("timeout");
+    expect(continuationOf(s.result!)).toBe("timeout");
+  });
+
   it("abandons on voluntary exit from active or paused, and the result says so", () => {
     const a = make();
     start(a);

@@ -272,7 +272,7 @@ export function completeCampaignMatch(c: CampaignState, report: MatchReport): Co
   const lesson = typeof lessonId === "string" ? lessonById(lessonId) : undefined;
   if (lesson) {
     const facedBefore = c.story.facts[LESSON_FACTS.facedTotal];
-    effects.push(...lessonFacts(lesson, role, report, typeof facedBefore === "number" ? facedBefore : 0));
+    effects.push(...lessonFacts(lesson, role, report, typeof facedBefore === "number" ? facedBefore : 0), { type: "clear_fact", id: LESSON_FACTS.active });
   }
   if (fixture.kind === "tournament") {
     const t = tournamentFacts(c, fixture);

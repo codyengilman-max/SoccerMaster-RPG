@@ -1,5 +1,5 @@
 import type { MinigameResult } from "../../minigame/contract";
-import { GP_TIMING, topicById, type GpInput, type GpState, type Strength } from "../../minigame/groupPresentation";
+import { GP_TIMING, gpWindowScale, topicById, type GpInput, type GpState, type Strength } from "../../minigame/groupPresentation";
 import { escapeHtml } from "../html";
 import type { GameView, ViewHost } from "./views";
 
@@ -35,7 +35,7 @@ export function presentationView(host: ViewHost): GameView {
   const me = (): string => host.session.config.participantIds[0]!;
   const name = (id: string): string => (id === me() ? "You" : (host.names[id] ?? id).split(" ")[0]!);
   const send = (i: GpInput): void => host.send(i);
-  const scale = (): number => host.session.config.accessibility.timerScale;
+  const scale = (): number => gpWindowScale(host.session.config);
 
   const render = (): void => {
     const s = state();
@@ -303,7 +303,7 @@ export function presentationView(host: ViewHost): GameView {
       "Live: answer your cue cards (1 / 2 / 3), and decide what to do if a partner freezes.",
       "Your teacher grades accuracy, clarity and teamwork separately.",
     ],
-    assistLabel: "Longer answer time and clearer cue cards",
+    assistLabel: "Longer answer and handoff windows",
     leaveWarning: "Walking out of the presentation leaves your partners to finish alone. The teacher grades what was delivered so far.",
 
     mount(stage) {
