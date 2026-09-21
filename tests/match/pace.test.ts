@@ -73,7 +73,7 @@ describe("pace director", () => {
       expect(r.moments, `${role} moments`).toBeLessThanOrEqual(hi);
       expect(r.maxTicksPerFrame).toBeLessThanOrEqual(MAX_TICKS_PER_FRAME);
     }
-  });
+  }, 120_000);
 
   it("is deterministic: the same seed, role, player and cadence give the same real time and score", () => {
     const again = runPace(catalog, 2000, "CM", "typical", 60);

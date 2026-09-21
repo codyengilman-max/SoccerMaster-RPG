@@ -6,6 +6,9 @@ import type { MatchConfig } from "../sim/engine";
 import { U11_9V9 } from "../sim/rules";
 import { hashSeed } from "../sim/rng";
 import { applyEffect, type Effect } from "../story/consequences";
+import { appendEntry } from "../story/ledger";
+import { LESSON_FACTS, lessonById, lessonFacts } from "../story/lesson";
+import { ROLE_BY_NUMBER } from "../sim/types";
 import { HOME_REPORTS_FACT } from "../training/homeSkill";
 import { FRIEND_ID, PLAYER_ID, matchSquads, playerClubId, recordMatch, storyContext, touch, type CampaignState } from "./campaign";
 import { SCENES } from "./season";
@@ -249,6 +252,28 @@ export function completeCampaignMatch(c: CampaignState, report: MatchReport): Co
   if (!ingest.ok) return ingest.reason === "duplicate_event" || before ? { ok: true, effects: [], duplicate: true } : { ok: false, reason: ingest.reason };
   const effects = matchFacts(c, report, fixture);
   effects.push({ type: "track", track: "physical", delta: 1 });
+  const role = ROLE_BY_NUMBER[c.player.position];
+  appendEntry(c.story.ledger, {
+    id: report.eventId,
+    day: c.day,
+    kind: "match",
+    source: "soccer_engine",
+    payload: {
+      eventId: report.eventId,
+      fixtureId: fixture.id,
+      home: report.home.clubId,
+      away: report.away.clubId,
+      score: { ...report.score },
+      role,
+      moments: report.moments.faced.map((m) => m.entryId),
+    },
+  });
+  const lessonId = c.story.facts[LESSON_FACTS.active];
+  const lesson = typeof lessonId === "string" ? lessonById(lessonId) : undefined;
+  if (lesson) {
+    const facedBefore = c.story.facts[LESSON_FACTS.facedTotal];
+    effects.push(...lessonFacts(lesson, role, report, typeof facedBefore === "number" ? facedBefore : 0), { type: "clear_fact", id: LESSON_FACTS.active });
+  }
   if (fixture.kind === "tournament") {
     const t = tournamentFacts(c, fixture);
     effects.push(...t.effects);

@@ -70,7 +70,7 @@ for (let step = 0; step < 60 && c.day < 30; step++) {
       const sum = summarizeJuggle(j);
       completeJuggling(c, sum);
       console.log("  juggling best", sum.best, "runs", sum.runs);
-    } else {
+    } else if (r.launch.kind === "home_skill") {
       const id = r.launch.assignmentId;
       const stage = stageOf(c, id);
       const eff =

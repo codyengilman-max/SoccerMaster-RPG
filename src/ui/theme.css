@@ -1373,3 +1373,623 @@ button:focus-visible {
 .hub .choice.repair {
   opacity: 0.9;
 }
+
+/* ------------------------------------------------------------------------------------------
+ * Story Engine minigames (v2 §5): one full-viewport shell for every game.
+ * Layout: fixed HUD band, the game stage filling the middle, prompt + touch actions docked at
+ * the bottom inside the safe area. Overlays (start / pause / leave / result) are centred cards.
+ * ------------------------------------------------------------------------------------------ */
+
+#app.in-minigame {
+  display: block;
+  padding: 0;
+}
+
+.minigame {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  width: 100%;
+  height: 100dvh;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.mg-hud {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "title timer pause"
+    "status status status";
+  gap: 0.15rem 0.6rem;
+  align-items: center;
+  padding: 0.4rem 0.8rem 0.35rem;
+  background: linear-gradient(180deg, rgba(6, 16, 31, 0.92), rgba(6, 16, 31, 0.7));
+  border-bottom: 1px solid var(--edge);
+  z-index: 2;
+}
+
+.mg-title {
+  grid-area: title;
+  display: grid;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.mg-title b {
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mg-sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mg-status {
+  grid-area: status;
+  font-size: 0.85rem;
+  color: var(--cyan-300);
+  min-height: 1.2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mg-timer {
+  grid-area: timer;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(27, 58, 107, 0.6);
+  border: 1px solid var(--edge);
+}
+
+.mg-pause {
+  grid-area: pause;
+  min-height: 2.4rem;
+  min-width: 4.4rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--edge-strong);
+  background: rgba(27, 58, 107, 0.55);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mg-pause:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mg-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  outline: none;
+}
+
+.mg-stage:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--cyan-400);
+}
+
+.mg-canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.mg-prompt {
+  padding: 0.35rem 0.8rem 0;
+  min-height: 1.4em;
+  font-size: 0.95rem;
+  text-align: center;
+  color: var(--text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.mg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0.5rem 0.8rem 0.6rem;
+  background: linear-gradient(0deg, rgba(6, 16, 31, 0.92), rgba(6, 16, 31, 0.55));
+  z-index: 2;
+}
+
+.mg-actions:empty {
+  display: none;
+}
+
+.mg-action {
+  flex: 1 1 8rem;
+  max-width: 16rem;
+  min-height: 3rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--edge-strong);
+  background: rgba(27, 58, 107, 0.6);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.mg-action.primary {
+  background: linear-gradient(90deg, var(--cyan-400), var(--cyan-300));
+  color: var(--navy-900);
+  border-color: transparent;
+}
+
+.mg-action kbd {
+  font: 0.7rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.3rem;
+  border: 1px solid currentColor;
+  opacity: 0.75;
+}
+
+/* Overlays */
+
+.mg-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: calc(0.75rem + env(safe-area-inset-top)) calc(0.75rem + env(safe-area-inset-right))
+    calc(0.75rem + env(safe-area-inset-bottom)) calc(0.75rem + env(safe-area-inset-left));
+  background: rgba(6, 16, 31, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  overflow: auto;
+}
+
+.mg-overlay[hidden] {
+  display: none;
+}
+
+.mg-card {
+  width: min(34rem, 100%);
+  max-height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 1.1rem 1.2rem 1.2rem;
+  border-radius: 1.2rem;
+  background: var(--glass);
+  border: 1px solid var(--edge-strong);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45), var(--glow);
+  animation: screen-in 260ms var(--ease-out) both;
+}
+
+.mg-card h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+.mg-with {
+  margin: 0 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.mg-howto {
+  margin: 0 0 0.8rem;
+  padding-left: 1.1rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.mg-a11y {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 0.9rem;
+  padding: 0.6rem 0.8rem 0.7rem;
+  border: 1px solid var(--edge);
+  border-radius: 0.8rem;
+}
+
+.mg-a11y legend {
+  padding: 0 0.3rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.mg-a11y label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2rem;
+  font-size: 0.92rem;
+}
+
+.mg-a11y input[type="checkbox"] {
+  width: 1.2rem;
+  height: 1.2rem;
+  accent-color: var(--cyan-400);
+}
+
+.mg-a11y select {
+  font: inherit;
+  color: var(--text);
+  background: rgba(11, 26, 51, 0.8);
+  border: 1px solid var(--edge);
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.mg-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.mg-card-actions .primary.danger {
+  background: linear-gradient(90deg, var(--coral), #ffa285);
+}
+
+.mg-result {
+  margin: 0.4rem 0 0.6rem;
+}
+
+.mg-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.4rem 0.8rem;
+  margin: 0 0 0.6rem;
+}
+
+.mg-stats > div {
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.6rem;
+  background: rgba(11, 26, 51, 0.55);
+  border: 1px solid var(--edge);
+}
+
+.mg-stats dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.mg-stats dd {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.mg-note {
+  margin: 0.3rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.mg-ledger {
+  margin: 0.2rem 0 0.8rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Group Presentation (DOM game) */
+
+.gp-board {
+  height: 100%;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 0.8rem 0.9rem 0.6rem;
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+  background:
+    radial-gradient(80% 50% at 50% 0%, rgba(47, 211, 255, 0.12), transparent 70%),
+    linear-gradient(180deg, rgba(18, 39, 74, 0.55), rgba(6, 16, 31, 0.2));
+}
+
+.gp-board h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.gp-lead {
+  margin: 0;
+  line-height: 1.45;
+  font-size: 0.98rem;
+}
+
+.gp-lead.gp-freeze {
+  color: var(--amber);
+}
+
+.gp-members {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.gp-sections,
+.gp-cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.gp-sections li,
+.gp-cards li {
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.8rem;
+  background: rgba(11, 26, 51, 0.6);
+  border: 1px solid var(--edge);
+}
+
+.gp-sec-title {
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.gp-sec-title small {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.gp-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.gp-seg button {
+  min-height: 2.5rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--edge-strong);
+  background: rgba(27, 58, 107, 0.5);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.gp-seg button.on {
+  background: linear-gradient(90deg, var(--cyan-400), var(--cyan-300));
+  color: var(--navy-900);
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.gp-cards li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.gp-cards li.sel {
+  border-color: var(--cyan-400);
+  box-shadow: var(--glow);
+}
+
+.gp-card {
+  text-align: left;
+  min-height: 2.6rem;
+  padding: 0.3rem 0.4rem;
+  border: none;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.gp-card-move {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.gp-card-move button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--edge-strong);
+  background: rgba(27, 58, 107, 0.5);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.gp-card-move button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.gp-handoff-cue {
+  display: grid;
+  place-items: center;
+  min-height: 4.2rem;
+  border-radius: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(11, 26, 51, 0.6);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--muted);
+  transition: background 120ms var(--ease-out), color 120ms var(--ease-out), border-color 120ms var(--ease-out);
+}
+
+.gp-handoff-cue.open {
+  background: rgba(70, 220, 140, 0.25);
+  border-color: #46dc8c;
+  color: #d9ffe9;
+}
+
+.gp-bar {
+  height: 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.gp-bar > i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--cyan-400), var(--cyan-300));
+  box-shadow: 0 0 10px rgba(47, 211, 255, 0.45);
+}
+
+.gp-bar > i.low {
+  background: linear-gradient(90deg, var(--coral), var(--amber));
+}
+
+.gp-cue {
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 248, 230, 0.94);
+  color: #1b1b1b;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-size: 1.02rem;
+  line-height: 1.4;
+}
+
+.gp-cue small {
+  display: block;
+  color: #6b5b3a;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+}
+
+.gp-cue p {
+  margin: 0;
+}
+
+.gp-results {
+  margin: 0;
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+}
+
+.gp-results span {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  color: var(--muted);
+}
+
+.gp-results .q-strong {
+  color: #d9ffe9;
+  border-color: #46dc8c;
+}
+
+.gp-results .q-acceptable {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+
+.gp-results .q-weak {
+  color: var(--coral);
+  border-color: var(--coral);
+}
+
+.gp-grades b {
+  display: inline-block;
+  min-width: 1.5rem;
+  margin-right: 0.3rem;
+  text-align: center;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.4rem;
+  background: rgba(47, 211, 255, 0.18);
+}
+
+.gp-grades b.grade-A {
+  background: rgba(70, 220, 140, 0.3);
+}
+
+.gp-grades b.grade-D {
+  background: rgba(255, 122, 89, 0.3);
+}
+
+/* Accessibility variants */
+
+.minigame.high-contrast {
+  --muted: #d6e6f5;
+  --edge: rgba(255, 255, 255, 0.55);
+  --edge-strong: rgba(255, 255, 255, 0.85);
+}
+
+.minigame.high-contrast .mg-hud,
+.minigame.high-contrast .mg-actions {
+  background: #000;
+}
+
+.minigame.high-contrast .mg-card,
+.minigame.high-contrast .gp-sections li,
+.minigame.high-contrast .gp-cards li,
+.minigame.high-contrast .mg-stats > div {
+  background: #06101f;
+}
+
+.minigame.high-contrast .mg-status {
+  color: #fff;
+}
+
+.minigame.reduced-motion *,
+.minigame.reduced-motion *::before,
+.minigame.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Landscape phones: HUD in one row, stage as tall as possible. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mg-hud {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto auto;
+    grid-template-areas: "title status timer pause";
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .mg-status {
+    text-align: center;
+  }
+
+  .mg-prompt {
+    font-size: 0.85rem;
+    padding-top: 0.2rem;
+  }
+
+  .mg-action {
+    min-height: 2.5rem;
+  }
+}
+
+/* Wide screens: cap the board width so lines stay readable. */
+@media (min-width: 900px) {
+  .gp-board {
+    padding: 1.2rem calc(50% - 26rem) 1rem;
+  }
+
+  .mg-prompt {
+    font-size: 1.05rem;
+  }
+}

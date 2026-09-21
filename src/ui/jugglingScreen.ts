@@ -51,21 +51,25 @@ export function mountJugglingScreen(root: HTMLElement, opts: JugglingScreenOptio
         <canvas aria-hidden="true"></canvas>
         <div class="banner" hidden></div>
       </div>
-      <div class="panel">
-        <div class="moment">
-          <div class="title">Keep it up</div>
-          <ul class="cues"><li>Tap when the ball drops back into the band at your foot</li><li>Clean touches keep it straight; loose ones make it drift and the band shrinks</li><li>Three runs — your best one counts</li></ul>
+      <div class="dock">
+        <div class="panel">
+          <div class="moment">
+            <div class="title">Keep it up</div>
+            <ul class="cues"><li>Tap when the ball drops back into the band at your foot</li><li>Clean touches keep it straight; loose ones make it drift and the band shrinks</li><li>Three runs — your best one counts</li></ul>
+          </div>
+          <div class="feedback" hidden></div>
         </div>
-        <div class="feedback" hidden></div>
-      </div>
-      <div class="controls">
-        <button type="button" class="toggle accessible" aria-pressed="false">Wider timing</button>
-        <button type="button" class="link quit">Go inside without finishing</button>
-        <span class="provisional">the yard · on your own</span>
+        <div class="controls">
+          <button type="button" class="toggle accessible" aria-pressed="false">Wider timing</button>
+          <button type="button" class="link quit">Go inside without finishing</button>
+          <span class="provisional">the yard · on your own</span>
+        </div>
       </div>
     </section>`;
 
   const stage = q<HTMLDivElement>(root, ".stage");
+  const hud = q<HTMLElement>(root, ".hud");
+  const dock = q<HTMLDivElement>(root, ".dock");
   const canvas = q<HTMLCanvasElement>(root, "canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d context unavailable");
@@ -78,6 +82,9 @@ export function mountJugglingScreen(root: HTMLElement, opts: JugglingScreenOptio
   const quitBtn = q<HTMLButtonElement>(root, "button.quit");
 
   const dpr = Math.min(2, window.devicePixelRatio || 1);
+  // The HUD and dock float over the stage; the scene is laid out in the uncovered band between them.
+  let frameTop = 0;
+  let frameH = 1;
   const fit = (): void => {
     const w = Math.max(1, stage.clientWidth);
     const h = Math.max(1, stage.clientHeight);
@@ -85,10 +92,13 @@ export function mountJugglingScreen(root: HTMLElement, opts: JugglingScreenOptio
     canvas.height = Math.round(h * dpr);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
+    frameTop = hud.offsetHeight;
+    frameH = Math.max(1, h - frameTop - dock.offsetHeight);
   };
   fit();
   const ro = new ResizeObserver(fit);
   ro.observe(stage);
+  ro.observe(dock);
 
   let bannerTimer = 0;
   let feedbackTimer = 0;
@@ -175,9 +185,9 @@ export function mountJugglingScreen(root: HTMLElement, opts: JugglingScreenOptio
   const draw = (now: number): void => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const w = canvas.width / dpr;
-    const h = canvas.height / dpr;
-    const ground = h * 0.86;
-    paintSideView(ctx, w, h, ground);
+    const h = frameH;
+    const ground = frameTop + h * 0.86;
+    paintSideView(ctx, w, canvas.height / dpr, ground);
     // fence
     ctx.strokeStyle = "rgba(255,255,255,0.15)";
     ctx.lineWidth = 2;
@@ -227,7 +237,7 @@ export function mountJugglingScreen(root: HTMLElement, opts: JugglingScreenOptio
       ctx.fillStyle = "rgba(255,255,255,0.85)";
       ctx.font = `${Math.max(14, h * 0.04)}px system-ui, sans-serif`;
       ctx.textAlign = "center";
-      ctx.fillText(`Run ${s.runs.length + 1} of ${s.runsMax} — tap to start`, w / 2, h * 0.16);
+      ctx.fillText(`Run ${s.runs.length + 1} of ${s.runsMax} — tap to start`, w / 2, frameTop + h * 0.16);
     }
   };
 

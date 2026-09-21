@@ -46,6 +46,8 @@ const TRAIL_LENGTH = 18;
 export interface MatchScreenOptions {
   /** Label of the button under the full-time summary. */
   exitLabel?: string;
+  /** A coaching lesson carried into the match: its cue is shown on the listed catalog entries. Information only. */
+  lesson?: { entryIds: readonly string[]; cue: string };
 }
 
 /** `onExit` is called once the user leaves the full-time summary; the runtime holds the finished state and records. */
@@ -187,6 +189,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     windowEl.hidden = false;
     titleEl.textContent = `${w.moment.title}${w.moment.major ? " — big moment" : ""}`;
     cuesEl.innerHTML = w.moment.cues.map((c) => `<li>${escapeHtml(c)}</li>`).join("");
+    if (opts.lesson && opts.lesson.entryIds.includes(w.moment.entryId)) cuesEl.innerHTML += `<li class="lesson">${escapeHtml(opts.lesson.cue)}</li>`;
     optionsEl.innerHTML = "";
     w.moment.options.forEach((o, i) => {
       const b = document.createElement("button");

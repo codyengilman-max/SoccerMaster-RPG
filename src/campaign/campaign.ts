@@ -19,12 +19,14 @@ import {
 import { dayOfIso, isWeekend, mondayOf, nextWeekday, weekday, type CampaignDay } from "../calendar/date";
 import { addCommitment, advanceTo, createSchedule, slotsFor, type Commitment, type Schedule, type Slot } from "../calendar/schedule";
 import type { MatchReport } from "../match/report";
+import type { MinigameSession } from "../minigame/machine";
 import { createRosterState, joinRoster, squadFor, type Club, type Person, type RosterState } from "../roster/roster";
 import type { SquadPlayer } from "../sim/engine";
 import { hashSeed } from "../sim/rng";
 import type { RoleNumber } from "../sim/types";
 import type { Activity } from "../training/smallSided";
 import { planArc } from "../story/arc";
+import { planEpisodes } from "../story/episodes";
 import { createStoryState, processDue, type Fired, type StoryState } from "../story/consequences";
 import { createProgression, refreshUnlocks, type Progression } from "../story/progression";
 import { attendsTournament, closeSeason, currentLeagueId, planTournaments, SEASON_FACTS, settleFixtures, syncTournamentChoice } from "./season";
@@ -85,7 +87,9 @@ export type PendingActivity =
   | { kind: "crossbar" }
   | { kind: "juggling" }
   | { kind: "home_skill"; assignmentId: string }
-  | { kind: "tryout"; commitmentId: string; clubId: string; activity: SessionActivity };
+  | { kind: "tryout"; commitmentId: string; clubId: string; activity: SessionActivity }
+  /** A story-launched Story Engine v2 minigame; the whole session is saved so a reload resumes at the last round. */
+  | { kind: "minigame"; sceneId: string; session: MinigameSession<unknown, unknown> };
 
 export interface CreateOptions {
   kind: CampaignKind;
@@ -114,7 +118,7 @@ export const CAST_ROLES: readonly CastRole[] = ["striker", "organiser", "keeper"
 
 interface CastFile {
   shared: Person[];
-  campaigns: Record<CampaignKind, { friend: Person; parent: Person; teammates: Person[]; roles: Record<CastRole, string> }>;
+  campaigns: Record<CampaignKind, { friend: Person; parent: Person; rival: Person; teammates: Person[]; roles: Record<CastRole, string> }>;
 }
 
 const competitionsFile = competitionsU11 as CompetitionsFile;
@@ -166,6 +170,7 @@ export function buildRoster(kind: CampaignKind, player: PlayerProfile): RosterSt
     ...castFile.shared,
     c.friend,
     c.parent,
+    c.rival,
     ...c.teammates,
     { id: PLAYER_ID, name: player.name, role: "player", clubId: null, shirt: player.position, bio: "", reviewStatus: "reviewed" } satisfies Person,
   ]);
@@ -380,6 +385,7 @@ export function advanceDays(c: CampaignState, days: number): DayAdvance {
       scheduleWeek(c, mondayOf(c.day));
     }
     planArc(c);
+    planEpisodes(c);
   }
   c.slot = slotsFor(to)[0]!;
   const missed = advanceTo(c.schedule, to);

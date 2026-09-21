@@ -1,0 +1,1027 @@
+{
+  "episodeId": "ep1",
+  "title": "Episode One — Two Desks Over",
+  "summary": "The first school week after joining FC Batavia: a recess World Cup Knockout with a best friend and a rival-club classmate, a group presentation with the same two people, Coach Code's first lesson, the Saturday friendly, and Monday.",
+  "shared": [
+    {
+      "id": "ep1.homeroom",
+      "title": "Monday, homeroom",
+      "location": "school",
+      "tone": "everyday",
+      "auto": "Mon",
+      "eligibility": [
+        {
+          "type": "fact",
+          "id": "joined_batavia",
+          "equals": true
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Monday. The classroom smells like pencil shavings and someone's orange. {teacher} is writing PROJECT on the board in letters that get smaller as she runs out of space."
+        },
+        {
+          "speaker": "teacher",
+          "text": "Groups of three, presentations Wednesday. Six minutes, visual cards, everyone speaks. I grade the group, not the loudest person in it."
+        },
+        {
+          "speaker": null,
+          "text": "Two desks over, {rival} is drawing a goal net on the corner of a worksheet. Sonoran United's number ten, and the best player at recess by a distance. {rival} sees you looking."
+        },
+        {
+          "speaker": "rival",
+          "text": "Heard you signed for Batavia. We've got you in three weeks. Don't worry — I'll be gentle."
+        },
+        {
+          "speaker": null,
+          "text": "A folded note lands on your desk. {friend}'s handwriting: RECESS. WORLD CUP KNOCKOUT. YOU'RE IN. (Not a question.)"
+        },
+        {
+          "speaker": "friend",
+          "text": "Eight of us. {rival} plays. Everybody wants to knock {rival} out and nobody ever does. Today's the day. Probably."
+        }
+      ],
+      "choices": [
+        {
+          "id": "ep1.homeroom.in",
+          "label": "\"I'm in.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "ep1_recess",
+              "value": "played"
+            },
+            {
+              "type": "relationship",
+              "personId": "friend",
+              "delta": 1
+            },
+            {
+              "type": "relation",
+              "personId": "friend",
+              "dimension": "trust",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Yes. Okay. Rule one: call for it early. Rule two: don't shoot with the wrong foot in front of {rival}, you'll hear about it for a month."
+            },
+            {
+              "speaker": "rival",
+              "text": "Rule three: there are no rules. See you at the bell."
+            }
+          ],
+          "next": "ep1.recess"
+        },
+        {
+          "id": "ep1.homeroom.watch",
+          "label": "\"I'll watch today. First day and everything.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "ep1_recess",
+              "value": "watched"
+            },
+            {
+              "type": "relation",
+              "personId": "friend",
+              "dimension": "dependence",
+              "delta": -1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Watch? You don't watch Knockout. Fine. Fine. Tomorrow then."
+            },
+            {
+              "speaker": "rival",
+              "text": "Smart. Scout first. That's what I'd do."
+            }
+          ],
+          "next": "ep1.recess_watch"
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.recess",
+      "title": "Recess — World Cup Knockout",
+      "location": "school",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The far end of the blacktop, one goal chalked on the wall, a strip of grass that counts as the box. Eight players, one server. {friend} bounces the ball once and looks at you like you've already agreed to something."
+        },
+        {
+          "speaker": "friend",
+          "text": "Serve comes in, first touch, shoot. Miss, lose it, or dawdle: strike. Three strikes, out. Last one standing wins the World Cup. Which is a tennis ball {ravi} keeps in his bag."
+        },
+        {
+          "speaker": "rival",
+          "text": "Move before the ball comes. That's the only advice you get from me."
+        }
+      ],
+      "choices": [],
+      "minigame": {
+        "gameId": "world_cup_knockout",
+        "episodeId": "ep1",
+        "ruleVariant": "classic",
+        "participants": [
+          "friend",
+          "rival",
+          "cm-leah",
+          "cm-tobias",
+          "cm-hana",
+          "cm-ravi",
+          "cm-sol"
+        ],
+        "continuations": {
+          "success": "ep1.recess_won",
+          "partial": "ep1.recess_deep",
+          "failure": "ep1.recess_out",
+          "timeout": "ep1.recess_bell",
+          "voluntary_exit": "ep1.recess_left"
+        }
+      },
+      "next": "ep1.project_assign",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.recess_won",
+      "title": "Last one standing",
+      "location": "school",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The last serve drops, your touch takes it away from the wall, and the shot is in before anyone has decided whether to cheer. {wck_players} started. One is left. It's you."
+        },
+        {
+          "speaker": "cm-ravi",
+          "text": "AND THE WORLD CUP GOES TO — hang on, what's your last name —"
+        },
+        {
+          "speaker": "rival",
+          "text": "Fine. Good touch. That doesn't count on Saturdays."
+        },
+        {
+          "speaker": "friend",
+          "text": "It counts. It counts so much. I'm telling everyone at training."
+        }
+      ],
+      "choices": [],
+      "next": "ep1.project_assign",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.recess_deep",
+      "title": "Down to the last few",
+      "location": "school",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Your third strike comes with {wck_place} of {wck_players} still in it — deeper than a first day should get you. {wck_winner} takes the tennis ball."
+        },
+        {
+          "speaker": "rival",
+          "text": "You made me work for a bit there. I'm not saying that twice."
+        },
+        {
+          "speaker": "friend",
+          "text": "Top half on day one. I said you'd be good. Nobody listens."
+        }
+      ],
+      "choices": [],
+      "next": "ep1.project_assign",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.recess_out",
+      "title": "Early strike three",
+      "location": "school",
+      "tone": "adversity",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Strike three arrives fast, the way it does when the ball keeps coming before you've moved. You stand at the wall and watch the rest. {wck_winner} wins it."
+        },
+        {
+          "speaker": "rival",
+          "text": "You were waiting for the ball. It doesn't wait for you."
+        },
+        {
+          "speaker": "friend",
+          "text": "Ignore that. Actually — don't ignore it, it's right, but ignore the face."
+        },
+        {
+          "speaker": "cm-leah",
+          "text": "First game out first is a tradition. I did it. Ravi did it twice."
+        }
+      ],
+      "choices": [],
+      "next": "ep1.project_assign",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.recess_bell",
+      "title": "The bell",
+      "location": "school",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The bell goes with the game unfinished, {wck_place} of {wck_players} still in. Nobody won. Everybody claims to have been about to."
+        },
+        {
+          "speaker": "friend",
+          "text": "Unfinished. That's a draw. That's basically a win."
+        },
+        {
+          "speaker": "rival",
+          "text": "That's a Tuesday problem."
+        }
+      ],
+      "choices": [],
+      "next": "ep1.project_assign",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.recess_left",
+      "title": "Walking off",
+      "location": "school",
+      "tone": "adversity",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "You walk off before the game is done. Behind you the serves keep coming; the quiet where your name would have been is louder than the shouting."
+        },
+        {
+          "speaker": "friend",
+          "text": "You just — left? In the middle? We had eight. Now we've got seven and a hole."
+        },
+        {
+          "speaker": "rival",
+          "text": "Huh."
+        }
+      ],
+      "choices": [],
+      "next": "ep1.project_assign",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.recess_watch",
+      "title": "From the fence",
+      "location": "school",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "You watch from the fence. Eight in, and it goes the way {friend} said: everyone tries to knock {rival} out and nobody does. {rival} takes the serve moving, first touch already pointing at the wall."
+        },
+        {
+          "speaker": "cm-tobias",
+          "text": "I'm out first every time. It's fine. Someone has to hold the bags."
+        },
+        {
+          "speaker": "friend",
+          "text": "You saw that? The touch? That's what we're up against in three weeks. Tomorrow you play."
+        }
+      ],
+      "choices": [],
+      "next": "ep1.project_assign",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.project_assign",
+      "title": "After recess",
+      "location": "school",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Back inside, still catching your breath, {teacher} reads the groups off a list she clearly made before anyone could lobby."
+        },
+        {
+          "speaker": "teacher",
+          "text": "{player}, {friend}, {rival}. Topic: sharing a pizza — fractions in real life. Six minutes, three speakers, Wednesday."
+        },
+        {
+          "speaker": "friend",
+          "text": "Us and {rival}. In one group. For fractions."
+        },
+        {
+          "speaker": "rival",
+          "text": "I'm doing the intro. I'm good at intros."
+        },
+        {
+          "speaker": "teacher",
+          "text": "You'll decide that together. That's the point."
+        }
+      ],
+      "choices": [],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.coach_lesson",
+      "title": "Tuesday, before training",
+      "location": "training_field",
+      "tone": "everyday",
+      "auto": "Tue",
+      "eligibility": [
+        {
+          "type": "applied",
+          "choiceId": "scene:ep1.project_assign"
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Cones already out, the far field still wet. {coach} stops you before you've reached the group."
+        },
+        {
+          "speaker": "coach",
+          "text": "One thing this week. Just one. Before the ball arrives, look. Where's the pressure, where's your first touch going. Then receive."
+        },
+        {
+          "speaker": "coach",
+          "text": "Saturday you'll get that moment ten times and not notice it once unless you decide to. I'll ask you on Monday how many you noticed."
+        },
+        {
+          "speaker": "friend",
+          "text": "He said the same thing to me for a month. Then it just — happened.",
+          "requiresKnown": [
+            "joined_batavia"
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "ep1.coach_lesson.ask",
+          "label": "\"Look where exactly?\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "lesson:active",
+              "value": "scan_before_receive"
+            },
+            {
+              "type": "set_fact",
+              "id": "lesson:title",
+              "value": "Look before it arrives"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "lesson:active"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 2
+            },
+            {
+              "type": "relation",
+              "personId": "coach",
+              "dimension": "respect",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Over the shoulder the ball isn't coming from. Nearest opponent, nearest teammate, then the ball. Half a second. Good question."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "ep1.coach_lesson.nod",
+          "label": "Nod and get on with it",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "lesson:active",
+              "value": "scan_before_receive"
+            },
+            {
+              "type": "set_fact",
+              "id": "lesson:title",
+              "value": "Look before it arrives"
+            },
+            {
+              "type": "learn",
+              "personId": "coach",
+              "factId": "lesson:active"
+            },
+            {
+              "type": "relationship",
+              "personId": "coach",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "coach",
+              "text": "Nodding isn't looking. Go on."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.presentation",
+      "title": "Wednesday — Sharing a pizza",
+      "location": "school",
+      "tone": "everyday",
+      "auto": "Wed",
+      "eligibility": [
+        {
+          "type": "applied",
+          "choiceId": "scene:ep1.project_assign"
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Three cards each, a paper pizza cut into eighths, and {teacher} with a stopwatch she swears she won't look at."
+        },
+        {
+          "speaker": "rival",
+          "text": "Intro's mine. Unless someone wants to fight about it. Nobody wants to fight about it."
+        },
+        {
+          "speaker": "friend",
+          "text": "I'll do whichever bit has the least talking.",
+          "when": [
+            {
+              "type": "relation",
+              "personId": "friend",
+              "dimension": "trust",
+              "max": 0
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "You pick. I trust you. Just don't give me the ending, I always rush the ending.",
+          "when": [
+            {
+              "type": "relation",
+              "personId": "friend",
+              "dimension": "trust",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "speaker": "teacher",
+          "text": "Six minutes. Everyone speaks. If someone gets stuck, that's the group's problem, not theirs."
+        }
+      ],
+      "choices": [],
+      "minigame": {
+        "gameId": "group_presentation",
+        "episodeId": "ep1",
+        "ruleVariant": "fractions_pizza",
+        "participants": [
+          "friend",
+          "rival"
+        ],
+        "continuations": {
+          "success": "ep1.presentation_strong",
+          "partial": "ep1.presentation_mixed",
+          "failure": "ep1.presentation_failed",
+          "timeout": "ep1.presentation_bell",
+          "voluntary_exit": "ep1.presentation_left"
+        }
+      },
+      "next": "ep1.home_decision",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.presentation_strong",
+      "title": "Applause, mostly",
+      "location": "school",
+      "tone": "reward",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The last card goes down with time to spare. Accuracy {gp_accuracy}, clarity {gp_clarity}, teamwork {gp_teamwork} — {teacher} writes them where the group can see."
+        },
+        {
+          "speaker": "teacher",
+          "text": "That's a group that listened to each other. Three voices, one presentation. Well done, all three."
+        },
+        {
+          "speaker": "rival",
+          "text": "We should've done this at recess. Same thing. Look before it arrives."
+        },
+        {
+          "speaker": "friend",
+          "text": "Did {rival} just — was that a compliment? To us?"
+        }
+      ],
+      "choices": [],
+      "next": "ep1.home_decision",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.presentation_mixed",
+      "title": "Got there",
+      "location": "school",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "It gets to the end. Accuracy {gp_accuracy}, clarity {gp_clarity}, teamwork {gp_teamwork}. Somewhere in the middle a card went missing and the pizza briefly had nine slices."
+        },
+        {
+          "speaker": "teacher",
+          "text": "Correct in the important places. Next time, hand over instead of talking over — you'll hear the difference."
+        },
+        {
+          "speaker": "friend",
+          "text": "Nine slices. I'm never living that down."
+        }
+      ],
+      "choices": [],
+      "next": "ep1.home_decision",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.presentation_failed",
+      "title": "Sitting down early",
+      "location": "school",
+      "tone": "adversity",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "It falls apart in the middle and doesn't quite come back. Accuracy {gp_accuracy}, clarity {gp_clarity}, teamwork {gp_teamwork}. {teacher} writes them down anyway; that's the deal."
+        },
+        {
+          "speaker": "teacher",
+          "text": "You'll redo the middle section for me on Friday — just the three of you, no audience. Not a punishment. A second go."
+        },
+        {
+          "speaker": "rival",
+          "text": "That was bad. That was all of us being bad, to be fair."
+        },
+        {
+          "speaker": "friend",
+          "text": "Friday. Okay. We can do Friday."
+        }
+      ],
+      "choices": [],
+      "next": "ep1.home_decision",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.presentation_bell",
+      "title": "Out of time",
+      "location": "school",
+      "tone": "adversity",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "The stopwatch {teacher} wasn't going to look at beeps. Two cards still in your hand. Accuracy {gp_accuracy}, clarity {gp_clarity}, teamwork {gp_teamwork}."
+        },
+        {
+          "speaker": "teacher",
+          "text": "Six minutes was the plan and I gave you two extra. The clock is part of the assignment. What you finished was good — finish it Friday, without the audience."
+        },
+        {
+          "speaker": "rival",
+          "text": "My intro was too long. Say it. It was too long."
+        }
+      ],
+      "choices": [],
+      "next": "ep1.home_decision",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.presentation_left",
+      "title": "Two at the front",
+      "location": "school",
+      "tone": "adversity",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "You stop, and don't start again, and after a long second {rival} and {friend} finish it as a pair. {teacher} watches you sit down and writes something short."
+        },
+        {
+          "speaker": "teacher",
+          "text": "The two of you: good recovery. {player}: see me at lunch. Not in trouble. Just see me."
+        },
+        {
+          "speaker": "friend",
+          "text": "…"
+        },
+        {
+          "speaker": "rival",
+          "text": "Nerves. Happens. Didn't think it'd happen to you."
+        }
+      ],
+      "choices": [],
+      "next": "ep1.home_decision",
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.home_decision",
+      "title": "Wednesday night",
+      "location": "home",
+      "tone": "everyday",
+      "eligibility": [],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Dishes done. The training bag is by the door for tomorrow. The friendly is Saturday and {coach}'s one thing is still sitting in your head like a song."
+        },
+        {
+          "speaker": "parent",
+          "text": "Presentation went how it went — I heard the short version. Tomorrow's training. Tonight's yours. What's it going to be?"
+        }
+      ],
+      "choices": [
+        {
+          "id": "ep1.home_decision.practice",
+          "label": "Twenty minutes against the wall — look, then touch",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "ep1_prep",
+              "value": "practice"
+            },
+            {
+              "type": "track",
+              "track": "technical",
+              "delta": 1
+            },
+            {
+              "type": "relation",
+              "personId": "parent",
+              "dimension": "respect",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Twenty. I'm timing it. And if the neighbours knock, that's your conversation."
+            },
+            {
+              "speaker": null,
+              "text": "Twenty minutes of the same small thing: glance, receive, glance. The wall does not care. It's oddly restful."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "ep1.home_decision.homework",
+          "label": "Homework, then early night",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "ep1_prep",
+              "value": "rest"
+            },
+            {
+              "type": "track",
+              "track": "school",
+              "delta": 1
+            },
+            {
+              "type": "track",
+              "track": "wellbeing",
+              "delta": 1
+            },
+            {
+              "type": "relationship",
+              "personId": "parent",
+              "delta": 2
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "parent",
+              "text": "Look at you. A grown-up answer. Bed by nine and I won't mention it to anyone."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "ep1.monday",
+      "title": "Monday again",
+      "location": "school",
+      "tone": "everyday",
+      "auto": "Mon",
+      "eligibility": [
+        {
+          "type": "applied",
+          "choiceId": "scene:ep1.home_decision"
+        }
+      ],
+      "lines": [
+        {
+          "speaker": null,
+          "text": "Monday, homeroom, the same orange smell. A week ago you were the new one. Now you're the one who played Saturday."
+        },
+        {
+          "speaker": "rival",
+          "text": "Heard you played the friendly. {score}, {friend} said. I'm not saying anything about it until we play you.",
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_score",
+              "exists": true
+            }
+          ]
+        },
+        {
+          "speaker": "rival",
+          "text": "{friend} said you didn't play Saturday. Everything okay?",
+          "when": [
+            {
+              "type": "fact",
+              "id": "last_score",
+              "exists": false
+            }
+          ]
+        },
+        {
+          "speaker": null,
+          "text": "Text from {coach}, forwarded by {friend} with eleven exclamation marks: 'Ask {player} how many times they looked before it arrived. I counted {lesson_faced}. {lesson_strong} of them proper.'",
+          "when": [
+            {
+              "type": "fact",
+              "id": "lesson:last_verdict",
+              "equals": "applied"
+            }
+          ]
+        },
+        {
+          "speaker": null,
+          "text": "Text from {coach}, via {friend}: '{lesson_faced} of those moments on Saturday. Some looked, some didn't. Tuesday we do it again.'",
+          "when": [
+            {
+              "type": "fact",
+              "id": "lesson:last_verdict",
+              "equals": "mixed"
+            }
+          ]
+        },
+        {
+          "speaker": null,
+          "text": "Text from {coach}, via {friend}: '{lesson_faced} of those moments Saturday. Ball arrived before the look, most of them. Not a telling-off. Tuesday.'",
+          "when": [
+            {
+              "type": "fact",
+              "id": "lesson:last_verdict",
+              "equals": "missed"
+            }
+          ]
+        },
+        {
+          "speaker": null,
+          "text": "Text from {coach}, via {friend}: 'Didn't get that moment much Saturday. It'll come. Keep looking.'",
+          "when": [
+            {
+              "type": "fact",
+              "id": "lesson:last_verdict",
+              "equals": "not_faced"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Also — everyone still talking about you winning Knockout. {rival} hasn't lost since. It's been a long week for the rest of us.",
+          "when": [
+            {
+              "type": "remembers",
+              "observerId": "rival",
+              "eventPrefix": "mg:ep1:world_cup_knockout",
+              "tag": "impressed"
+            }
+          ]
+        },
+        {
+          "speaker": "rival",
+          "text": "You're playing today, though. Actually playing. Not walking off halfway.",
+          "when": [
+            {
+              "type": "remembers",
+              "observerId": "rival",
+              "eventPrefix": "mg:ep1:world_cup_knockout",
+              "tag": "annoyed"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "Wednesday's still bugging me a bit. Not the grade. The bit where you just — went.",
+          "when": [
+            {
+              "type": "remembers",
+              "observerId": "friend",
+              "eventPrefix": "mg:ep1:group_presentation",
+              "tag": "hurt"
+            }
+          ]
+        },
+        {
+          "speaker": "friend",
+          "text": "You know what {rival} said to me after Wednesday? 'Your friend covered for me.' Just that. Then walked off like it hurt to say.",
+          "when": [
+            {
+              "type": "remembers",
+              "observerId": "rival",
+              "eventPrefix": "mg:ep1:group_presentation",
+              "tag": "grateful"
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Morning car: 'Wall on Wednesday, friendly on Saturday, Monday already. Bag's by the door. Eat something.'",
+          "when": [
+            {
+              "type": "fact",
+              "id": "ep1_prep",
+              "equals": "practice"
+            }
+          ]
+        },
+        {
+          "speaker": "parent",
+          "text": "Morning car: 'Early night Wednesday and you were actually awake for breakfast Saturday. Noted. Eat something.'",
+          "when": [
+            {
+              "type": "fact",
+              "id": "ep1_prep",
+              "equals": "rest"
+            }
+          ]
+        },
+        {
+          "speaker": "teacher",
+          "text": "New project Friday. Different groups. {rival}, you're not doing the intro this time."
+        },
+        {
+          "speaker": "rival",
+          "text": "Knockout at recess. Tight space this time — half the grass. You in, or scouting?"
+        }
+      ],
+      "choices": [
+        {
+          "id": "ep1.monday.in",
+          "label": "\"In.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "ep2_hook",
+              "value": "tight_space"
+            },
+            {
+              "type": "relation",
+              "personId": "rival",
+              "dimension": "competitive_tension",
+              "delta": 1
+            },
+            {
+              "type": "relation",
+              "personId": "rival",
+              "dimension": "respect",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "rival",
+              "text": "Good. Half the grass, same rules. Move before it comes."
+            },
+            {
+              "speaker": null,
+              "text": "Three weeks until Batavia plays Sonoran. Two desks between you until then."
+            }
+          ],
+          "next": null
+        },
+        {
+          "id": "ep1.monday.later",
+          "label": "\"Tomorrow. Today I owe {friend} a rematch at the wall.\"",
+          "eligibility": [],
+          "immediate": [
+            {
+              "type": "set_fact",
+              "id": "ep2_hook",
+              "value": "friend_first"
+            },
+            {
+              "type": "relation",
+              "personId": "friend",
+              "dimension": "loyalty",
+              "delta": 1
+            },
+            {
+              "type": "relation",
+              "personId": "rival",
+              "dimension": "competitive_tension",
+              "delta": 1
+            }
+          ],
+          "delayed": [],
+          "repair": [],
+          "expiresDay": null,
+          "response": [
+            {
+              "speaker": "friend",
+              "text": "Rematch. Yes. Bring the bad foot."
+            },
+            {
+              "speaker": "rival",
+              "text": "Tomorrow, then. I'll save you a strike."
+            }
+          ],
+          "next": null
+        }
+      ],
+      "next": null,
+      "once": true,
+      "reviewStatus": "proposal"
+    }
+  ],
+  "boys": [],
+  "girls": []
+}

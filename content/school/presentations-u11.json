@@ -1,0 +1,103 @@
+{
+  "reviewStatus": "proposal",
+  "note": "Group Presentation topics (Story Engine v2 §8.6). Each topic is tagged with its age band; U11-U12 content is fifth-grade level: fractions, vocabulary, geography, basic science and reading. `cards` are the visual cards the group orders in preparation (listed here in the correct order; the game shuffles them). `sections` are the parts one member each presents; each has a `needs` skill so section assignment can fit or ignore what classmates are good at. `cues` are the live cue cards: the question the presenter must answer next, with the correct option first (the game shuffles).",
+  "topics": [
+    {
+      "id": "fractions_pizza",
+      "ageBand": "U11-U12",
+      "subject": "fractions",
+      "title": "Sharing a pizza: fractions in real life",
+      "cards": [
+        { "id": "whole", "text": "One whole pizza, 8 slices" },
+        { "id": "half", "text": "Half = 4 of 8 slices (4/8 = 1/2)" },
+        { "id": "quarter", "text": "A quarter = 2 of 8 slices (2/8 = 1/4)" },
+        { "id": "eighth", "text": "One slice = 1/8" },
+        { "id": "compare", "text": "1/2 is bigger than 1/4 is bigger than 1/8" }
+      ],
+      "sections": [
+        { "id": "intro", "title": "What a fraction is", "needs": "explaining" },
+        { "id": "worked", "title": "Cutting the pizza", "needs": "numbers" },
+        { "id": "compare", "title": "Comparing the pieces", "needs": "numbers" }
+      ],
+      "cues": [
+        { "id": "c1", "prompt": "If 4 of 8 slices are eaten, what fraction is gone?", "options": ["One half", "One quarter", "One eighth"] },
+        { "id": "c2", "prompt": "Which is bigger, 1/4 or 1/8?", "options": ["1/4", "1/8", "They are equal"] },
+        { "id": "c3", "prompt": "2/8 of the pizza is the same as…", "options": ["1/4", "1/2", "2/4"] },
+        { "id": "c4", "prompt": "Three friends each eat 1/8. How much is eaten?", "options": ["3/8", "1/3", "3/24"] }
+      ]
+    },
+    {
+      "id": "water_cycle",
+      "ageBand": "U11-U12",
+      "subject": "science",
+      "title": "The water cycle",
+      "cards": [
+        { "id": "evap", "text": "Evaporation: the sun warms water into vapour" },
+        { "id": "cond", "text": "Condensation: vapour cools into clouds" },
+        { "id": "precip", "text": "Precipitation: rain, snow or hail falls" },
+        { "id": "collect", "text": "Collection: water gathers in rivers, lakes and the ground" }
+      ],
+      "sections": [
+        { "id": "up", "title": "Water going up", "needs": "explaining" },
+        { "id": "clouds", "title": "Clouds and rain", "needs": "reading" },
+        { "id": "back", "title": "Back to the ground", "needs": "explaining" }
+      ],
+      "cues": [
+        { "id": "c1", "prompt": "What turns liquid water into vapour?", "options": ["Heat from the sun", "Wind", "Gravity"] },
+        { "id": "c2", "prompt": "Clouds form when vapour…", "options": ["Cools and condenses", "Heats up", "Freezes solid"] },
+        { "id": "c3", "prompt": "Rain, snow and hail are all…", "options": ["Precipitation", "Evaporation", "Condensation"] },
+        { "id": "c4", "prompt": "Where does the water go after it falls?", "options": ["Rivers, lakes and the ground", "Back into space", "It disappears"] }
+      ]
+    },
+    {
+      "id": "continents",
+      "ageBand": "U11-U12",
+      "subject": "geography",
+      "title": "The seven continents, largest to smallest",
+      "cards": [
+        { "id": "asia", "text": "Asia" },
+        { "id": "africa", "text": "Africa" },
+        { "id": "namerica", "text": "North America" },
+        { "id": "samerica", "text": "South America" },
+        { "id": "antarctica", "text": "Antarctica" },
+        { "id": "europe", "text": "Europe" },
+        { "id": "australia", "text": "Australia" }
+      ],
+      "sections": [
+        { "id": "big", "title": "The three biggest", "needs": "reading" },
+        { "id": "middle", "title": "The Americas and Antarctica", "needs": "explaining" },
+        { "id": "small", "title": "Europe and Australia", "needs": "reading" }
+      ],
+      "cues": [
+        { "id": "c1", "prompt": "Which is the largest continent?", "options": ["Asia", "Africa", "North America"] },
+        { "id": "c2", "prompt": "Which continent is the smallest?", "options": ["Australia", "Europe", "Antarctica"] },
+        { "id": "c3", "prompt": "Which continent has no countries and almost no people?", "options": ["Antarctica", "Australia", "South America"] },
+        { "id": "c4", "prompt": "Which is bigger, Africa or Europe?", "options": ["Africa", "Europe", "They are the same"] }
+      ]
+    },
+    {
+      "id": "story_sequence",
+      "ageBand": "U11-U12",
+      "subject": "reading",
+      "title": "Retelling a story in order",
+      "cards": [
+        { "id": "setting", "text": "Beginning: we meet the character and where they live" },
+        { "id": "problem", "text": "Problem: something goes wrong" },
+        { "id": "rising", "text": "Rising action: the character tries things" },
+        { "id": "climax", "text": "Climax: the biggest moment" },
+        { "id": "resolution", "text": "Resolution: how it ends" }
+      ],
+      "sections": [
+        { "id": "start", "title": "Beginning and problem", "needs": "reading" },
+        { "id": "middle", "title": "What the character tries", "needs": "explaining" },
+        { "id": "end", "title": "Climax and ending", "needs": "reading" }
+      ],
+      "cues": [
+        { "id": "c1", "prompt": "The part where something goes wrong is the…", "options": ["Problem", "Resolution", "Setting"] },
+        { "id": "c2", "prompt": "The biggest, most exciting moment is the…", "options": ["Climax", "Setting", "Rising action"] },
+        { "id": "c3", "prompt": "A word that means 'to say what happened, in order'?", "options": ["Retell", "Predict", "Rhyme"] },
+        { "id": "c4", "prompt": "The resolution tells us…", "options": ["How the story ends", "Who the character is", "Where it happens"] }
+      ]
+    }
+  ]
+}

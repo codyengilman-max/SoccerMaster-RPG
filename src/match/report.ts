@@ -35,6 +35,16 @@ export interface MomentSummary {
   poorReadGoodOutcome: string[];
   /** Titles of `major` moments, in order. */
   majorMoments: string[];
+  /** Every moment the controlled player faced, in order: catalog entry and how it was read. */
+  faced: FacedMoment[];
+}
+
+export interface FacedMoment {
+  entryId: string;
+  title: string;
+  band: DecisionBand | "timeout" | "intent_unavailable";
+  execution: ExecutionBand | null;
+  outcome: OutcomeResult | null;
 }
 
 export interface Goal {
@@ -143,8 +153,10 @@ export function buildReport(
     goodReadPoorExecution: [],
     poorReadGoodOutcome: [],
     majorMoments: [],
+    faced: [],
   };
   for (const r of records) {
+    moments.faced.push({ entryId: r.moment.entryId, title: r.moment.title, band: r.decision.band, execution: r.execution?.band ?? null, outcome: r.outcome?.result ?? null });
     moments.decisions[r.decision.band]++;
     if (r.execution) moments.executions[r.execution.band]++;
     if (r.outcome) moments.outcomes[r.outcome.result]++;

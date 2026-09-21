@@ -1,5 +1,6 @@
 import type { CampaignDay, Weekday } from "../calendar/date";
 import type { CommitmentKind, Slot } from "../calendar/schedule";
+import type { Continuation, MinigameId } from "../minigame/contract";
 import { allHold, knows, type Choice, type Condition, type StoryContext, type StoryState } from "./consequences";
 
 /**
@@ -45,6 +46,11 @@ export interface Scene {
   weekday?: Weekday;
   /** Playable activity run after the lines and before `next` (spec §4 step 7). */
   activity?: string;
+  /**
+   * Story Engine v2 minigame launched after the lines; its verified result is written to the
+   * ledger before `next` continues. Participants are story ids (player first is implied).
+   */
+  minigame?: MinigameLaunch;
   /** One-off calendar commitment the scene represents (e.g. the Thursday visit); attended on entry. */
   commitment?: { kind: CommitmentKind; slot: Slot; title: string; minutes: number };
   /** Once-only scenes are recorded as `scene:<id>` in `story.applied`. */
@@ -60,6 +66,19 @@ export interface Scene {
   cooldownDays?: number;
   reviewStatus: "proposal" | "reviewed";
 }
+
+export interface MinigameLaunch {
+  gameId: MinigameId;
+  episodeId: string;
+  ruleVariant: string;
+  participants: string[];
+  /** Scene to continue on per verified continuation; missing entries fall back to the scene's `next`. */
+  continuations?: Partial<Record<Continuation, string>>;
+}
+
+/** Fact holding the campaign day a scene's minigame was last committed (the continuation gate). */
+export const minigameDoneKey = (sceneId: string): string => `mg:scene:${sceneId}`;
+export const minigameContinuationKey = (sceneId: string): string => `mg:scene:${sceneId}:continuation`;
 
 export const sceneKey = (id: string): string => `scene:${id}`;
 

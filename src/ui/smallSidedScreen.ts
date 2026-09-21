@@ -77,22 +77,26 @@ export function mountSmallSidedScreen(root: HTMLElement, opts: SmallSidedScreenO
         <div class="window" hidden><div class="bar"></div><span class="left"></span></div>
         <div class="banner" hidden></div>
       </div>
-      <div class="panel">
-        <div class="moment">
-          <div class="title">${escapeHtml(opts.coachName)}: look, then play</div>
-          <ul class="cues">${CUES[opts.activity].map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>
-          <div class="options" role="group" aria-label="options" hidden></div>
+      <div class="dock">
+        <div class="panel">
+          <div class="moment">
+            <div class="title">${escapeHtml(opts.coachName)}: look, then play</div>
+            <ul class="cues">${CUES[opts.activity].map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>
+            <div class="options" role="group" aria-label="options" hidden></div>
+          </div>
+          <div class="feedback" hidden></div>
         </div>
-        <div class="feedback" hidden></div>
-      </div>
-      <div class="controls">
-        <button type="button" class="toggle accessible" aria-pressed="false">Tap targets</button>
-        <button type="button" class="link quit">Leave training</button>
-        <span class="provisional">${(opts.windowScale ?? 1) < 1 ? "tired · shorter windows" : "team training"}</span>
+        <div class="controls">
+          <button type="button" class="toggle accessible" aria-pressed="false">Tap targets</button>
+          <button type="button" class="link quit">Leave training</button>
+          <span class="provisional">${(opts.windowScale ?? 1) < 1 ? "tired · shorter windows" : "team training"}</span>
+        </div>
       </div>
     </section>`;
 
   const stage = q<HTMLDivElement>(root, ".stage");
+  const hud = q<HTMLElement>(root, ".hud");
+  const dock = q<HTMLDivElement>(root, ".dock");
   const canvas = q<HTMLCanvasElement>(root, "canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d context unavailable");
@@ -118,13 +122,17 @@ export function mountSmallSidedScreen(root: HTMLElement, opts: SmallSidedScreenO
     canvas.height = Math.round(h * dpr);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
-    scale = Math.min(w / (AREA.length + PAD * 2), h / (AREA.width + PAD * 2));
+    // The HUD and dock float over the stage; frame the area in the uncovered band between them.
+    const top = hud.offsetHeight;
+    const free = Math.max(1, h - top - dock.offsetHeight);
+    scale = Math.min(w / (AREA.length + PAD * 2), free / (AREA.width + PAD * 2));
     ox = (w - AREA.length * scale) / 2;
-    oy = (h - AREA.width * scale) / 2;
+    oy = top + (free - AREA.width * scale) / 2;
   };
   fit();
   const ro = new ResizeObserver(fit);
   ro.observe(stage);
+  ro.observe(dock);
   const toScreen = (p: Vec2): Vec2 => ({ x: ox + p.x * scale, y: oy + p.y * scale });
   const toField = (s: Vec2): Vec2 => ({ x: (s.x - ox) / scale, y: (s.y - oy) / scale });
 

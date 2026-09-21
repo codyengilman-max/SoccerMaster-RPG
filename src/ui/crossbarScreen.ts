@@ -51,20 +51,24 @@ export function mountCrossbarScreen(root: HTMLElement, opts: CrossbarScreenOptio
         <canvas aria-label="goal frame"></canvas>
         <div class="banner" hidden></div>
       </div>
-      <div class="panel">
-        <div class="moment">
-          <div class="title">Hit the bar</div>
-          <ul class="cues"><li>Draw up from the ball to where you want it to land</li><li>Straighter drawings are more precise</li><li>Or turn on tap targets and tap the bar</li></ul>
+      <div class="dock">
+        <div class="panel">
+          <div class="moment">
+            <div class="title">Hit the bar</div>
+            <ul class="cues"><li>Draw up from the ball to where you want it to land</li><li>Straighter drawings are more precise</li><li>Or turn on tap targets and tap the bar</li></ul>
+          </div>
+          <div class="feedback" hidden></div>
         </div>
-        <div class="feedback" hidden></div>
-      </div>
-      <div class="controls">
-        <button type="button" class="toggle accessible" aria-pressed="false">Tap targets</button>
-        <span class="provisional">${escapeHtml(opts.friendName)} · after school</span>
+        <div class="controls">
+          <button type="button" class="toggle accessible" aria-pressed="false">Tap targets</button>
+          <span class="provisional">${escapeHtml(opts.friendName)} · after school</span>
+        </div>
       </div>
     </section>`;
 
   const stage = q<HTMLDivElement>(root, ".stage");
+  const hud = q<HTMLElement>(root, ".hud");
+  const dock = q<HTMLDivElement>(root, ".dock");
   const canvas = q<HTMLCanvasElement>(root, "canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d context unavailable");
@@ -78,6 +82,7 @@ export function mountCrossbarScreen(root: HTMLElement, opts: CrossbarScreenOptio
   let scale = 40;
   let ox = 0;
   let oy = 0;
+  let frameBottom = 0;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const fit = (): void => {
     const w = Math.max(1, stage.clientWidth);
@@ -86,13 +91,18 @@ export function mountCrossbarScreen(root: HTMLElement, opts: CrossbarScreenOptio
     canvas.height = Math.round(h * dpr);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
-    scale = Math.min(w / VIEW.width, h / VIEW.height) * 0.92;
+    // The HUD and dock float over the stage; frame the goal in the uncovered band between them.
+    const top = hud.offsetHeight;
+    const free = Math.max(1, h - top - dock.offsetHeight);
+    scale = Math.min(w / VIEW.width, free / VIEW.height) * 0.92;
     ox = (w - VIEW.width * scale) / 2;
-    oy = (h + VIEW.height * scale) / 2;
+    oy = top + (free + VIEW.height * scale) / 2;
+    frameBottom = top + free;
   };
   fit();
   const ro = new ResizeObserver(fit);
   ro.observe(stage);
+  ro.observe(dock);
   // y grows upward in view metres
   const toScreen = (p: Vec2): Vec2 => ({ x: ox + p.x * scale, y: oy - p.y * scale });
   const toView = (p: Vec2): Vec2 => ({ x: (p.x - ox) / scale, y: (oy - p.y) / scale });
@@ -242,8 +252,8 @@ export function mountCrossbarScreen(root: HTMLElement, opts: CrossbarScreenOptio
     // the two of you in the foreground, taking turns; the near leg swings as a shot leaves
     const swing = flight ? Math.max(0, Math.sin(Math.min(1, (now - flight.start) / 300) * Math.PI)) : 0;
     const shooter = flight ? flight.attempt.shooter : s.turn;
-    paintStandingFigure(ctx, w * 0.2, h * 0.98, h * 0.26, "home", shooter === "you" ? swing : 0);
-    paintStandingFigure(ctx, w * 0.8, h * 0.98, h * 0.26, "away", shooter === "friend" ? swing : 0);
+    paintStandingFigure(ctx, w * 0.2, frameBottom * 0.98, h * 0.26, "home", shooter === "you" ? swing : 0);
+    paintStandingFigure(ctx, w * 0.8, frameBottom * 0.98, h * 0.26, "away", shooter === "friend" ? swing : 0);
     // ball
     let bp = toScreen(BALL_SPOT);
     if (flight) {
