@@ -4,8 +4,9 @@ import { MAX_TICKS_PER_FRAME } from "../../src/match/clock";
 import { createPace, DEFAULT_PACE, expectedRemainingMoments, formatRealTime, paceScale, routineScaleFor, simRemainingMs } from "../../src/match/pace";
 import { createRuntime, frame } from "../../src/match/runtime";
 import { runPace, type PaceRun } from "../../src/perf/pace";
+import { ROLE_BY_NUMBER } from "../../src/sim/types";
 import { loadCatalog, type CatalogFile } from "../../src/tactics/catalog";
-import { DEFAULT_PACING } from "../../src/tactics/recognition";
+import { DEFAULT_PACING, pacingFor } from "../../src/tactics/recognition";
 import { testConfig } from "../helpers";
 
 const catalog = loadCatalog(catalogJson as CatalogFile);
@@ -59,6 +60,18 @@ describe("pace director", () => {
       expect(r.fatigueMean).toBeGreaterThan(0.05);
       expect(r.maxTicksPerFrame).toBeLessThanOrEqual(MAX_TICKS_PER_FRAME);
       expect(r.peakScale).toBeLessThanOrEqual(DEFAULT_PACE.routineMaxScale);
+    }
+  });
+
+  it("every supported position completes 60 simulated minutes in 6–8 real minutes with its moment band met", () => {
+    for (const role of Object.values(ROLE_BY_NUMBER)) {
+      const r = runPace(catalog, 2010, role, "typical", 60);
+      const [lo, hi] = pacingFor(role).total;
+      expect(r.simMinutes, role).toBeCloseTo(60, 0);
+      expect(r.withinBand, `${role}: ${formatRealTime(r.realMs)}`).toBe(true);
+      expect(r.moments, `${role} moments`).toBeGreaterThanOrEqual(lo);
+      expect(r.moments, `${role} moments`).toBeLessThanOrEqual(hi);
+      expect(r.maxTicksPerFrame).toBeLessThanOrEqual(MAX_TICKS_PER_FRAME);
     }
   });
 

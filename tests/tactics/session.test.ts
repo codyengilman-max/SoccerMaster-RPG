@@ -112,9 +112,11 @@ describe("recognition", () => {
   it("records shortfalls instead of manufacturing moments", () => {
     const { session } = playMatch(2, "GK", "random");
     const rep = coverageReport(session.records, GK_PACING);
-    // the keeper is rarely on the ball in this engine build: the shortfall is stated, not papered over
+    expect(rep.total).toBeGreaterThanOrEqual(GK_PACING.total[0]);
     expect(rep.total).toBeLessThanOrEqual(GK_PACING.total[1]);
+    // the keeper's on-ball share depends on how often the engine's AI plays the ball back: any gap is stated, not papered over
     if (rep.onBall < GK_PACING.onBall[0]) expect(rep.shortfalls.some((s) => /on-ball/.test(s))).toBe(true);
+    else expect(rep.shortfalls.some((s) => /on-ball/.test(s))).toBe(false);
     const empty = coverageReport([]);
     expect(empty.shortfalls.some((s) => /only 0 moments/.test(s))).toBe(true);
     expect(empty.shortfalls.some((s) => /on-ball/.test(s))).toBe(true);

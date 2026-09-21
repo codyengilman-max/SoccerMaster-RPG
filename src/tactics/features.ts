@@ -1,6 +1,6 @@
 import { evaluateOnBall, lastDefenderLine } from "../sim/ai";
 import { speedForDistance } from "../sim/actions";
-import { add, dist, scale, type Vec2 } from "../sim/geometry";
+import { add, clamp, dist, scale, type Vec2 } from "../sim/geometry";
 import {
   arrivalTime,
   distanceToGoal,
@@ -77,6 +77,12 @@ export interface FieldRead {
   ballInTheirBox: number;
   /** Me: keeper-specific. */
   keeperCanSweep: number;
+  /** Metres from our goal line to our deepest outfield defender (how high our back line is). */
+  ourLineDepth: number;
+  /** How far the ball sits from the pitch's centre line, 0 centre → 1 touchline. */
+  ballWide: number;
+  /** Metres between me and our own goal line. */
+  distFromOwnGoalLine: number;
   /** Signed goal difference from my team's view. */
   scoreDiff: number;
   minute: number;
@@ -124,6 +130,9 @@ export const FEATURE_NAMES: readonly FeatureName[] = [
   "ballInOurBox",
   "ballInTheirBox",
   "keeperCanSweep",
+  "ourLineDepth",
+  "ballWide",
+  "distFromOwnGoalLine",
   "scoreDiff",
   "minute",
   "carrierPressure",
@@ -215,6 +224,8 @@ export function readField(state: MatchState, p: PlayerState): FieldRead {
   const keeperCanSweep =
     p.role === 1 && ball.status === "loose" && inPenaltyArea(rules, ourGoalX, ball.pos) && arrivalTime(p, ball.pos) < Math.min(...opps.map((o) => arrivalTime(o, ball.pos)));
 
+  const ourLineDepth = Math.abs(lastDefenderLine(state, p.side) - ourGoalX);
+
   const my = p.side === "home" ? state.score.home : state.score.away;
   const theirs = p.side === "home" ? state.score.away : state.score.home;
 
@@ -254,6 +265,9 @@ export function readField(state: MatchState, p: PlayerState): FieldRead {
     ballInOurBox: b(inPenaltyArea(rules, ourGoalX, ball.pos)),
     ballInTheirBox: b(inPenaltyArea(rules, theirGoalX, ball.pos)),
     keeperCanSweep: b(keeperCanSweep),
+    ourLineDepth,
+    ballWide: clamp(Math.abs(ball.pos.y - rules.width / 2) / (rules.width / 2), 0, 1),
+    distFromOwnGoalLine: Math.abs(p.pos.x - ourGoalX),
     scoreDiff: my - theirs,
     minute: state.clock.timeMs / 60000,
     carrierPressure: teammateCarrier ? pressureAt(teammateCarrier.pos, opps) : 0,
