@@ -141,26 +141,40 @@ export function drawFurniture(ctx: CanvasRenderingContext2D, cam: Camera, rules:
   ctx.strokeStyle = "rgba(230, 220, 200, 0.55)";
   ctx.lineWidth = Math.max(1, 0.06 * z);
   const postH = 0.9 * z;
+  // posts are gathered into one path and filled once
   const post = (p: Vec2): void => {
-    ctx.fillRect(p.x - 1, p.y - postH, 2, postH);
+    ctx.rect(p.x - 1, p.y - postH, 2, postH);
   };
+  // two rails between the post tops and their middles, plus a soft ground shadow under the fence line
   const rail = (a: Vec2, b: Vec2): void => {
     const sa = toScreen(cam, a);
     const sb = toScreen(cam, b);
+    ctx.strokeStyle = "rgba(0, 10, 25, 0.18)";
+    ctx.lineWidth = Math.max(1, 0.1 * z);
     ctx.beginPath();
-    ctx.moveTo(sa.x, sa.y);
-    ctx.lineTo(sb.x, sb.y);
+    ctx.moveTo(sa.x, sa.y + 1);
+    ctx.lineTo(sb.x, sb.y + 1);
     ctx.stroke();
+    ctx.strokeStyle = "rgba(230, 220, 200, 0.55)";
+    ctx.lineWidth = Math.max(1, 0.06 * z);
+    for (const lift of [postH, postH * 0.5]) {
+      ctx.beginPath();
+      ctx.moveTo(sa.x, sa.y - lift);
+      ctx.lineTo(sb.x, sb.y - lift);
+      ctx.stroke();
+    }
   };
+  for (const y of [-off, rules.width + off]) rail({ x: -off, y }, { x: rules.length + off, y });
+  for (const x of [-off, rules.length + off]) rail({ x, y: -off }, { x, y: rules.width + off });
   ctx.fillStyle = "rgba(230, 220, 200, 0.7)";
+  ctx.beginPath();
   for (const y of [-off, rules.width + off]) {
-    rail({ x: -off, y }, { x: rules.length + off, y });
     for (let x = -off; x <= rules.length + off + 0.01; x += 5) post(toScreen(cam, { x, y }));
   }
   for (const x of [-off, rules.length + off]) {
-    rail({ x, y: -off }, { x, y: rules.width + off });
     for (let y = -off + 5; y < rules.width + off; y += 5) post(toScreen(cam, { x, y }));
   }
+  ctx.fill();
   // benches: two low navy boxes beside the near touchline
   for (const bx of [rules.length / 2 - 14, rules.length / 2 + 8]) {
     const a = toScreen(cam, { x: bx, y: rules.width + off * 0.55 });
@@ -221,7 +235,7 @@ export function drawGoal(ctx: CanvasRenderingContext2D, cam: Camera, r: Rules, g
   ctx.clip();
   ctx.strokeStyle = "rgba(255,255,255,0.28)";
   ctx.lineWidth = 1;
-  const step = Math.max(3, 0.35 * cam.zoom);
+  const step = Math.max(4, 0.5 * cam.zoom);
   ctx.beginPath();
   for (let d = -h; d < w + h; d += step) {
     ctx.moveTo(x + d, y);

@@ -359,31 +359,17 @@ button:focus-visible {
 
 .avatar {
   display: block;
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 3.4rem;
+  height: 3.4rem;
   border-radius: 50%;
-  background: var(--amber);
-  border: 3px solid var(--navy-600);
+  border: 2px solid var(--navy-600);
+  background: var(--navy-900);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
-.avatar.a1 {
-  background: #d98a5c;
-}
-.avatar.a2 {
-  background: #c9a27a;
-  border-color: #3b2a1e;
-}
-.avatar.a3 {
-  background: #8b5a3c;
-  border-color: #1d1410;
-}
-.avatar.a4 {
-  background: #5a3a2a;
-  border-color: #2fd3ff;
-}
-.avatar.a5 {
-  background: #e8b48f;
-  border-color: #7de6ff;
+.preset[aria-pressed="true"] .avatar {
+  border-color: var(--cyan-400);
+  box-shadow: 0 0 0 3px rgba(47, 211, 255, 0.25), 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
 .error {
@@ -934,6 +920,27 @@ button:focus-visible {
   font-size: 0.92rem;
 }
 
+.option .key {
+  display: inline-grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  margin-right: 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--cyan-300);
+  background: rgba(6, 16, 31, 0.8);
+  border: 1px solid rgba(125, 230, 255, 0.4);
+  vertical-align: middle;
+}
+
+.option.selected .key {
+  color: #06101f;
+  background: var(--cyan-400);
+  border-color: transparent;
+}
+
 .option:hover,
 .option:focus-visible {
   border-color: var(--edge-strong);
@@ -1169,6 +1176,33 @@ button:focus-visible {
 
   .ticker li:not(:first-child) {
     display: none;
+  }
+
+  /* while a decision is open the ticker yields its width so the options sit on one row */
+  .panel:has(.moment:not([hidden])) .ticker {
+    display: none;
+  }
+
+  .moment .title {
+    font-size: 0.95rem;
+  }
+
+  .moment .cues {
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 0.76rem;
+  }
+
+  .option {
+    flex: 1 1 7rem;
+    min-height: 2.2rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .controls {
+    max-width: 11rem;
   }
 
   .toggle {

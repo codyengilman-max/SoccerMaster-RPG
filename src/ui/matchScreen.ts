@@ -17,13 +17,13 @@ import {
 } from "../match/runtime";
 import { createCamera, follow, frameFor, resize, setInsets, toField, type Camera } from "../render/camera";
 import { createProbe, formatSummary, type ProbeSummary } from "../perf/probe";
-import { render } from "../render/pitch";
+import { PULSE_LIFE_S, render, type GroundPulse, type PulseTone } from "../render/pitch";
 import { ballDisplayPos, ballHeightM, createPresentation, deriveVisuals } from "../render/presentation";
 import { spriteAssets, type SpriteSet } from "../render/sprites";
 import type { Vec2 } from "../sim/geometry";
 import type { MatchEvent } from "../sim/types";
 import { coverageReport } from "../tactics/coverage";
-import type { MomentRecord } from "../tactics/moments";
+import type { MomentRecord, OutcomeResult } from "../tactics/moments";
 import { feedbackFor } from "../tactics/session";
 
 /**
@@ -155,6 +155,12 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
 
   const optionAnchors = new Map<string, Vec2>();
   const trail: Vec2[] = [];
+  /** Cosmetic ground pulses with the real time they started; pruned once they fade. */
+  const pulses: { pos: Vec2; startedAt: number; tone: PulseTone }[] = [];
+  let momentOpenedAt: number | null = null;
+  const pulse = (pos: Vec2, tone: PulseTone): void => {
+    pulses.push({ pos: { ...pos }, startedAt: performance.now(), tone });
+  };
   const commentary = createCommentary();
   let slow = 0;
   let fastMix = 0;
@@ -182,16 +188,20 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     titleEl.textContent = `${w.moment.title}${w.moment.major ? " — big moment" : ""}`;
     cuesEl.innerHTML = w.moment.cues.map((c) => `<li>${escapeHtml(c)}</li>`).join("");
     optionsEl.innerHTML = "";
-    for (const o of w.moment.options) {
+    w.moment.options.forEach((o, i) => {
       const b = document.createElement("button");
       b.className = `option${w.selected?.id === o.id ? " selected" : ""}`;
       b.type = "button";
-      b.textContent = o.label;
+      const key = document.createElement("span");
+      key.className = "key";
+      key.textContent = String(i + 1);
+      key.setAttribute("aria-hidden", "true");
+      b.append(key, document.createTextNode(o.label));
       b.dataset["id"] = o.id;
       b.setAttribute("aria-pressed", String(w.selected?.id === o.id));
       b.addEventListener("click", () => onSelect(o.id));
       optionsEl.appendChild(b);
-    }
+    });
     if (w.stage === "drawing") {
       hintEl.hidden = false;
       hintEl.innerHTML = `Draw from your player toward where it should go. Release to commit; drag back to the start or touch with a second finger to cancel. <button type="button" class="cancel">Back</button>`;
@@ -216,6 +226,8 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
 
   const onClosed = (c: MomentClosed): void => {
     optionAnchors.clear();
+    momentOpenedAt = null;
+    if (c.reason === "committed") pulse(runtime.state.ball.pos, "commit");
     const d = c.result.decision;
     const label =
       c.reason === "committed"
@@ -231,6 +243,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
 
   const showFeedback = (rec: MomentRecord): void => {
     const lines = feedbackFor(runtime.session, rec);
+    if (rec.outcome) pulse(runtime.state.ball.pos, outcomeTone(rec.outcome.result));
     feedbackEl.innerHTML = `<b>${escapeHtml(rec.moment.title)}</b><ul>${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>`;
     feedbackEl.hidden = false;
     window.clearTimeout(feedbackTimer);
@@ -322,6 +335,11 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
   let perfFrames = 0;
   let finishedShown = false;
 
+  const livePulses = (now: number): GroundPulse[] => {
+    while (pulses.length > 0 && now - pulses[0]!.startedAt > PULSE_LIFE_S * 1000) pulses.shift();
+    return pulses.map((p) => ({ pos: p.pos, age: (now - p.startedAt) / 1000, tone: p.tone }));
+  };
+
   const loop = (now: number): void => {
     raf = requestAnimationFrame(loop);
     const dt = last === 0 ? 16 : Math.min(MAX_FRAME_MS, now - last);
@@ -331,6 +349,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     const res = frame(runtime, dt);
     const t1 = performance.now();
     if (res.opened) {
+      momentOpenedAt = now;
       showBanner(res.opened.major ? "Big moment" : "Read the field", 1200);
       renderOptions();
     }
@@ -400,6 +419,8 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       ballPos: ballDisplayPos(st, runtime.clock.carryMs, visuals),
       ballHeightM: ballHeightM(st),
       timeS: (now - startedAt) / 1000,
+      momentAge: w && momentOpenedAt !== null ? (now - momentOpenedAt) / 1000 : undefined,
+      pulses: livePulses(now),
       debug,
     });
     probe.sample({ frameMs: dt, simMs: t1 - t0, renderMs: performance.now() - t1, ticks: res.ticks });
@@ -458,6 +479,10 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     },
   };
   return handle;
+}
+
+function outcomeTone(result: OutcomeResult): PulseTone {
+  return result === "success" ? "good" : result === "failure" ? "poor" : "neutral";
 }
 
 function fmtClock(ms: number): string {

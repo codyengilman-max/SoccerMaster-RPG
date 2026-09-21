@@ -38,9 +38,25 @@ export interface RenderOptions {
   ballHeightM: number;
   /** Real seconds, for subtle pulses. */
   timeS: number;
+  /** Real seconds since the current moment opened (drives the focus ripple). */
+  momentAge?: number | undefined;
+  /** Short ground pulses (a committed choice, a settled outcome), oldest first. */
+  pulses?: readonly GroundPulse[];
   /** Show diagnostic labels (numbers on every player, pressure values). */
   debug?: boolean;
 }
+
+export type PulseTone = "commit" | "good" | "poor" | "neutral";
+
+export interface GroundPulse {
+  pos: Vec2;
+  /** Real seconds since the pulse started. */
+  age: number;
+  tone: PulseTone;
+}
+
+export const PULSE_LIFE_S = 0.9;
+const RIPPLE_LIFE_S = 0.8;
 
 const COLORS = {
   pressure: "rgba(255, 90, 70, 0.55)",
@@ -87,7 +103,9 @@ export function render(ctx: CanvasRenderingContext2D, cam: Camera, state: MatchS
   }
   if (!ballDrawn) drawBall(ctx, cam, ballPos, opts.ballHeightM);
 
+  if (opts.pulses) for (const p of opts.pulses) drawPulse(ctx, cam, p);
   if (opts.window && controlled) drawMomentOverlay(ctx, cam, controlled, opts);
+  if (opts.window && controlled && opts.momentAge !== undefined && opts.momentAge < RIPPLE_LIFE_S) drawFocusRipple(ctx, cam, controlled, opts.momentAge);
   if (opts.slow > 0) drawVignette(ctx, cam, opts.slow, opts.major);
   if (fast > 0.05) drawFastFrame(ctx, cam, fast);
 }
@@ -306,6 +324,7 @@ function drawMomentOverlay(ctx: CanvasRenderingContext2D, cam: Camera, me: Playe
   const s = toScreen(cam, me.pos);
   const selectedId = w.selected?.id ?? null;
   const dashOffset = -(opts.timeS * 24) % 14;
+  const ringR = Math.max(6, 0.8 * cam.zoom);
   for (const [id, anchor] of opts.optionAnchors) {
     const a = toScreen(cam, anchor);
     const selected = id === selectedId;
@@ -314,8 +333,12 @@ function drawMomentOverlay(ctx: CanvasRenderingContext2D, cam: Camera, me: Playe
     ctx.setLineDash(selected ? [] : [5, 5]);
     ctx.lineDashOffset = 0;
     ctx.beginPath();
-    ctx.arc(a.x, a.y, Math.max(6, 0.8 * cam.zoom), 0, Math.PI * 2);
+    ctx.arc(a.x, a.y, ringR, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.setLineDash([]);
+    // the option's number in the panel (and on the keyboard) so the cue and the list read as one
+    const index = w.moment.options.findIndex((o) => o.id === id) + 1;
+    if (index > 0 && w.stage === "reading") drawOptionBadge(ctx, a.x, a.y - ringR, String(index), selected);
     if (selected) {
       // suggested lane: thin, animated dashes; the confirmed drawing is drawn solid below
       ctx.setLineDash([8, 6]);
@@ -347,6 +370,23 @@ function drawMomentOverlay(ctx: CanvasRenderingContext2D, cam: Camera, me: Playe
     ctx.textAlign = "center";
     ctx.fillText("tap where it should go", s.x, s.y - 2.6 * cam.zoom - figureHeightPx(cam));
   }
+}
+
+function drawOptionBadge(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, selected: boolean): void {
+  const r = 8;
+  ctx.fillStyle = selected ? COLORS.select : "rgba(6, 16, 31, 0.85)";
+  ctx.strokeStyle = selected ? "rgba(255,255,255,0.9)" : COLORS.anchor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = selected ? "#06101f" : "#eaf6ff";
+  ctx.font = "700 10px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x, y + 0.5);
+  ctx.textBaseline = "alphabetic";
 }
 
 function arrowHead(ctx: CanvasRenderingContext2D, from: Vec2, to: Vec2, size: number, color: string): void {
@@ -393,8 +433,62 @@ function drawPreviewPath(ctx: CanvasRenderingContext2D, cam: Camera, points: rea
   }
 }
 
+/** Two rings racing out from the deciding player as the moment opens: the eye lands where the read is. */
+function drawFocusRipple(ctx: CanvasRenderingContext2D, cam: Camera, me: PlayerVisual, age: number): void {
+  const s = toScreen(cam, me.pos);
+  const h = figureHeightPx(cam);
+  for (const [delay, colour] of [
+    [0, COLORS.select],
+    [0.18, COLORS.anchor],
+  ] as const) {
+    const t = (age - delay) / (RIPPLE_LIFE_S - delay);
+    if (t <= 0 || t >= 1) continue;
+    const ease = 1 - (1 - t) * (1 - t);
+    const r = h * (0.4 + ease * 2.6);
+    ctx.strokeStyle = colour;
+    ctx.globalAlpha = (1 - t) * 0.8;
+    ctx.lineWidth = Math.max(1, h * 0.05 * (1 - t) + 1);
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y + h * 0.04, r, r * 0.42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** A ground pulse at a point of interest, tinted by what it marks. */
+function drawPulse(ctx: CanvasRenderingContext2D, cam: Camera, p: GroundPulse): void {
+  const t = p.age / PULSE_LIFE_S;
+  if (t <= 0 || t >= 1) return;
+  const s = toScreen(cam, p.pos);
+  const r = cam.zoom * (0.6 + t * 2.4);
+  const colour = p.tone === "good" ? "125, 230, 255" : p.tone === "poor" ? "255, 122, 89" : p.tone === "commit" ? "53, 214, 255" : "234, 246, 255";
+  ctx.strokeStyle = `rgba(${colour}, ${(1 - t) * 0.85})`;
+  ctx.lineWidth = Math.max(1, 2.5 * (1 - t));
+  ctx.beginPath();
+  ctx.ellipse(s.x, s.y, r, r * 0.42, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  if (p.tone !== "commit") {
+    const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r);
+    g.addColorStop(0, `rgba(${colour}, ${(1 - t) * 0.25})`);
+    g.addColorStop(1, `rgba(${colour}, 0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y, r, r * 0.42, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/** Darkened edges while a decision is open; a big moment adds a thin letterbox so the frame tightens. */
 function drawVignette(ctx: CanvasRenderingContext2D, cam: Camera, slow: number, major: boolean): void {
   const { width, height } = cam;
+  if (major) {
+    const bar = Math.round(Math.min(width, height) * 0.035 * slow);
+    if (bar > 0) {
+      ctx.fillStyle = "rgba(4, 12, 26, 0.9)";
+      ctx.fillRect(0, 0, width, bar);
+      ctx.fillRect(0, height - bar, width, bar);
+    }
+  }
   const g = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.35, width / 2, height / 2, Math.max(width, height) * 0.75);
   g.addColorStop(0, "rgba(6,16,31,0)");
   g.addColorStop(1, `rgba(6,16,31,${(major ? 0.7 : 0.45) * slow})`);

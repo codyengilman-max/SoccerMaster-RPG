@@ -1,5 +1,6 @@
 import type { CampaignKind, Foot, Month, PlayerProfile } from "../campaign/campaign";
 import { ROLE_LABEL, ROLE_NUMBERS, type RoleNumber } from "../sim/types";
+import { drawAvatar } from "../render/avatar";
 import { escapeHtml, q } from "./html";
 
 /** Appearance presets (OPEN_QUESTIONS #4): placeholder labels until art direction lands. */
@@ -41,7 +42,7 @@ export function mountCreateScreen(root: HTMLElement, h: CreateHandlers): void {
         <div class="field">
           <span>Look</span>
           <div class="presets">
-            ${APPEARANCE_PRESETS.map((p, i) => `<button type="button" class="preset" data-i="${i}" aria-pressed="${i === 0}"><i class="avatar a${i}"></i><span>${escapeHtml(p)}</span></button>`).join("")}
+            ${APPEARANCE_PRESETS.map((p, i) => `<button type="button" class="preset" data-i="${i}" aria-pressed="${i === 0}"><canvas class="avatar" width="128" height="128" aria-hidden="true"></canvas><span>${escapeHtml(p)}</span></button>`).join("")}
           </div>
         </div>
         <div class="row">
@@ -81,6 +82,9 @@ export function mountCreateScreen(root: HTMLElement, h: CreateHandlers): void {
     });
   }
   for (const b of root.querySelectorAll<HTMLButtonElement>("button.preset")) {
+    const c = b.querySelector<HTMLCanvasElement>("canvas.avatar");
+    const ctx = c?.getContext("2d");
+    if (c && ctx) drawAvatar(ctx, Number(b.dataset["i"]), c.width);
     b.addEventListener("click", () => {
       appearance = Number(b.dataset["i"]);
       pressGroup("button.preset", (x) => x === b);
