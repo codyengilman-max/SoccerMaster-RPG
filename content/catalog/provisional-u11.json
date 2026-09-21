@@ -151,6 +151,36 @@
               "why": "a long switch under pressure is risky"
             }
           ]
+        },
+        {
+          "id": "hold_ball",
+          "label": "Hold and shield",
+          "intent": "hold_ball",
+          "base": 0.15,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.8
+                }
+              ],
+              "add": -0.3,
+              "why": "shielding under heavy pressure invites the tackle"
+            },
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": 0.3,
+              "why": "no passing option yet, buy time"
+            }
+          ]
         }
       ],
       "mistakes": [
@@ -198,7 +228,7 @@
       "role": "GK",
       "category": "on_ball",
       "phase": "build_up",
-      "title": "Distribution against a press",
+      "title": "Play through the press",
       "trigger": {
         "all": [
           {
@@ -210,6 +240,11 @@
             "f": "nearestOppDist",
             "op": "<",
             "v": 12
+          },
+          {
+            "f": "openLanes",
+            "op": ">=",
+            "v": 2
           }
         ]
       },
@@ -353,7 +388,8 @@
             "label": "typical",
             "read": {
               "hasBall": 1,
-              "nearestOppDist": 7
+              "nearestOppDist": 7,
+              "openLanes": 2
             }
           }
         ],
@@ -362,7 +398,1901 @@
             "label": "not eligible",
             "read": {
               "hasBall": 1,
-              "nearestOppDist": 15
+              "nearestOppDist": 15,
+              "openLanes": 2
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      }
+    },
+    {
+      "id": "GK_BUILD_03",
+      "role": "GK",
+      "category": "on_ball",
+      "phase": "build_up",
+      "title": "Pressed with the short lanes shut",
+      "trigger": {
+        "all": [
+          {
+            "f": "hasBall",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "nearestOppDist",
+            "op": "<",
+            "v": 12
+          },
+          {
+            "f": "openLanes",
+            "op": "<=",
+            "v": 1
+          }
+        ]
+      },
+      "cues": [
+        "Are the full backs marked?",
+        "Who is free two lines up?",
+        "Is a switch to the far side on?"
+      ],
+      "actions": [
+        {
+          "id": "keeper_skip_lines",
+          "label": "Skip the press: find the far midfielder",
+          "intent": "keeper_distribute_long",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": "<=",
+                  "v": 1
+                },
+                {
+                  "f": "nearestOppDist",
+                  "op": "<",
+                  "v": 12
+                }
+              ],
+              "add": 0.4,
+              "why": "they press high and the short lanes are shut: play over them"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceBehindLine",
+                  "op": "<",
+                  "v": 10
+                }
+              ],
+              "add": -0.2,
+              "why": "their line is deep: the long ball lands in a crowd"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            }
+          ]
+        },
+        {
+          "id": "keeper_short",
+          "label": "Build short",
+          "intent": "keeper_distribute_short",
+          "base": 0.4,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "nearestOppDist",
+                  "op": ">",
+                  "v": 12
+                }
+              ],
+              "add": 0.3,
+              "why": "no press: build from the back"
+            },
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": 0.3,
+              "why": "short options are open"
+            },
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": "<=",
+                  "v": 1
+                }
+              ],
+              "add": -0.3,
+              "why": "short options are covered"
+            }
+          ]
+        },
+        {
+          "id": "hold_ball",
+          "label": "Hold and shield",
+          "intent": "hold_ball",
+          "base": 0.15,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.8
+                }
+              ],
+              "add": -0.3,
+              "why": "shielding under heavy pressure invites the tackle"
+            },
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": 0.3,
+              "why": "no passing option yet, buy time"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Forcing the ball into a marked full back",
+        "Hoofing it aimlessly when a far-side midfielder is free"
+      ],
+      "difficultyFactors": [
+        "Distance to the presser",
+        "Depth of their line"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Press skipped into midfield, or the ball is contested or lost.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "hasBall": 1,
+              "nearestOppDist": 7,
+              "openLanes": 0
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "hasBall": 1,
+              "nearestOppDist": 7,
+              "openLanes": 3
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      }
+    },
+    {
+      "id": "GK_TRANS_01",
+      "role": "GK",
+      "category": "transition",
+      "phase": "transition",
+      "title": "Ball just claimed: restart the attack",
+      "trigger": {
+        "all": [
+          {
+            "f": "hasBall",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "secondsSinceTurnover",
+            "op": "<",
+            "v": 4
+          },
+          {
+            "f": "spaceBehindLine",
+            "op": ">",
+            "v": 20
+          },
+          {
+            "f": "nearestOppDist",
+            "op": ">=",
+            "v": 6
+          }
+        ]
+      },
+      "cues": [
+        "Are they still pushed up?",
+        "Which teammate is already facing forward?",
+        "Is quick better than safe right now?"
+      ],
+      "actions": [
+        {
+          "id": "keeper_long",
+          "label": "Go long",
+          "intent": "keeper_distribute_long",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": "<=",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "short options are covered"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceBehindLine",
+                  "op": ">",
+                  "v": 15
+                }
+              ],
+              "add": 0.2,
+              "why": "space behind their line"
+            },
+            {
+              "when": [
+                {
+                  "f": "nearestOppDist",
+                  "op": ">",
+                  "v": 12
+                }
+              ],
+              "add": -0.2,
+              "why": "no press: a long ball gives possession away"
+            }
+          ]
+        },
+        {
+          "id": "keeper_short",
+          "label": "Build short",
+          "intent": "keeper_distribute_short",
+          "base": 0.4,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "nearestOppDist",
+                  "op": ">",
+                  "v": 12
+                }
+              ],
+              "add": 0.3,
+              "why": "no press: build from the back"
+            },
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": 0.3,
+              "why": "short options are open"
+            },
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": "<=",
+                  "v": 1
+                }
+              ],
+              "add": -0.3,
+              "why": "short options are covered"
+            }
+          ]
+        },
+        {
+          "id": "hold_ball",
+          "label": "Hold and shield",
+          "intent": "hold_ball",
+          "base": 0.15,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.8
+                }
+              ],
+              "add": -0.3,
+              "why": "shielding under heavy pressure invites the tackle"
+            },
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": 0.3,
+              "why": "no passing option yet, buy time"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Slowing the game down when they are stretched",
+        "Kicking it straight back to them"
+      ],
+      "difficultyFactors": [
+        "Opponent recovery speed",
+        "Space behind their line"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Counter launched, possession settled, or the ball given straight back.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "hasBall": 1,
+              "secondsSinceTurnover": 1,
+              "spaceBehindLine": 26,
+              "nearestOppDist": 10
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "hasBall": 1,
+              "secondsSinceTurnover": 1,
+              "spaceBehindLine": 12,
+              "nearestOppDist": 10
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      }
+    },
+    {
+      "id": "GK_POS_01",
+      "role": "GK",
+      "category": "off_ball",
+      "phase": "build_up",
+      "title": "Team building in front of you",
+      "trigger": {
+        "all": [
+          {
+            "f": "ourPossession",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "hasBall",
+            "op": "==",
+            "v": 0
+          },
+          {
+            "f": "receiving",
+            "op": "==",
+            "v": 0
+          },
+          {
+            "f": "ballProgress",
+            "op": "<",
+            "v": 0.5
+          },
+          {
+            "f": "teammateCarrierDist",
+            "op": "<",
+            "v": 35
+          },
+          {
+            "f": "secondsSinceTurnover",
+            "op": ">=",
+            "v": 5
+          }
+        ]
+      },
+      "cues": [
+        "Is the carrier under pressure?",
+        "Can they see you as the free player?",
+        "Where is their striker standing?"
+      ],
+      "actions": [
+        {
+          "id": "keeper_outlet",
+          "label": "Offer the outlet",
+          "intent": "support_underneath",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.5,
+              "why": "the carrier is pressed: they need you as the free player"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierPressure",
+                  "op": "<",
+                  "v": 0.3
+                }
+              ],
+              "add": -0.2,
+              "why": "the carrier has time: stay home and keep the goal covered"
+            },
+            {
+              "when": [
+                {
+                  "f": "teammateCarrierDist",
+                  "op": ">",
+                  "v": 30
+                }
+              ],
+              "add": -0.3,
+              "why": "too far from the ball to be a real option"
+            }
+          ]
+        },
+        {
+          "id": "keeper_set",
+          "label": "Stay set, goal covered",
+          "intent": "keeper_hold_line",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 22
+                }
+              ],
+              "add": 0.3,
+              "why": "a shot can come any moment: be set"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.2,
+              "why": "a runner is going behind: be ready for the ball in"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": ">",
+                  "v": 22
+                },
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": ">",
+                  "v": 30
+                }
+              ],
+              "add": -0.3,
+              "why": "the line is high and the ball is far: you could start higher"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                },
+                {
+                  "f": "ourPossession",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "your teammate needed an outlet"
+            }
+          ]
+        },
+        {
+          "id": "keeper_organise",
+          "label": "Organise the line",
+          "intent": "communicate",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "teammatePressing",
+                  "op": "==",
+                  "v": 0
+                },
+                {
+                  "f": "theirPossession",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "nobody is on the carrier: tell the line who goes"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.2,
+              "why": "a runner is behind the line: call it early"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 16
+                }
+              ],
+              "add": -0.4,
+              "why": "too late to talk: the shot is coming"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourPossession",
+                  "op": "==",
+                  "v": 1
+                },
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "your teammate needed an outlet, not instructions"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Hiding behind the striker when the carrier is pressed",
+        "Wandering off the line while the ball is still in our half"
+      ],
+      "difficultyFactors": [
+        "Carrier pressure",
+        "Striker position"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Back pass used, team progresses, or the ball is lost near your goal.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "ourPossession": 1,
+              "ballProgress": 0.3,
+              "teammateCarrierDist": 20,
+              "secondsSinceTurnover": 30
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "ourPossession": 1,
+              "ballProgress": 0.7,
+              "teammateCarrierDist": 20,
+              "secondsSinceTurnover": 30
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      }
+    },
+    {
+      "id": "GK_POS_02",
+      "role": "GK",
+      "category": "off_ball",
+      "phase": "progression",
+      "title": "Team attacking: pick your starting position",
+      "trigger": {
+        "all": [
+          {
+            "f": "ourPossession",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "hasBall",
+            "op": "==",
+            "v": 0
+          },
+          {
+            "f": "receiving",
+            "op": "==",
+            "v": 0
+          },
+          {
+            "f": "ballProgress",
+            "op": ">=",
+            "v": 0.5
+          },
+          {
+            "f": "secondsSinceTurnover",
+            "op": ">=",
+            "v": 5
+          }
+        ]
+      },
+      "cues": [
+        "How high is your back line?",
+        "How much space is behind it?",
+        "Who is their quickest forward?"
+      ],
+      "actions": [
+        {
+          "id": "keeper_step_up",
+          "label": "Start high, sweep behind the line",
+          "intent": "keeper_step_up",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": ">",
+                  "v": 22
+                }
+              ],
+              "add": 0.4,
+              "why": "your line is high: the space behind is yours to cover"
+            },
+            {
+              "when": [
+                {
+                  "f": "ballProgress",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.2,
+              "why": "the ball is far away: you have time to get back"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": "<",
+                  "v": 14
+                }
+              ],
+              "add": -0.4,
+              "why": "the line is deep: there is no space behind it to sweep"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 22
+                }
+              ],
+              "add": -0.5,
+              "why": "they are already close: coming out opens the goal"
+            }
+          ]
+        },
+        {
+          "id": "keeper_set",
+          "label": "Stay set, goal covered",
+          "intent": "keeper_hold_line",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 22
+                }
+              ],
+              "add": 0.3,
+              "why": "a shot can come any moment: be set"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.2,
+              "why": "a runner is going behind: be ready for the ball in"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": ">",
+                  "v": 22
+                },
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": ">",
+                  "v": 30
+                }
+              ],
+              "add": -0.3,
+              "why": "the line is high and the ball is far: you could start higher"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                },
+                {
+                  "f": "ourPossession",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "your teammate needed an outlet"
+            }
+          ]
+        },
+        {
+          "id": "keeper_organise",
+          "label": "Organise the line",
+          "intent": "communicate",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "teammatePressing",
+                  "op": "==",
+                  "v": 0
+                },
+                {
+                  "f": "theirPossession",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "nobody is on the carrier: tell the line who goes"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.2,
+              "why": "a runner is behind the line: call it early"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 16
+                }
+              ],
+              "add": -0.4,
+              "why": "too late to talk: the shot is coming"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourPossession",
+                  "op": "==",
+                  "v": 1
+                },
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "your teammate needed an outlet, not instructions"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Standing on the line with the defence at halfway",
+        "Coming so far out a long ball beats you"
+      ],
+      "difficultyFactors": [
+        "Height of the back line",
+        "Distance of the ball"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Attack continues, or the ball turns over and your start position decides the counter.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "ourPossession": 1,
+              "ballProgress": 0.7,
+              "ourLineDepth": 28,
+              "secondsSinceTurnover": 30
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "ourPossession": 1,
+              "ballProgress": 0.3,
+              "ourLineDepth": 28,
+              "secondsSinceTurnover": 30
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      }
+    },
+    {
+      "id": "GK_LINE_01",
+      "role": "GK",
+      "category": "defending",
+      "phase": "defending",
+      "title": "They have it in midfield",
+      "trigger": {
+        "all": [
+          {
+            "f": "theirPossession",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "carrierDistToOurGoal",
+            "op": ">=",
+            "v": 22
+          },
+          {
+            "f": "carrierDistToOurGoal",
+            "op": "<",
+            "v": 45
+          },
+          {
+            "f": "secondsSinceTurnover",
+            "op": ">=",
+            "v": 5
+          }
+        ]
+      },
+      "cues": [
+        "Is anyone pressing the carrier?",
+        "Is a runner going behind your line?",
+        "How much space is between the line and you?"
+      ],
+      "actions": [
+        {
+          "id": "keeper_organise",
+          "label": "Organise the line",
+          "intent": "communicate",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "teammatePressing",
+                  "op": "==",
+                  "v": 0
+                },
+                {
+                  "f": "theirPossession",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "nobody is on the carrier: tell the line who goes"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.2,
+              "why": "a runner is behind the line: call it early"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 16
+                }
+              ],
+              "add": -0.4,
+              "why": "too late to talk: the shot is coming"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourPossession",
+                  "op": "==",
+                  "v": 1
+                },
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "your teammate needed an outlet, not instructions"
+            }
+          ]
+        },
+        {
+          "id": "keeper_step_up",
+          "label": "Start high, sweep behind the line",
+          "intent": "keeper_step_up",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": ">",
+                  "v": 22
+                }
+              ],
+              "add": 0.4,
+              "why": "your line is high: the space behind is yours to cover"
+            },
+            {
+              "when": [
+                {
+                  "f": "ballProgress",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.2,
+              "why": "the ball is far away: you have time to get back"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": "<",
+                  "v": 14
+                }
+              ],
+              "add": -0.4,
+              "why": "the line is deep: there is no space behind it to sweep"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 22
+                }
+              ],
+              "add": -0.5,
+              "why": "they are already close: coming out opens the goal"
+            }
+          ]
+        },
+        {
+          "id": "keeper_set",
+          "label": "Stay set, goal covered",
+          "intent": "keeper_hold_line",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 22
+                }
+              ],
+              "add": 0.3,
+              "why": "a shot can come any moment: be set"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.2,
+              "why": "a runner is going behind: be ready for the ball in"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": ">",
+                  "v": 22
+                },
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": ">",
+                  "v": 30
+                }
+              ],
+              "add": -0.3,
+              "why": "the line is high and the ball is far: you could start higher"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                },
+                {
+                  "f": "ourPossession",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "your teammate needed an outlet"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Silent while the line is disorganised",
+        "Retreating to the line when the space behind the defence is yours"
+      ],
+      "difficultyFactors": [
+        "Runner presence",
+        "Line height"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Attack slowed, ball in behind swept, or the carrier progresses.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "theirPossession": 1,
+              "carrierDistToOurGoal": 32,
+              "secondsSinceTurnover": 30
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "theirPossession": 1,
+              "carrierDistToOurGoal": 15,
+              "secondsSinceTurnover": 30
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      }
+    },
+    {
+      "id": "GK_CROSS_01",
+      "role": "GK",
+      "category": "defending",
+      "phase": "defending",
+      "title": "Ball wide near your box",
+      "trigger": {
+        "all": [
+          {
+            "f": "theirPossession",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "carrierDistToOurGoal",
+            "op": "<",
+            "v": 30
+          },
+          {
+            "f": "ballWide",
+            "op": ">",
+            "v": 0.55
+          }
+        ]
+      },
+      "cues": [
+        "Can they shoot from there or only cross?",
+        "Who is at your far post?",
+        "Is your defender showing them outside?"
+      ],
+      "actions": [
+        {
+          "id": "keeper_near_post",
+          "label": "Protect the near post",
+          "intent": "keeper_near_post",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "ballWide",
+                  "op": ">",
+                  "v": 0.7
+                },
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 18
+                }
+              ],
+              "add": 0.5,
+              "why": "the ball is wide and close: the near post is the first shot"
+            },
+            {
+              "when": [
+                {
+                  "f": "ballWide",
+                  "op": "<",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.4,
+              "why": "the ball is central: leaving the middle opens the far side"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": ">",
+                  "v": 22
+                }
+              ],
+              "add": -0.3,
+              "why": "too early: a cross from there needs you central"
+            }
+          ]
+        },
+        {
+          "id": "keeper_set",
+          "label": "Stay set, goal covered",
+          "intent": "keeper_hold_line",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 22
+                }
+              ],
+              "add": 0.3,
+              "why": "a shot can come any moment: be set"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.2,
+              "why": "a runner is going behind: be ready for the ball in"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": ">",
+                  "v": 22
+                },
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": ">",
+                  "v": 30
+                }
+              ],
+              "add": -0.3,
+              "why": "the line is high and the ball is far: you could start higher"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                },
+                {
+                  "f": "ourPossession",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "your teammate needed an outlet"
+            }
+          ]
+        },
+        {
+          "id": "keeper_organise",
+          "label": "Organise the line",
+          "intent": "communicate",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "teammatePressing",
+                  "op": "==",
+                  "v": 0
+                },
+                {
+                  "f": "theirPossession",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "nobody is on the carrier: tell the line who goes"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.2,
+              "why": "a runner is behind the line: call it early"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 16
+                }
+              ],
+              "add": -0.4,
+              "why": "too late to talk: the shot is coming"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourPossession",
+                  "op": "==",
+                  "v": 1
+                },
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "your teammate needed an outlet, not instructions"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Hugging the near post for a ball that is going to be crossed",
+        "Standing central when the shot from the angle is on"
+      ],
+      "difficultyFactors": [
+        "Angle of the ball",
+        "Distance to goal"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Shot from the angle, cross delivered, or the ball is delayed.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "theirPossession": 1,
+              "carrierDistToOurGoal": 16,
+              "ballWide": 0.8
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "theirPossession": 1,
+              "carrierDistToOurGoal": 16,
+              "ballWide": 0.2
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      }
+    },
+    {
+      "id": "GK_1V1_01",
+      "role": "GK",
+      "category": "defending",
+      "phase": "defending",
+      "title": "One against one",
+      "trigger": {
+        "all": [
+          {
+            "f": "theirPossession",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "carrierDistToOurGoal",
+            "op": "<",
+            "v": 16
+          },
+          {
+            "f": "teammatePressing",
+            "op": "==",
+            "v": 0
+          },
+          {
+            "f": "ballWide",
+            "op": "<=",
+            "v": 0.55
+          }
+        ]
+      },
+      "cues": [
+        "How far away are they?",
+        "Are they looking at the ball or at you?",
+        "Is a defender recovering?"
+      ],
+      "actions": [
+        {
+          "id": "keeper_come_out",
+          "label": "Come out and close them down",
+          "intent": "press",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "carrierDist",
+                  "op": "<",
+                  "v": 9
+                }
+              ],
+              "add": 0.4,
+              "why": "close enough to smother before they set the shot"
+            },
+            {
+              "when": [
+                {
+                  "f": "teammatePressing",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.4,
+              "why": "a defender is on them: stay big on your line"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDist",
+                  "op": ">",
+                  "v": 12
+                }
+              ],
+              "add": -0.4,
+              "why": "too far: you would be stranded halfway"
+            }
+          ]
+        },
+        {
+          "id": "keeper_stay_big",
+          "label": "Stay big, make them beat you",
+          "intent": "keeper_hold_line",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "teammatePressing",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "a defender is delaying them: hold and be set"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDist",
+                  "op": ">",
+                  "v": 10
+                }
+              ],
+              "add": 0.2,
+              "why": "they are not close enough to smother"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDist",
+                  "op": "<",
+                  "v": 7
+                },
+                {
+                  "f": "teammatePressing",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": -0.3,
+              "why": "they are alone and close: standing still gives them the angle"
+            }
+          ]
+        },
+        {
+          "id": "keeper_narrow",
+          "label": "Narrow the angle, stay up",
+          "intent": "delay",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "carrierDist",
+                  "op": ">=",
+                  "v": 7
+                },
+                {
+                  "f": "carrierDist",
+                  "op": "<=",
+                  "v": 12
+                }
+              ],
+              "add": 0.4,
+              "why": "mid range: take a step out and take the angle away"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.3,
+              "why": "a runner is square: leaving the line opens the pass"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Diving in early and being rounded",
+        "Staying rooted while they walk it closer"
+      ],
+      "difficultyFactors": [
+        "Carrier distance",
+        "Recovering defenders"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Ball smothered, shot faced, or the attacker goes past.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "theirPossession": 1,
+              "carrierDistToOurGoal": 10,
+              "carrierDist": 8,
+              "teammatePressing": 0,
+              "ballWide": 0.2
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "theirPossession": 1,
+              "carrierDistToOurGoal": 10,
+              "carrierDist": 8,
+              "teammatePressing": 1,
+              "ballWide": 0.2
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      }
+    },
+    {
+      "id": "GK_TRANS_02",
+      "role": "GK",
+      "category": "transition",
+      "phase": "transition",
+      "title": "Ball lost upfield: reset your start",
+      "trigger": {
+        "all": [
+          {
+            "f": "theirPossession",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "secondsSinceTurnover",
+            "op": "<",
+            "v": 5
+          },
+          {
+            "f": "carrierDistToOurGoal",
+            "op": ">",
+            "v": 25
+          },
+          {
+            "f": "ourLineDepth",
+            "op": ">",
+            "v": 18
+          }
+        ]
+      },
+      "cues": [
+        "Is your line still high?",
+        "Where is their quickest forward?",
+        "Who is recovering?"
+      ],
+      "actions": [
+        {
+          "id": "keeper_step_up",
+          "label": "Start high, sweep behind the line",
+          "intent": "keeper_step_up",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": ">",
+                  "v": 22
+                }
+              ],
+              "add": 0.4,
+              "why": "your line is high: the space behind is yours to cover"
+            },
+            {
+              "when": [
+                {
+                  "f": "ballProgress",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.2,
+              "why": "the ball is far away: you have time to get back"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": "<",
+                  "v": 14
+                }
+              ],
+              "add": -0.4,
+              "why": "the line is deep: there is no space behind it to sweep"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 22
+                }
+              ],
+              "add": -0.5,
+              "why": "they are already close: coming out opens the goal"
+            }
+          ]
+        },
+        {
+          "id": "keeper_set",
+          "label": "Stay set, goal covered",
+          "intent": "keeper_hold_line",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 22
+                }
+              ],
+              "add": 0.3,
+              "why": "a shot can come any moment: be set"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.2,
+              "why": "a runner is going behind: be ready for the ball in"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourLineDepth",
+                  "op": ">",
+                  "v": 22
+                },
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": ">",
+                  "v": 30
+                }
+              ],
+              "add": -0.3,
+              "why": "the line is high and the ball is far: you could start higher"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                },
+                {
+                  "f": "ourPossession",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "your teammate needed an outlet"
+            }
+          ]
+        },
+        {
+          "id": "keeper_organise",
+          "label": "Organise the line",
+          "intent": "communicate",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "teammatePressing",
+                  "op": "==",
+                  "v": 0
+                },
+                {
+                  "f": "theirPossession",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "nobody is on the carrier: tell the line who goes"
+            },
+            {
+              "when": [
+                {
+                  "f": "oppRunnerNear",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.2,
+              "why": "a runner is behind the line: call it early"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierDistToOurGoal",
+                  "op": "<",
+                  "v": 16
+                }
+              ],
+              "add": -0.4,
+              "why": "too late to talk: the shot is coming"
+            },
+            {
+              "when": [
+                {
+                  "f": "ourPossession",
+                  "op": "==",
+                  "v": 1
+                },
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "your teammate needed an outlet, not instructions"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Dropping to the line and leaving 20 metres in front of you",
+        "Freezing while the defence sprints back"
+      ],
+      "difficultyFactors": [
+        "Line height at the turnover",
+        "Counter speed"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Counter swept up, delayed, or a ball in behind arrives.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "theirPossession": 1,
+              "secondsSinceTurnover": 2,
+              "carrierDistToOurGoal": 40,
+              "ourLineDepth": 30
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "theirPossession": 1,
+              "secondsSinceTurnover": 2,
+              "carrierDistToOurGoal": 40,
+              "ourLineDepth": 12
             }
           }
         ]
@@ -514,7 +2444,7 @@
       "role": "GK",
       "category": "defending",
       "phase": "defending",
-      "title": "Attacker closing on goal",
+      "title": "Attacker closing on goal, defender on them",
       "trigger": {
         "all": [
           {
@@ -526,12 +2456,17 @@
             "f": "carrierDistToOurGoal",
             "op": "<",
             "v": 22
+          },
+          {
+            "f": "teammatePressing",
+            "op": "==",
+            "v": 1
           }
         ]
       },
       "cues": [
         "Is the shot angle open?",
-        "Is a defender delaying them?",
+        "Is the defender delaying them or diving in?",
         "Can you narrow the angle safely?"
       ],
       "actions": [
@@ -670,7 +2605,8 @@
             "read": {
               "theirPossession": 1,
               "carrierDistToOurGoal": 15,
-              "carrierDist": 10
+              "carrierDist": 10,
+              "teammatePressing": 1
             }
           }
         ],

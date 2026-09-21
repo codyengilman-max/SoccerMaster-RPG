@@ -199,8 +199,11 @@ export function instantiateIntent(state: MatchState, p: PlayerState, intent: Int
       return { command: { type: "hold" }, feasibility: 0.5, anchor: null, detail: "hand off responsibility and hold" };
     }
     case "keeper_sweep": {
-      if (p.role !== 1 || ball.status !== "loose") return null;
-      return { command: { type: "move", target: clampField(rules, ball.pos) }, feasibility: 0.7, anchor: null, detail: "come and claim the ball" };
+      if (p.role !== 1) return null;
+      // still valid if an attacker got there first: the keeper keeps coming to smother
+      const ownerIsOpp = ball.status === "controlled" && opps.some((o) => o.id === ball.owner);
+      if (ball.status !== "loose" && !ownerIsOpp) return null;
+      return { command: { type: "move", target: clampField(rules, ball.pos) }, feasibility: ownerIsOpp ? 0.45 : 0.7, anchor: null, detail: ownerIsOpp ? "keep coming and smother the ball" : "come and claim the ball" };
     }
     case "keeper_hold_line": {
       if (p.role !== 1) return null;
@@ -214,6 +217,25 @@ export function instantiateIntent(state: MatchState, p: PlayerState, intent: Int
       const r: Instantiated = { command: best.command, feasibility: clamp(1 - pressureAt(best.command.target, opps), 0, 1), anchor: best.command.target, detail: "build from the back" };
       if (best.receiver !== undefined) r.receiver = best.receiver;
       return r;
+    }
+    case "keeper_step_up": {
+      // sweeper-keeper starting position: off the line, halfway to our back line, shaded to the ball
+      if (p.role !== 1 || hasBall) return null;
+      const ourGoalX = defendingGoalX(rules, p.side);
+      const lineDepth = Math.abs(lastDefenderLine(state, p.side) - ourGoalX);
+      const depth = clamp(lineDepth * 0.5, 6, rules.penaltyAreaDepth + 2);
+      const target = clampField(rules, { x: ourGoalX + dir * depth, y: rules.width / 2 + (ball.pos.y - rules.width / 2) * 0.3 });
+      const spaceBehind = spaceAt(add(target, scale(fwd, 3)), opps);
+      return { command: { type: "move", target }, feasibility: clamp(0.3 + spaceBehind * 0.7, 0, 1), anchor: null, detail: `start ${depth.toFixed(0)} m off the line to sweep behind the defence` };
+    }
+    case "keeper_near_post": {
+      // protect the near post as the ball goes wide: just off the line, inside the post nearest the ball
+      if (p.role !== 1 || hasBall) return null;
+      const ourGoalX = defendingGoalX(rules, p.side);
+      const side = ball.pos.y >= rules.width / 2 ? 1 : -1;
+      const target = clampField(rules, { x: ourGoalX + dir * 1.2, y: rules.width / 2 + side * (rules.goalWidth / 2 - 0.6) });
+      const wide = Math.abs(ball.pos.y - rules.width / 2) / (rules.width / 2);
+      return { command: { type: "move", target }, feasibility: clamp(wide, 0, 1), anchor: null, detail: "get to the near post before the ball arrives" };
     }
     case "keeper_distribute_long": {
       if (p.role !== 1 || !hasBall) return null;

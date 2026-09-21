@@ -29,10 +29,13 @@ export const DEFAULT_PACING: PacingConfig = {
   repeatGapSeconds: 180,
 };
 
-/** Goalkeepers see the ball less often (OPEN_QUESTIONS #10). */
+/**
+ * Goalkeepers share the total band; the ball reaches them less often, so a larger share of their
+ * moments are positioning, organising and transition decisions (OPEN_QUESTIONS #10).
+ */
 export const GK_PACING: PacingConfig = {
-  total: [12, 18],
-  onBall: [6, 9],
+  total: [18, 25],
+  onBall: [7, 12],
   minGapSeconds: 60,
   repeatGapSeconds: 180,
 };

@@ -42,7 +42,8 @@ running it*; it does **not** measure phone frame rate, GPU raster or compositing
 ```
 npm run pace              # 4 seeds, CM, typical decision speed
 npm run pace -- 4 CM all  # 4 seeds × quick / typical / slow deciders
-npm run pace -- 3 GK      # goalkeeper (see OPEN_QUESTIONS #23 — fewer moments)
+npm run pace -- 3 GK      # goalkeeper (OPEN_QUESTIONS #10 — same total band, lower on-ball band)
+npm run pace -- 3 all     # every supported position, 3 seeds each
 ```
 
 `tools/paceBench.ts` drives the real `MatchRuntime` at 60 Hz with a scripted user whose decision
@@ -51,9 +52,11 @@ time out — the worst case), advances
 wall-clock time exactly as the browser loop would, and reports for every match the real time,
 moments (total and on-ball), simulated minutes, score, and the split between decisions, live
 aftermath, fast-forward (with the peak scale and max ticks per frame) and half time. It exits
-non-zero if any match leaves the 6:00–8:00 band or the 18–25 moment band. Latest run
-(`4 CM all`): every match 6:59–7:03, 25 moments (14 on the ball), peak scale ×21–×32, ≤ 11
-ticks per frame. `tests/match/pace.test.ts` keeps the budget arithmetic honest.
+non-zero if any match leaves the 6:00–8:00 band, its role's moment band (`pacingFor(role).total`) or
+60 simulated minutes. Latest run (`3 all typical`): every outfield match 6:59–7:00 with 24–25 moments
+(13–14 on the ball); goalkeeper matches 6:44 with 20 moments (5–7 on the ball). `tests/match/pace.test.ts`
+keeps the budget arithmetic honest and covers every role; `tests/tactics/goalkeeper.test.ts` covers the
+keeper's moment quality and continuation.
 
 ### In-app probe (the phone evidence)
 

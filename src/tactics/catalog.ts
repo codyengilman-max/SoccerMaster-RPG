@@ -39,7 +39,9 @@ export type Intent =
   | "keeper_sweep"
   | "keeper_hold_line"
   | "keeper_distribute_short"
-  | "keeper_distribute_long";
+  | "keeper_distribute_long"
+  | "keeper_step_up"
+  | "keeper_near_post";
 
 export const INTENTS: readonly Intent[] = [
   "attack_space",
@@ -67,6 +69,8 @@ export const INTENTS: readonly Intent[] = [
   "keeper_hold_line",
   "keeper_distribute_short",
   "keeper_distribute_long",
+  "keeper_step_up",
+  "keeper_near_post",
 ];
 
 /** Intents that are executed by drawing (spec §11); the rest use a contextual control. */
@@ -279,6 +283,9 @@ export const NEUTRAL_READ: FieldRead = {
   ballInOurBox: 0,
   ballInTheirBox: 0,
   keeperCanSweep: 0,
+  ourLineDepth: 20,
+  ballWide: 0.3,
+  distFromOwnGoalLine: 35,
   scoreDiff: 0,
   minute: 10,
   carrierPressure: 0,
