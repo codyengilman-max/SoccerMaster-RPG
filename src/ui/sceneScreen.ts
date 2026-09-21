@@ -1,6 +1,7 @@
 import type { Session } from "../app/session";
 import { formatDay } from "../calendar/date";
 import { PLAYER_ID } from "../campaign/campaign";
+import { MINIGAME_TITLE } from "../minigame/contract";
 import { chooseInScene, continueScene, personName, viewScene, type SceneView } from "../story/flow";
 import type { Line, LocationId, Scene } from "../story/scenes";
 import { escapeHtml, q } from "./html";
@@ -21,6 +22,8 @@ export interface SceneHandlers {
   onNext(): void;
   /** The scene's lines are done and its playable activity should run. */
   onActivity(scene: Scene): void;
+  /** The scene's lines are done and its Story Engine minigame should launch (or resume). */
+  onMinigame(scene: Scene): void;
 }
 
 /**
@@ -100,6 +103,12 @@ export function mountSceneScreen(root: HTMLElement, session: Session, h: SceneHa
     if (v.scene.activity) {
       actions.innerHTML = `<button type="button" class="primary next">Start · ${escapeHtml(v.scene.title)}</button>`;
       q<HTMLButtonElement>(actions, "button.next").addEventListener("click", () => h.onActivity(v.scene));
+      return;
+    }
+    if (v.minigame) {
+      const resuming = c.pending?.kind === "minigame" && c.pending.sceneId === v.scene.id;
+      actions.innerHTML = `<button type="button" class="primary next">${resuming ? "Resume" : "Play"} · ${escapeHtml(MINIGAME_TITLE[v.minigame.gameId])}</button>`;
+      q<HTMLButtonElement>(actions, "button.next").addEventListener("click", () => h.onMinigame(v.scene));
       return;
     }
     actions.innerHTML = `<button type="button" class="primary next">Continue</button>`;

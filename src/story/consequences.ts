@@ -1,4 +1,19 @@
 import type { CampaignDay } from "../calendar/date";
+import type { LedgerEntry } from "./ledger";
+import {
+  adjustRelation,
+  createMemoryState,
+  relationOf,
+  remember,
+  remembers,
+  resolveMemory,
+  type EmotionalTag,
+  type KnowledgeSource,
+  type MemoryState,
+  type RelationDimension,
+  type Visibility,
+  type DecayRule,
+} from "./memory";
 import { adjustRelationship, adjustTrack, refreshUnlocks, type Progression, type Track } from "./progression";
 
 /**
@@ -17,7 +32,9 @@ export type Condition =
   | { type: "day"; min?: CampaignDay; max?: CampaignDay }
   | { type: "not_applied"; choiceId: string }
   | { type: "applied"; choiceId: string }
-  | { type: "unlocked"; id: string };
+  | { type: "unlocked"; id: string }
+  | { type: "relation"; personId: string; dimension: RelationDimension; min?: number; max?: number }
+  | { type: "remembers"; observerId: string; eventPrefix: string; tag?: EmotionalTag; not?: boolean };
 
 export type Effect =
   | { type: "set_fact"; id: string; value: FactValue }
@@ -29,7 +46,21 @@ export type Effect =
   | { type: "deliver"; promiseId: string }
   | { type: "break_promise"; promiseId: string }
   | { type: "queue_scene"; sceneId: string; onDay: CampaignDay | null }
-  | { type: "flag"; id: string };
+  | { type: "queue_scene_in"; sceneId: string; afterDays: number }
+  | { type: "flag"; id: string }
+  | { type: "relation"; personId: string; dimension: RelationDimension; delta: number }
+  | {
+      type: "remember";
+      observerId: string;
+      eventId: string;
+      belief: string;
+      source?: KnowledgeSource;
+      confidence?: number;
+      tag?: EmotionalTag;
+      visibility?: Visibility;
+      decay?: DecayRule;
+    }
+  | { type: "resolve_memory"; observerId: string; eventPrefix: string };
 
 export interface DelayedEffect {
   id: string;
@@ -94,6 +125,10 @@ export interface StoryState {
   promises: StoryPromise[];
   queuedScenes: { sceneId: string; onDay: CampaignDay | null }[];
   flags: string[];
+  /** Verified events the narrative may react to (Story Engine v2 §7). */
+  ledger: LedgerEntry[];
+  /** Relationship dimensions and remembered events (§5). */
+  memory: MemoryState;
 }
 
 export const createStoryState = (): StoryState => ({
@@ -106,6 +141,8 @@ export const createStoryState = (): StoryState => ({
   promises: [],
   queuedScenes: [],
   flags: [],
+  ledger: [],
+  memory: createMemoryState(),
 });
 
 export interface StoryContext {
@@ -144,6 +181,14 @@ export function holds(ctx: StoryContext, c: Condition): boolean {
       return story.applied.includes(c.choiceId);
     case "unlocked":
       return progression.unlocked.includes(c.id);
+    case "relation": {
+      const v = relationOf(story.memory, c.personId)[c.dimension];
+      return (c.min === undefined || v >= c.min) && (c.max === undefined || v <= c.max);
+    }
+    case "remembers": {
+      const has = remembers(story.memory, c.observerId, c.eventPrefix, day, c.tag);
+      return c.not ? !has : has;
+    }
   }
 }
 
@@ -185,8 +230,30 @@ export function applyEffect(ctx: StoryContext, e: Effect): void {
     case "queue_scene":
       if (!story.queuedScenes.some((q) => q.sceneId === e.sceneId)) story.queuedScenes.push({ sceneId: e.sceneId, onDay: e.onDay });
       return;
+    case "queue_scene_in":
+      if (!story.queuedScenes.some((q) => q.sceneId === e.sceneId)) story.queuedScenes.push({ sceneId: e.sceneId, onDay: day + e.afterDays });
+      return;
     case "flag":
       if (!story.flags.includes(e.id)) story.flags.push(e.id);
+      return;
+    case "relation":
+      adjustRelation(story.memory, e.personId, e.dimension, e.delta);
+      return;
+    case "remember":
+      remember(story.memory, {
+        eventId: e.eventId,
+        observerId: e.observerId,
+        knowledgeSource: e.source ?? "witnessed",
+        belief: e.belief,
+        confidence: e.confidence ?? 0.9,
+        emotionalTag: e.tag ?? "neutral",
+        visibility: e.visibility ?? "private",
+        decayRule: e.decay ?? "fades",
+        day,
+      });
+      return;
+    case "resolve_memory":
+      resolveMemory(story.memory, e.observerId, e.eventPrefix, day);
       return;
   }
 }

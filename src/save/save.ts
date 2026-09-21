@@ -5,7 +5,10 @@ import { dayOfIso } from "../calendar/date";
 import { slotsFor } from "../calendar/schedule";
 import type { CampaignState } from "../campaign/campaign";
 import { createTryoutState } from "../campaign/tryouts";
+import { restore } from "../minigame/machine";
 import type { Club, Person } from "../roster/roster";
+import { validateLedger } from "../story/ledger";
+import { createMemoryState } from "../story/memory";
 
 /**
  * Versioned saves (spec §22; plan §3.4). A save is plain JSON: `{ version, savedAt, campaign }`.
@@ -14,7 +17,7 @@ import type { Club, Person } from "../roster/roster";
  * one code path.
  */
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export interface SaveFile {
   version: number;
@@ -86,6 +89,29 @@ export const MIGRATIONS: readonly Migration[] = [
       },
     };
   },
+  // 4 → 5: Story Engine v2 added the event ledger, relationship memory and the school cast.
+  (raw) => {
+    const c = isObj(raw.campaign) ? raw.campaign : {};
+    const story = isObj(c.story) ? c.story : {};
+    const roster = isObj(c.roster) ? c.roster : {};
+    const people = Array.isArray(roster.people) ? (roster.people as Person[]) : [];
+    const kind = c.kind === "girls" ? "girls" : "boys";
+    const file = castFile as { shared: Person[]; campaigns: Record<"boys" | "girls", { rival: Person }> };
+    const add = [...file.shared, file.campaigns[kind].rival].filter((p) => !people.some((x) => x.id === p.id));
+    const rosters = Array.isArray(roster.rosters) ? (roster.rosters as { clubId: string; ageGroup: string; playerIds: string[] }[]) : [];
+    for (const p of add) {
+      const r = p.role === "player" && p.clubId ? rosters.find((x) => x.clubId === p.clubId && x.ageGroup === "U11") : undefined;
+      if (r && !r.playerIds.includes(p.id)) r.playerIds.push(p.id);
+    }
+    return {
+      ...raw,
+      campaign: {
+        ...c,
+        roster: { ...roster, people: [...people, ...structuredClone(add)], rosters },
+        story: { ...story, ledger: Array.isArray(story.ledger) ? story.ledger : [], memory: isObj(story.memory) ? story.memory : createMemoryState() },
+      },
+    };
+  },
 ];
 
 export class SaveError extends Error {
@@ -122,7 +148,34 @@ function validate(file: Record<string, unknown>): SaveFile {
   const need: (keyof CampaignState)[] = ["id", "seed", "kind", "player", "ageGroup", "day", "revision", "schedule", "competitions", "roster", "story", "progression", "reports", "scene", "slot", "pending", "tryouts"];
   for (const k of need) if (!(k in c)) throw new SaveError(`campaign.${k} missing`, "invalid_shape");
   if (typeof file.savedAt !== "string" || typeof file.slot !== "string") throw new SaveError("bad header", "invalid_shape");
+  quarantine(c);
   return { version: SAVE_VERSION, savedAt: file.savedAt, slot: file.slot, campaign: c as unknown as CampaignState };
+}
+
+/**
+ * Story Engine data is player-facing evidence, so a save with a malformed ledger entry or an
+ * unreadable in-progress minigame is not thrown away: the bad entries are dropped (and logged in
+ * `story.dropped`) and the pending game is cleared so the scene can relaunch it.
+ */
+function quarantine(c: Record<string, unknown>): void {
+  const story = isObj(c.story) ? c.story : undefined;
+  if (!story) throw new SaveError("campaign.story is not an object", "invalid_shape");
+  const ledger = Array.isArray(story.ledger) ? story.ledger : [];
+  const problems = validateLedger(ledger);
+  const dropped = Array.isArray(story.dropped) ? (story.dropped as unknown[]) : [];
+  if (problems.length) {
+    const bad = new Set(problems.filter((p) => p.problem === "invalid" || p.problem === "duplicate_id").map((p) => p.index));
+    story.ledger = ledger.filter((_, i) => !bad.has(i));
+    const day = typeof c.day === "number" ? c.day : 0;
+    for (const i of bad) dropped.push({ key: `ledger:${i}`, day, why: "ledger_invalid" });
+    story.dropped = dropped;
+  }
+  if (isObj(c.pending) && c.pending.kind === "minigame" && restore(c.pending.session) === null) {
+    c.pending = null;
+    const day = typeof c.day === "number" ? c.day : 0;
+    dropped.push({ key: "pending:minigame", day, why: "minigame_session_invalid" });
+    story.dropped = dropped;
+  }
 }
 
 export function deserialize(json: string): SaveFile {

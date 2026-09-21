@@ -24,6 +24,7 @@ Proprietary. All rights reserved. No open-source license is granted.
 | `spec/SOCCERMASTER_RPG_STANDALONE_V1_1.md` | Owner-supplied build specification (verbatim) |
 | `spec/OPEN_QUESTIONS.md` | Missing inputs, proposed defaults, review gates |
 | `docs/IMPLEMENTATION_PLAN.md` | Stack proposal, module structure, milestone PR breakdown |
+| `docs/STORY_ENGINE.md` | Story Engine v2: minigame framework, ledger, relationship memory, episode integration, engine boundary |
 
 ## Development
 
@@ -67,7 +68,8 @@ Static site, no server functions required.
 spec/       specification and open questions
 docs/       implementation plan
 src/        application source (see docs/IMPLEMENTATION_PLAN.md §2 for module map)
-content/    authored data: tactical catalog, story (opening, week, season, U11 arc, tryouts, hobbies), rules profiles
+content/    authored data: tactical catalog, story (opening, week, season, U11 arc, tryouts, hobbies, Episode One), school
+            (age-tagged presentation topics), rules profiles
             (U11 9v9, competitions, progression tracks + unlock rules, tryouts + U12 roster capacity, hobbies)
 tests/      Vitest suites
 ```

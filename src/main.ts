@@ -7,12 +7,16 @@ import { campaignMatchConfig, fixtureById, reportFromRuntime } from "./campaign/
 import { clubRule } from "./campaign/tryouts";
 import { abandonPending, cancelPending, completeCrossbar, completeHomeSkill, completeJuggling, completeMatch, completeTraining, completeTryout, isTired, type Completion } from "./campaign/week";
 import { createRuntime } from "./match/runtime";
+import { DEFAULT_ACCESSIBILITY, type AccessibilitySettings } from "./minigame/contract";
+import type { MinigameSession } from "./minigame/machine";
 import { registerServiceWorker } from "./pwa/register";
 import { LocalStorageStore, SaveError } from "./save/save";
 import { U11_9V9 } from "./sim/rules";
 import { generateSquad } from "./sim/squad";
 import { ROLE_BY_NUMBER, ROLE_LABEL, ROLE_NUMBERS, type RoleNumber } from "./sim/types";
+import { cancelMinigame, checkpointMinigame, completeMinigame, launchMinigame, pendingMinigame } from "./story/episode";
 import { continueScene } from "./story/flow";
+import { activeLessonCue } from "./story/lesson";
 import type { Scene } from "./story/scenes";
 import { loadCatalog, type CatalogFile } from "./tactics/catalog";
 import { pacingFor } from "./tactics/recognition";
@@ -24,6 +28,7 @@ import { mountHomeSkillScreen } from "./ui/homeSkillScreen";
 import { mountHubScreen } from "./ui/hubScreen";
 import { mountJugglingScreen } from "./ui/jugglingScreen";
 import { mountMatchScreen } from "./ui/matchScreen";
+import { mountMinigameScreen } from "./ui/minigameScreen";
 import { mountSceneScreen } from "./ui/sceneScreen";
 import { mountSmallSidedScreen } from "./ui/smallSidedScreen";
 import { mountStartScreen } from "./ui/startScreen";
@@ -64,12 +69,18 @@ function showCreate(): void {
   });
 }
 
-/** Whatever the campaign is doing now: the current scene, or the hub between scenes. */
+/** Whatever the campaign is doing now: a minigame in progress, the current scene, or the hub between scenes. */
 function showCampaign(s: Session): void {
+  const pending = pendingMinigame(s.campaign);
+  if (pending) {
+    showMinigame(s, pending.session);
+    return;
+  }
   if (s.campaign.scene) {
     mountSceneScreen(root!, s, {
       onNext: () => showCampaign(s),
       onActivity: (scene) => showActivity(s, scene),
+      onMinigame: () => showMinigame(s, launchMinigame(s.campaign, s.scenes, loadAccessibility())),
     });
     return;
   }
@@ -162,15 +173,80 @@ function showPending(s: Session, p: PendingActivity): void {
       const fixture = fixtureById(c, p.fixtureId);
       const cfg = campaignMatchConfig(c, fixture);
       const runtime = createRuntime(cfg, catalog, { pacing: pacingFor(ROLE_BY_NUMBER[c.player.position]) });
+      const lesson = activeLessonCue(c.story.facts, ROLE_BY_NUMBER[c.player.position]);
       mountMatchScreen(
         root!,
         runtime,
         (rt) => after(completeMatch(c, reportFromRuntime(rt, fixture))),
-        { exitLabel: "Back to the week" },
+        { exitLabel: "Back to the week", ...(lesson ? { lesson } : {}) },
       );
       return;
     }
   }
+}
+
+// ------------------------------------------------------------------ minigames
+
+const A11Y_KEY = "soccermaster.minigame.a11y";
+
+function loadAccessibility(): AccessibilitySettings {
+  const base: AccessibilitySettings = {
+    ...DEFAULT_ACCESSIBILITY,
+    reducedMotion: typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches,
+  };
+  try {
+    const raw = localStorage.getItem(A11Y_KEY);
+    if (!raw) return base;
+    const v = JSON.parse(raw) as Partial<AccessibilitySettings>;
+    return {
+      reducedMotion: typeof v.reducedMotion === "boolean" ? v.reducedMotion : base.reducedMotion,
+      highContrast: v.highContrast === true,
+      timerScale: v.timerScale === 2 || v.timerScale === 1.5 ? v.timerScale : 1,
+      assist: v.assist === true,
+    };
+  } catch {
+    return base;
+  }
+}
+
+function saveAccessibility(a: AccessibilitySettings): void {
+  try {
+    localStorage.setItem(A11Y_KEY, JSON.stringify(a));
+  } catch {
+    /* storage unavailable: settings live for this session only */
+  }
+}
+
+/**
+ * A story-launched minigame. The session is checkpointed into the campaign save at every round
+ * boundary and pause, and committed through `completeMinigame` exactly once when it ends; the
+ * scene only continues after that commit.
+ */
+function showMinigame(s: Session, session: MinigameSession<unknown, unknown>): void {
+  const c = s.campaign;
+  const names = Object.fromEntries(c.roster.people.map((p) => [p.id, p.name]));
+  mountMinigameScreen(root!, {
+    session,
+    names,
+    onAccessibility: saveAccessibility,
+    onCheckpoint: (sess) => {
+      checkpointMinigame(c, sess);
+      s.save();
+    },
+    onDone: (sess) => {
+      if (sess.phase === "start") {
+        cancelMinigame(c);
+      } else {
+        const r = completeMinigame(c, s.scenes, sess);
+        if (!r.ok) {
+          console.error(`minigame result not committed: ${r.reason}`);
+          cancelMinigame(c);
+        }
+      }
+      s.save();
+      showCampaign(s);
+    },
+  });
 }
 
 /** A scene's playable activity. At the park the friend runs the session, not the coach. */

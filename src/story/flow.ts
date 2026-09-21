@@ -19,8 +19,22 @@ import {
 } from "../campaign/campaign";
 import { ROLE_LABEL } from "../sim/types";
 import { arcScenes } from "./arc";
+import { episodeScenes } from "./episodes";
 import { applyChoice, applyRepair, availableRepairs, choiceEligible, type ChoiceResult, type RepairOption, type RepairResult } from "./consequences";
-import { fill, markPlayed, markSeen, sceneEligible, visibleLines, type Line, type Scene, type SceneChoice } from "./scenes";
+import { CONTINUATIONS, type Continuation } from "../minigame/contract";
+import {
+  fill,
+  markPlayed,
+  markSeen,
+  minigameContinuationKey,
+  minigameDoneKey,
+  sceneEligible,
+  visibleLines,
+  type Line,
+  type MinigameLaunch,
+  type Scene,
+  type SceneChoice,
+} from "./scenes";
 
 /**
  * Scene flow: which authored scene is on screen, what of it the world lets the user see, and
@@ -65,6 +79,7 @@ export const campaignScenes = (kind: CampaignKind): Scene[] => [
   ...arcScenes(kind),
   ...tryoutScenes(kind),
   ...hobbyScenes(kind),
+  ...episodeScenes(kind),
 ];
 
 /**
@@ -134,6 +149,26 @@ export function sceneVars(c: CampaignState): Record<string, string> {
     next_club: factText("tryout_next_club"),
     friend_club: factText("tryout_friend_club"),
     striker_club: factText("tryout_striker_club"),
+    rival: name("rival"),
+    teacher: name("teacher"),
+    leah: name("cm-leah"),
+    tobias: name("cm-tobias"),
+    hana: name("cm-hana"),
+    ravi: name("cm-ravi"),
+    sol: name("cm-sol"),
+    lesson_title: factText("lesson:title"),
+    lesson_faced: factText("lesson:last_faced"),
+    lesson_strong: factText("lesson:last_strong"),
+    lesson_verdict: factText("lesson:last_verdict"),
+    wck_place: factText("mg:world_cup_knockout:place"),
+    wck_players: factText("mg:world_cup_knockout:players"),
+    wck_winner: (() => {
+      const w = c.story.facts["mg:world_cup_knockout:winner"];
+      return typeof w === "string" && w ? name(w) : "{wck_winner}";
+    })(),
+    gp_accuracy: factText("mg:group_presentation:accuracy"),
+    gp_clarity: factText("mg:group_presentation:clarity"),
+    gp_teamwork: factText("mg:group_presentation:teamwork"),
     fall_finish: typeof c.story.facts["fall_position"] === "number" && c.story.facts["fall_position"] > 0 ? ordinal(c.story.facts["fall_position"]) : "{fall_finish}",
   };
 }
@@ -193,6 +228,22 @@ export interface SceneView {
   /** Choices the user may currently take. */
   choices: SceneChoice[];
   vars: Record<string, string>;
+  /** The scene's minigame still has to be played (and its result committed) before it can continue. */
+  minigame: MinigameLaunch | null;
+}
+
+/** A minigame scene is gated until `completeMinigame` has committed today's result. */
+export function minigameDue(c: CampaignState, scene: Scene): boolean {
+  return !!scene.minigame && c.story.facts[minigameDoneKey(scene.id)] !== c.day;
+}
+
+/** Where a minigame scene continues, from the verified continuation recorded at commit time. */
+export function minigameNext(c: CampaignState, scene: Scene): string | null {
+  const launch = scene.minigame;
+  if (!launch) return scene.next;
+  const cont = c.story.facts[minigameContinuationKey(scene.id)];
+  const key = CONTINUATIONS.find((k): k is Continuation => k === cont);
+  return (key && launch.continuations?.[key]) ?? scene.next;
 }
 
 export function viewScene(c: CampaignState, scenes: readonly Scene[]): SceneView | null {
@@ -204,7 +255,7 @@ export function viewScene(c: CampaignState, scenes: readonly Scene[]): SceneView
   const choices = scene.choices
     .filter((ch) => choiceEligible(ctx, scopedChoice(scene, ch, c.day)))
     .map((ch) => ({ ...ch, label: fill(ch.label, vars) }));
-  return { scene, lines, choices, vars };
+  return { scene, lines, choices, vars, minigame: minigameDue(c, scene) ? scene.minigame! : null };
 }
 
 export type ChooseResult =
@@ -222,18 +273,22 @@ export function chooseInScene(c: CampaignState, scenes: readonly Scene[], choice
   syncStoryFlags(c);
   const vars = sceneVars(c);
   const response = visibleLines(storyContext(c), choice.response).map((l) => ({ ...l, text: fill(l.text, vars) }));
-  const next = leave(c, scenes, scene, choice.next ?? scene.next);
+  const next = leave(c, scenes, scene, choice.next ?? minigameNext(c, scene));
   return { ok: true, result, response, next };
 }
 
-/** Finish a scene that has no (remaining) choices and move to `next`. */
+/**
+ * Finish a scene that has no (remaining) choices and move to `next`. A minigame scene whose game
+ * has not been committed stays current and returns null: the screen must launch the game.
+ */
 export function continueScene(c: CampaignState, scenes: readonly Scene[]): EnterResult | null {
   if (!c.scene) return null;
   const scene = sceneById(scenes, c.scene);
-  return leave(c, scenes, scene, scene.next);
+  return leave(c, scenes, scene, minigameNext(c, scene));
 }
 
 function leave(c: CampaignState, scenes: readonly Scene[], scene: Scene, nextId: string | null): EnterResult | null {
+  if (minigameDue(c, scene)) return null;
   if (scene.once) markSeen(c.story, scene.id, c.day);
   else markPlayed(c.story, scene.id, c.day);
   if (nextId) return enterScene(c, scenes, nextId);

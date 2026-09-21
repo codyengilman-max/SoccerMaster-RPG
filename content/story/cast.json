@@ -1,6 +1,6 @@
 {
   "reviewStatus": "proposal",
-  "note": "Recurring cast (spec §5, OPEN_QUESTIONS #3, #5). Names and biographies are placeholders for the owner to replace. 'friend' and 'parent' are resolved per campaign. Ids of players are the ids used on the field. `roles` name the teammates the story arc leans on (striker, organiser, keeper, newcomer): arc content addresses them by role so shared scenes read the same in both campaigns while still pointing at real roster identities.",
+  "note": "Recurring cast (spec §5, OPEN_QUESTIONS #3, #5). Names and biographies are placeholders for the owner to replace. 'friend' and 'parent' are resolved per campaign. Ids of players are the ids used on the field. `roles` name the teammates the story arc leans on (striker, organiser, keeper, newcomer): arc content addresses them by role so shared scenes read the same in both campaigns while still pointing at real roster identities. `school` lists the classmates the Story Engine v2 school hub uses: `rival` is the classmate who plays for a rival club (friend in class, opponent on Saturday), `teacher` runs the classroom activities, and the shared classmates fill recess games.",
   "shared": [
     {
       "id": "coach",
@@ -55,6 +55,60 @@
       "shirt": null,
       "bio": "Red Rock FC academy coach, ex-professional goalkeeper. Blunt about evidence; warm once you have some.",
       "reviewStatus": "proposal"
+    },
+    {
+      "id": "teacher",
+      "name": "Ms. Ferreira",
+      "role": "teacher",
+      "clubId": null,
+      "shirt": null,
+      "bio": "Fifth-grade teacher. Notices who helps and who takes over; grades the group, not the loudest voice.",
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "cm-leah",
+      "name": "Leah Brandt",
+      "role": "player",
+      "clubId": null,
+      "shirt": null,
+      "bio": "Classmate. Plays rec on Sundays, fearless in recess games, laughs at her own misses.",
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "cm-tobias",
+      "name": "Tobias Meyer",
+      "role": "player",
+      "clubId": null,
+      "shirt": null,
+      "bio": "Classmate and reliable group-project partner. Reads a lot, kicks a ball like he is apologising to it.",
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "cm-hana",
+      "name": "Hana Lim",
+      "role": "player",
+      "clubId": "camelback",
+      "shirt": 7,
+      "bio": "Classmate at Camelback Athletic. Quiet, quick, never says which club she plays for unless asked.",
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "cm-ravi",
+      "name": "Ravi Anand",
+      "role": "player",
+      "clubId": null,
+      "shirt": null,
+      "bio": "Classmate. Commentates every recess game as if it were televised.",
+      "reviewStatus": "proposal"
+    },
+    {
+      "id": "cm-sol",
+      "name": "Sol Abara",
+      "role": "player",
+      "clubId": null,
+      "shirt": null,
+      "bio": "Classmate. Tall, left-footed, only shoots with the left.",
+      "reviewStatus": "proposal"
     }
   ],
   "campaigns": {
@@ -75,6 +129,15 @@
         "clubId": null,
         "shirt": null,
         "bio": "Works shifts; supportive but careful about money and time. Wants school to come first.",
+        "reviewStatus": "proposal"
+      },
+      "rival": {
+        "id": "rival",
+        "name": "Dario Quintero",
+        "role": "player",
+        "clubId": "sonoran",
+        "shirt": 10,
+        "bio": "Sits two desks over. Sonoran United's number 10 and the best player at recess by a distance. Funny, generous with praise when he means it, and unable to lose quietly. Not a villain: a classmate who wants the same thing you do.",
         "reviewStatus": "proposal"
       },
       "teammates": [
@@ -106,6 +169,15 @@
         "clubId": null,
         "shirt": null,
         "bio": "Runs a small business; drives a lot; worries about schoolwork and burnout.",
+        "reviewStatus": "proposal"
+      },
+      "rival": {
+        "id": "rival",
+        "name": "Priya Sethi",
+        "role": "player",
+        "clubId": "sonoran",
+        "shirt": 10,
+        "bio": "Sits two desks over. Sonoran United's number 10 and the best player at recess by a distance. Dry, exact, generous with praise when she means it, and unable to lose quietly. Not a villain: a classmate who wants the same thing you do.",
         "reviewStatus": "proposal"
       },
       "teammates": [
