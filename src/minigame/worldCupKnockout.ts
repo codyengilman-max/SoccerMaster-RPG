@@ -441,7 +441,11 @@ function endPlayerRound(s: WckState, _cfg: MinigameConfig, _rng: Rng, result: "g
 function record(s: WckState, a: WckAttacker, result: "goal" | "strike", why: string): void {
   const r = s.round;
   if (result === "goal") a.goals++;
-  else a.strikes++;
+  else if (a.strikes + 1 >= s.strikesToOut && alive(s).length === 1) {
+    // Playground rule: the last one standing cannot be knocked out — the game is already theirs.
+    s.actions.push({ atMs: s.elapsedMs, kind: "strike", actorId: a.id, detail: { why, strikes: a.strikes, round: r.n, lastStanding: true } });
+    return;
+  } else a.strikes++;
   s.actions.push({ atMs: s.elapsedMs, kind: result, actorId: a.id, detail: { why, strikes: a.strikes, round: r.n } });
   if (a.strikes >= s.strikesToOut) {
     a.outRound = r.n;
@@ -481,12 +485,19 @@ function beginRound(s: WckState, rng: Rng): void {
   }
 }
 
-/** Final position: the last one standing is 1st; eliminated attackers rank by how long they lasted, then fewer strikes. */
+/** Final position: the last one standing is 1st; eliminated attackers rank by how long they lasted (round, then order within the round), then fewer strikes. */
 export function placeOf(s: WckState, id: string): number {
+  const outSeq = (x: WckAttacker): number => {
+    const i = s.actions.findIndex((act) => act.kind === "eliminated" && act.actorId === x.id);
+    return i === -1 ? Infinity : i;
+  };
   const order = [...s.attackers].sort((a, b) => {
     const ao = a.outRound ?? Infinity;
     const bo = b.outRound ?? Infinity;
     if (ao !== bo) return bo - ao;
+    const as = outSeq(a);
+    const bs = outSeq(b);
+    if (as !== bs) return bs - as;
     if (a.strikes !== b.strikes) return a.strikes - b.strikes;
     return b.goals - a.goals;
   });

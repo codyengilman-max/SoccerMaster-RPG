@@ -1,5 +1,5 @@
 import type { MinigameResult } from "../../minigame/contract";
-import { WCK_TIMING, WCK_VARIANTS, type Dir3, type TouchDir, type WckInput, type WckState, type WckVariant } from "../../minigame/worldCupKnockout";
+import { WCK_TIMING, WCK_VARIANTS, type Dir3, type TouchDir, type WckAttacker, type WckInput, type WckState, type WckVariant } from "../../minigame/worldCupKnockout";
 import { paintBall, paintFigure, paintTurf, paintVignette, type Kit } from "../../render/figures";
 import { escapeHtml } from "../html";
 import type { GameView, PadFrame, ViewHost } from "./views";
@@ -250,6 +250,12 @@ export function wckView(host: ViewHost): GameView {
     paintFigure(ctx, server.x, server.y, b.s * 0.42, { kit: "neutral", label: "S" });
     // attackers
     const p = s.attackers[0]!;
+    /** Name tags shrink to strike dots when another live attacker stands close enough to overlap the text. */
+    const roomFor = (a: WckAttacker): boolean => {
+      const font = Math.max(10, b.s * 0.5);
+      const need = (first(a.id).length + s.strikesToOut + 1) * font * 0.6;
+      return !s.attackers.some((o) => o !== a && o.outRound === null && Math.abs(o.x - a.x) * b.s < need && Math.abs(o.y - a.y) * b.s < font * 2.2);
+    };
     s.attackers.forEach((a, i) => {
       if (a.outRound !== null) return;
       const pos = toPx(a.x, a.y);
@@ -264,7 +270,8 @@ export function wckView(host: ViewHost): GameView {
         ctx!.fillStyle = "rgba(255,255,255,0.9)";
         ctx!.font = `${Math.max(10, b.s * 0.5)}px system-ui, sans-serif`;
         ctx!.textAlign = "center";
-        ctx!.fillText(`${first(a.id)} ${"●".repeat(a.strikes)}${"○".repeat(Math.max(0, s.strikesToOut - a.strikes))}`, pos.x, pos.y + b.s * 1.1);
+        const dots = `${"●".repeat(a.strikes)}${"○".repeat(Math.max(0, s.strikesToOut - a.strikes))}`;
+        ctx!.fillText(roomFor(a) ? `${first(a.id)} ${dots}` : dots, pos.x, pos.y + b.s * 1.1);
       }
     });
     // pressure chaser next to the receiver

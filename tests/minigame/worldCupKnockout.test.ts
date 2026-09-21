@@ -92,6 +92,30 @@ describe("World Cup Knockout", () => {
     expect(r.outcomeTier).not.toBe("success");
   });
 
+  it("every completed knockout ends with exactly one attacker still in, who is the winner and 1st place", () => {
+    const styles = [playWckPerfect, playWckAverage, playWckReckless, (s: ReturnType<typeof newWck>) => idle(s, worldCupKnockout)];
+    let waived = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      for (const play of styles) {
+        const s = newWck({ seed });
+        play(s);
+        expect(s.phase).toBe("resolved");
+        const r = s.result!;
+        if (r.exitReason !== "completed") continue;
+        const live = s.game.attackers.filter((a) => a.outRound === null);
+        expect(live).toHaveLength(1);
+        expect(r.summary.winner).toBe(live[0]!.id);
+        expect(placeOf(s.game, live[0]!.id)).toBe(1);
+        // The last one standing keeps at most strikesToOut - 1 strikes; nobody is out at the same rank.
+        expect(live[0]!.strikes).toBeLessThan(s.game.strikesToOut);
+        const places = s.game.attackers.map((a) => placeOf(s.game, a.id)).sort((a, b) => a - b);
+        expect(places).toEqual(s.game.attackers.map((_, i) => i + 1));
+        if (r.verifiedActions.some((a) => a.kind === "strike" && a.detail?.lastStanding === true)) waived++;
+      }
+    }
+    expect(waived).toBeGreaterThan(0);
+  });
+
   it("a rushed finish into the blocker is the failure route, whatever the seed", () => {
     let failures = 0;
     for (let seed = 1; seed <= 20; seed++) {
