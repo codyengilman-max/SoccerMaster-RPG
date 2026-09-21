@@ -18,7 +18,7 @@ import {
 import { createCamera, follow, frameFor, resize, setInsets, toField, type Camera } from "../render/camera";
 import { createProbe, formatSummary, type ProbeSummary } from "../perf/probe";
 import { render } from "../render/pitch";
-import { ballHeightM, createPresentation, deriveVisuals } from "../render/presentation";
+import { ballDisplayPos, ballHeightM, createPresentation, deriveVisuals } from "../render/presentation";
 import { spriteAssets, type SpriteSet } from "../render/sprites";
 import type { Vec2 } from "../sim/geometry";
 import type { MatchEvent } from "../sim/types";
@@ -385,7 +385,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     const me = st.controlled ? st.players.find((p) => p.id === st.controlled!.playerId) : null;
     follow(cam, st.rules, frameFor(st.rules, cam, st.ball.pos, me?.pos ?? null, !!w, w?.moment.major ?? false), w ? 0.12 : 0.08);
 
-    const visuals = deriveVisuals(presentation, st, cam, res.ticks * TICK_MS, Math.max(0.05, scale));
+    const visuals = deriveVisuals(presentation, st, cam, res.ticks * TICK_MS, Math.max(0.05, scale), runtime.clock.carryMs);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     render(ctx, cam, st, {
       controlledId: st.controlled?.playerId ?? null,
@@ -397,6 +397,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       major: w?.moment.major ?? false,
       visuals,
       sprites,
+      ballPos: ballDisplayPos(st, runtime.clock.carryMs, visuals),
       ballHeightM: ballHeightM(st),
       timeS: (now - startedAt) / 1000,
       debug,

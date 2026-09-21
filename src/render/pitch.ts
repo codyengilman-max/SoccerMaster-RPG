@@ -32,6 +32,8 @@ export interface RenderOptions {
   visuals: readonly PlayerVisual[];
   /** Loaded sprite sheets; null or a missing kit falls back to procedural figures. */
   sprites: SpriteSet | null;
+  /** Ball display position (authoritative position carried by the sub-tick remainder). */
+  ballPos?: Vec2;
   /** Ball height above the turf in metres. */
   ballHeightM: number;
   /** Real seconds, for subtle pulses. */
@@ -72,17 +74,18 @@ export function render(ctx: CanvasRenderingContext2D, cam: Camera, state: MatchS
   const h = figureHeightPx(cam);
   drawShadows(ctx, placed, h);
   drawGroundMarkers(ctx, placed, h, opts);
-  const ballScreen = toScreen(cam, state.ball.pos);
+  const ballPos = opts.ballPos ?? state.ball.pos;
+  const ballScreen = toScreen(cam, ballPos);
   let ballDrawn = false;
   for (const { v, s } of placed) {
     // a grounded ball at a player's feet is painted just before that player so the figure stands over it
     if (!ballDrawn && opts.ballHeightM < 0.2 && ballScreen.y <= s.y + h * 0.05) {
-      drawBall(ctx, cam, state, opts.ballHeightM);
+      drawBall(ctx, cam, ballPos, opts.ballHeightM);
       ballDrawn = true;
     }
     drawPlayer(ctx, cam, v, s, h, opts);
   }
-  if (!ballDrawn) drawBall(ctx, cam, state, opts.ballHeightM);
+  if (!ballDrawn) drawBall(ctx, cam, ballPos, opts.ballHeightM);
 
   if (opts.window && controlled) drawMomentOverlay(ctx, cam, controlled, opts);
   if (opts.slow > 0) drawVignette(ctx, cam, opts.slow, opts.major);
@@ -214,8 +217,8 @@ function drawPlayer(ctx: CanvasRenderingContext2D, cam: Camera, v: PlayerVisual,
   }
 }
 
-function drawBall(ctx: CanvasRenderingContext2D, cam: Camera, state: MatchState, heightM: number): void {
-  const s = toScreen(cam, state.ball.pos);
+function drawBall(ctx: CanvasRenderingContext2D, cam: Camera, pos: Vec2, heightM: number): void {
+  const s = toScreen(cam, pos);
   const r = Math.max(2.5, 0.24 * cam.zoom);
   paintBall(ctx, s.x, s.y, r, heightM * cam.zoom * 0.9);
 }

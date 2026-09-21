@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createCamera } from "../../src/render/camera";
-import { ballHeightM, createPresentation, deriveVisuals, kitFor } from "../../src/render/presentation";
+import { ballDisplayPos, ballHeightM, createPresentation, deriveVisuals, kitFor } from "../../src/render/presentation";
 import { runHeadless } from "../../src/sim/engine";
 import { U11_9V9 } from "../../src/sim/rules";
 import { freshMatch, player, testConfig } from "../helpers";
@@ -108,5 +108,34 @@ describe("presentation adapter", () => {
     const vb = deriveVisuals(createPresentation(), b, landscape(), 50, 1);
     expect(JSON.stringify(va)).toBe(JSON.stringify(vb));
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+});
+
+describe("sub-tick display", () => {
+  it("carries figures and a loose ball forward by the owed time, never past one tick", () => {
+    const s = freshMatch(29);
+    const p = s.players[2]!;
+    p.vel = { x: 4, y: -2 };
+    s.ball = { ...s.ball, status: "loose", owner: null, vel: { x: 10, y: 0 } };
+    const at = (ms: number) => deriveVisuals(createPresentation(), s, landscape(), 0, 1, ms).find((v) => v.id === p.id)!.pos;
+    expect(at(0)).toEqual(p.pos);
+    expect(at(25)).toEqual({ x: p.pos.x + 0.1, y: p.pos.y - 0.05 });
+    expect(at(500)).toEqual(at(50));
+    expect(ballDisplayPos(s, 0)).toEqual(s.ball.pos);
+    expect(ballDisplayPos(s, 25).x).toBeCloseTo(s.ball.pos.x + 0.25);
+    expect(ballDisplayPos(s, 999)).toEqual(ballDisplayPos(s, 50));
+  });
+
+  it("keeps a controlled ball on its carrier's display position", () => {
+    const s = freshMatch(31);
+    const c = s.players[5]!;
+    c.pos = { x: 20, y: 20 };
+    c.vel = { x: 4, y: 0 };
+    s.ball = { ...s.ball, pos: { x: 20.6, y: 20 }, vel: c.vel, status: "controlled", owner: c.id, lastTouch: c.id, lastTouchSide: c.side };
+    const visuals = deriveVisuals(createPresentation(), s, landscape(), 0, 1, 50);
+    const carrier = visuals.find((v) => v.id === c.id)!;
+    expect(carrier.pos).toEqual({ x: 20.2, y: 20 });
+    expect(ballDisplayPos(s, 50, visuals)).toEqual({ x: 20.8, y: 20 });
+    expect(ballDisplayPos(s, 50)).toEqual(s.ball.pos);
   });
 });

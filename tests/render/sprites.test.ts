@@ -155,7 +155,7 @@ describe("drawSprite", () => {
       // after translate(x) + scale(-1, 1) the frame is drawn at -(dw - (x - dx)) so that it lands on
       // the same on-screen box as the unmirrored frame would
       const unmirroredDx = 100 - SPRITE_LAYOUT.anchor.x;
-      expect(dx).toBeCloseTo(-(dw - (100 - unmirroredDx)));
+      expect(dx).toBeCloseTo(-(dw! - (100 - unmirroredDx)));
       expect(dy).toBeCloseTo(200 - SPRITE_LAYOUT.anchor.y);
     }
   });

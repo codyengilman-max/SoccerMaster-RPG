@@ -1,6 +1,6 @@
 import { dist, len, sub, type Vec2 } from "../sim/geometry";
 import type { Side } from "../sim/rules";
-import type { MatchState, PlayerState } from "../sim/types";
+import { TICK_MS, type MatchState, type PlayerState } from "../sim/types";
 
 import { toScreenDir, type Camera } from "./camera";
 import { SPRITE_VARIANTS, facingOf, type Facing, type SpriteKit, type SpritePose } from "./spriteLayout";
@@ -15,6 +15,7 @@ export interface PlayerVisual {
   id: string;
   side: Side;
   role: number;
+  /** Display position: the authoritative position carried forward by the sub-tick remainder. */
   pos: Vec2;
   fatigue: number;
   kit: SpriteKit;
@@ -79,9 +80,10 @@ function nearestOpponentDist(state: MatchState, p: PlayerState): number {
  * every player's visual. Facing turns toward the movement direction while moving and toward the ball
  * while standing; the stride phase advances with distance covered.
  */
-export function deriveVisuals(pres: Presentation, state: MatchState, cam: Camera, simDtMs: number, simSpeed: number): PlayerVisual[] {
+export function deriveVisuals(pres: Presentation, state: MatchState, cam: Camera, simDtMs: number, simSpeed: number, subTickMs = 0): PlayerVisual[] {
   const ball = state.ball;
   const animDt = simDtMs / Math.max(1, simSpeed / MAX_ANIM_SPEEDUP);
+  const lead = subTickS(subTickMs);
   const out: PlayerVisual[] = [];
   for (const p of state.players) {
     let mem = pres.memory.get(p.id);
@@ -122,7 +124,7 @@ export function deriveVisuals(pres: Presentation, state: MatchState, cam: Camera
       id: p.id,
       side: p.side,
       role: p.role,
-      pos: p.pos,
+      pos: lead > 0 ? { x: p.pos.x + p.vel.x * lead, y: p.pos.y + p.vel.y * lead } : p.pos,
       fatigue: p.fatigue,
       kit: kitFor(p),
       facing: mem.facing,
@@ -136,6 +138,28 @@ export function deriveVisuals(pres: Presentation, state: MatchState, cam: Camera
     });
   }
   return out;
+}
+
+/** Clamp the owed-but-unticked simulated time to one tick and express it in seconds. */
+const subTickS = (subTickMs: number): number => Math.min(TICK_MS, Math.max(0, subTickMs)) / 1000;
+
+/**
+ * Where to paint the ball between ticks: the authoritative position plus its velocity over the
+ * sub-tick remainder, so slow motion (one tick every several frames) reads as continuous motion.
+ * A controlled ball stays on its owner's display position.
+ */
+export function ballDisplayPos(state: MatchState, subTickMs: number, visuals?: readonly PlayerVisual[]): Vec2 {
+  const b = state.ball;
+  if (b.status === "controlled" && b.owner && visuals) {
+    const owner = visuals.find((v) => v.id === b.owner);
+    if (owner) {
+      const off = sub(b.pos, state.players.find((p) => p.id === b.owner)!.pos);
+      return { x: owner.pos.x + off.x, y: owner.pos.y + off.y };
+    }
+  }
+  const lead = subTickS(subTickMs);
+  if (lead === 0 || b.status !== "loose") return b.pos;
+  return { x: b.pos.x + b.vel.x * lead, y: b.pos.y + b.vel.y * lead };
 }
 
 /** Ball height (m) inferred from flight: a struck loose ball rises with speed, a controlled ball stays down. */

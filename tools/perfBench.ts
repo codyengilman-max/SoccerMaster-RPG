@@ -16,7 +16,7 @@ import { isFinished } from "../src/sim/engine";
 import { formatSummary, summarize, type FrameSample, type ProbeSummary } from "../src/perf/probe";
 import { createCamera, follow, frameFor, setInsets } from "../src/render/camera";
 import { render } from "../src/render/pitch";
-import { ballHeightM, createPresentation, deriveVisuals } from "../src/render/presentation";
+import { ballDisplayPos, ballHeightM, createPresentation, deriveVisuals } from "../src/render/presentation";
 import { SPRITE_KITS, SPRITE_LAYOUT } from "../src/render/spriteLayout";
 import type { SpriteSet } from "../src/render/sprites";
 import { Rng } from "../src/sim/rng";
@@ -131,7 +131,7 @@ function benchMatch(seed: number): MatchBench {
     const ctrl = st.players.find((p) => p.id === me.id) ?? null;
     follow(cam, st.rules, frameFor(st.rules, cam, st.ball.pos, ctrl?.pos ?? null, !!w, w?.moment.major ?? false), w ? 0.12 : 0.08);
     reset();
-    const visuals = deriveVisuals(presentation, st, cam, res.ticks * TICK_MS, 1);
+    const visuals = deriveVisuals(presentation, st, cam, res.ticks * TICK_MS, 1, runtime.clock.carryMs);
     render(ctx, cam, st, {
       controlledId: me.id,
       window: w,
@@ -140,6 +140,7 @@ function benchMatch(seed: number): MatchBench {
       major: w?.moment.major ?? false,
       visuals,
       sprites: fallbackFigures ? null : STUB_SPRITES,
+      ballPos: ballDisplayPos(st, runtime.clock.carryMs, visuals),
       ballHeightM: ballHeightM(st),
       timeS: (f * FRAME_MS) / 1000,
     });
