@@ -53,6 +53,11 @@ const READ_MS_PER_CHAR = 55;
 const PAD_CONFIRM = 0;
 const PAD_PAUSE = 9;
 
+/** Whole seconds left on the answer timer as shown next to the bar; an ellipsis until the timer is armed. */
+export function timerLabel(runtime: MatchRuntime): string {
+  return runtime.phase === "timer" ? `${Math.ceil(timerRemaining(runtime))} s` : "…";
+}
+
 export interface MatchScreenOptions {
   /** Label of the button under the full-time summary. */
   exitLabel?: string;
@@ -526,7 +531,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       for (const o of a.moment.options) if (o.anchor) optionAnchors.set(o.id, o.anchor);
       const progress = timerProgress(runtime);
       timerBar.style.transform = `scaleX(${1 - progress})`;
-      timerLeft.textContent = phase === "timer" ? `${Math.ceil(timerRemaining(runtime) / 1000)} s` : "…";
+      timerLeft.textContent = timerLabel(runtime);
       timerEl.classList.toggle("urgent", progress > 0.7);
       timerEl.classList.toggle("armed", phase === "timer");
     }

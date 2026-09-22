@@ -26,6 +26,11 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* The `hidden` attribute always wins over an element's own `display` (grid overlays included). */
+[hidden] {
+  display: none !important;
+}
+
 /* Layered cinematic backdrop: cool sky light top-left, warm floodlight glow low-right. */
 body::before {
   content: "";
@@ -790,11 +795,11 @@ button:focus-visible {
   z-index: 2;
   border-radius: 999px;
   background: rgba(6, 16, 31, 0.55);
-  overflow: hidden;
 }
 
 .timer .bar {
   height: 100%;
+  border-radius: 999px;
   background: linear-gradient(90deg, var(--cyan-400), var(--cyan-300));
   transform-origin: left;
   transition: transform 80ms linear;

@@ -628,6 +628,10 @@ describe("spec §24 acceptance checks", () => {
     expect(css).toMatch(/\.timer\s*{/);
     expect(css).toMatch(/\.paused\s*{/);
     expect(css).toMatch(/env\(safe-area-inset-bottom\)/);
+    // overlays the screen toggles with the `hidden` attribute set their own `display`, so the attribute must win globally
+    expect(css).toMatch(/\[hidden\]\s*{\s*display:\s*none\s*!important;\s*}/);
+    // the countdown label sits below the thin bar: the bar's container must not clip it
+    expect(css.match(/\.timer\s*{([^}]*)}/)![1]).not.toMatch(/overflow:\s*hidden/);
 
     // the runtime side of the same contract: no timer before ready(), pause stops it, answer ends it
     const s = joinedSession();

@@ -32,6 +32,7 @@ import { loadCatalog, type CatalogFile } from "../../src/tactics/catalog";
 import { instantiateIntent } from "../../src/tactics/intents";
 import type { TacticalMoment } from "../../src/tactics/moments";
 import { DIRECT_RANGE, pacingFor } from "../../src/tactics/recognition";
+import { timerLabel } from "../../src/ui/matchScreen";
 import { playToFullTime, testConfig } from "../helpers";
 
 const catalog = loadCatalog(catalogJson as CatalogFile);
@@ -131,6 +132,19 @@ describe("match runtime: lifecycle", () => {
     expect(timerRemaining(rt)).toBeCloseTo(14, 0);
     expect(timerProgress(rt)).toBeCloseTo(1 / 15, 1);
     expect(rt.state.clock.tick).toBe(tick); // the field stays frozen while the player thinks
+  });
+
+  it("the on-screen timer label counts whole seconds down from 15 and reads as an ellipsis before the timer is armed", () => {
+    const rt = runtimeFor(5);
+    untilMoment(rt);
+    toQuestion(rt);
+    expect(timerLabel(rt)).toBe("…");
+    ready(rt);
+    expect(timerLabel(rt)).toBe("15 s");
+    for (let i = 0; i < 61; i++) frame(rt, FRAME);
+    expect(timerLabel(rt)).toBe("14 s");
+    for (let i = 0; i < 60 * 12; i++) frame(rt, FRAME);
+    expect(timerLabel(rt)).toBe("2 s");
   });
 
   it("pause stops the timer and the simulation; resuming picks up where it left off", () => {
