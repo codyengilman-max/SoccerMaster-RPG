@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import catalogJson from "../../content/catalog/provisional-u11.json";
-import { formatRealTime } from "../../src/match/pace";
+import { ACCEPTABLE_BAND_MS, formatRealTime } from "../../src/match/pace";
 import { runPace, type PaceRun } from "../../src/perf/pace";
 import { createMatch, isFinished, tick } from "../../src/sim/engine";
 import { playerById } from "../../src/sim/perception";
@@ -10,13 +10,12 @@ import { loadCatalog, type CatalogFile, type MomentCategory } from "../../src/ta
 import { coverageReport } from "../../src/tactics/coverage";
 import { readField } from "../../src/tactics/features";
 import { instantiateIntent } from "../../src/tactics/intents";
-import { GK_PACING, pacingFor } from "../../src/tactics/recognition";
+import { GK_DIRECT_PACING, pacingFor } from "../../src/tactics/recognition";
 import type { DecisionRecord } from "../../src/tactics/moments";
 import { commit, createSession, observe, type TacticalSession } from "../../src/tactics/session";
 import { testConfig } from "../helpers";
 
 const catalog = loadCatalog(catalogJson as CatalogFile);
-const MIN = 60_000;
 const CATEGORIES: readonly MomentCategory[] = ["on_ball", "off_ball", "defending", "transition"];
 
 interface Issued {
@@ -46,7 +45,7 @@ function keeperMatch(seed: number): { session: TacticalSession; state: MatchStat
       const m = session.active;
       const pick = user.pick(m.options)!;
       const stillAvailable = instantiateIntent(state, state.players.find((p) => p.id === gk.id)!, pick.intent) !== null;
-      const res = commit(session, state, pick.id, user.range(0.6, 1));
+      const res = commit(session, state, pick.id);
       if (res.issued) {
         issued.push({
           entryId: m.entryId,
@@ -71,29 +70,24 @@ describe("goalkeeper calibration", () => {
     runPace(catalog, 2002, "GK", "slow", 60),
   ];
 
-  it("keeper matches stay within 6–8 real minutes over 60 simulated minutes", () => {
+  it("keeper matches stay within 4–8 real minutes over 60 simulated minutes", () => {
     for (const r of paceRuns) {
       expect(r.simMinutes, `seed ${r.seed}`).toBeCloseTo(60, 0);
-      expect(r.realMs, `seed ${r.seed}: ${formatRealTime(r.realMs)}`).toBeGreaterThanOrEqual(6 * MIN);
-      expect(r.realMs, `seed ${r.seed}: ${formatRealTime(r.realMs)}`).toBeLessThanOrEqual(8 * MIN);
-      expect(r.withinBand).toBe(true);
+      expect(r.realMs, `seed ${r.seed}: ${formatRealTime(r.realMs)}`).toBeGreaterThanOrEqual(ACCEPTABLE_BAND_MS[0]);
+      expect(r.realMs, `seed ${r.seed}: ${formatRealTime(r.realMs)}`).toBeLessThanOrEqual(ACCEPTABLE_BAND_MS[1]);
+      expect(r.withinAcceptable).toBe(true);
     }
   });
 
-  it("keeper matches produce 18–25 moments with a keeper-sized on-ball share", () => {
-    // The keeper only has the ball as often as the match gives it to them; what the recogniser owes is a
-    // moment for (nearly) every touch, and the on-ball share over the sample — a single dominated match
-    // may leave the keeper with a handful of touches, which is reported as a shortfall, not hidden.
+  it("keeper matches produce 12–18 direct-involvement moments with authentic on-ball touches", () => {
+    // The keeper only has the ball as often as the match gives it to them; the direct-involvement range is
+    // met with positioning, cross, 1v1 and sweep decisions — never with fabricated touches.
     for (const r of paceRuns) {
-      expect(r.moments, `seed ${r.seed}`).toBeGreaterThanOrEqual(GK_PACING.total[0]);
-      expect(r.moments, `seed ${r.seed}`).toBeLessThanOrEqual(GK_PACING.total[1]);
-      expect(r.onBall, `seed ${r.seed} on-ball vs ${r.possessions} touches`).toBeGreaterThanOrEqual(
-        Math.min(GK_PACING.onBall[0] - 1, r.possessions - 1),
-      );
-      expect(r.onBall, `seed ${r.seed} on-ball`).toBeLessThanOrEqual(GK_PACING.onBall[1]);
+      expect(r.moments, `seed ${r.seed}`).toBeGreaterThanOrEqual(GK_DIRECT_PACING.total[0]);
+      expect(r.moments, `seed ${r.seed}`).toBeLessThanOrEqual(GK_DIRECT_PACING.total[1]);
+      expect(r.onBall, `seed ${r.seed} on-ball vs ${r.possessions} touches`).toBeGreaterThanOrEqual(Math.min(GK_DIRECT_PACING.onBall[0], r.possessions));
+      expect(r.onBall, `seed ${r.seed} on-ball`).toBeLessThanOrEqual(r.possessions);
     }
-    const onBall = paceRuns.reduce((a, r) => a + r.onBall, 0);
-    expect(onBall, "on-ball moments across the sample").toBeGreaterThanOrEqual((GK_PACING.onBall[0] - 1) * paceRuns.length);
   });
 
   it("is deterministic for a keeper: same seed replays to the same real time, moments and score", () => {
@@ -107,9 +101,9 @@ describe("goalkeeper calibration", () => {
 
   it("moments are varied keeper decisions, not one repeated prompt", () => {
     for (const { session, state } of matches) {
-      const rep = coverageReport(session.records, GK_PACING);
-      expect(rep.total, `seed ${state.seed}`).toBeGreaterThanOrEqual(GK_PACING.total[0]);
-      expect(rep.total, `seed ${state.seed}`).toBeLessThanOrEqual(GK_PACING.total[1]);
+      const rep = coverageReport(session.records, session.pacing);
+      expect(rep.total, `seed ${state.seed}`).toBeGreaterThanOrEqual(GK_DIRECT_PACING.total[0]);
+      expect(rep.total, `seed ${state.seed}`).toBeLessThanOrEqual(GK_DIRECT_PACING.total[1]);
       expect(rep.uniqueEntries, `seed ${state.seed} variety`).toBeGreaterThanOrEqual(6);
       for (const cat of CATEGORIES) expect(rep.byCategory[cat], `seed ${state.seed} ${cat}`).toBeGreaterThan(0);
       expect(rep.shortfalls.filter((s) => !/on-ball/.test(s)), `seed ${state.seed}`).toEqual([]);
@@ -195,7 +189,7 @@ describe("goalkeeper calibration", () => {
         expect(r.decision.quality).not.toBeNull();
         expect(r.execution).not.toBeNull();
       }
-      const rep = coverageReport(session.records, GK_PACING);
+      const rep = coverageReport(session.records, GK_DIRECT_PACING);
       expect(rep.outcomes.unresolved).toBe(0);
       expect(rep.outcomes.success + rep.outcomes.failure + rep.outcomes.partial + rep.outcomes.neutral).toBe(rep.total);
       expect(rep.outcomes.success).toBeGreaterThan(0);

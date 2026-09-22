@@ -8524,6 +8524,58 @@
           ]
         },
         {
+          "id": "recycle",
+          "label": "Recycle possession",
+          "intent": "recycle",
+          "base": 0.4,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.4,
+              "why": "under pressure: keep the ball moving"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": 0.3,
+              "why": "nothing is on ahead"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": -0.3,
+              "why": "forward options were open, recycling wastes them"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceAhead",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "there was space to attack yourself"
+            }
+          ]
+        },
+        {
           "id": "shoot",
           "label": "Shoot",
           "intent": "shoot",
@@ -10359,6 +10411,624 @@
       }
     },
     {
+      "id": "RW_BUILD_01",
+      "role": "RW",
+      "category": "on_ball",
+      "phase": "progression",
+      "title": "Ball wide in your own half",
+      "trigger": {
+        "all": [
+          {
+            "f": "hasBall",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "progress",
+            "op": "<=",
+            "v": 0.5
+          },
+          {
+            "f": "secondsSinceTurnover",
+            "op": ">=",
+            "v": 3
+          }
+        ]
+      },
+      "cues": [
+        "Is the full back behind you free?",
+        "Is the pass inside on, or is the lane closed?",
+        "Is the far side open?",
+        "Is the defender jumping to press?"
+      ],
+      "actions": [
+        {
+          "id": "through_gap",
+          "label": "Play through the gap",
+          "intent": "through_gap",
+          "base": 0.5,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "a forward lane is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "teammateRunAhead",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.3,
+              "why": "a runner is timing a run"
+            },
+            {
+              "when": [
+                {
+                  "f": "bestPassScore",
+                  "op": ">",
+                  "v": 1
+                }
+              ],
+              "add": 0.3,
+              "why": "the forward pass is on"
+            }
+          ]
+        },
+        {
+          "id": "attack_space",
+          "label": "Attack the space",
+          "intent": "attack_space",
+          "base": 0.6,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceAhead",
+                  "op": ">",
+                  "v": 0.5
+                }
+              ],
+              "add": 0.5,
+              "why": "open space ahead of you"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.3,
+              "why": "a defender is closing you down"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": -0.1,
+              "why": "teammates were open further up"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
+            }
+          ]
+        },
+        {
+          "id": "recycle",
+          "label": "Recycle possession",
+          "intent": "recycle",
+          "base": 0.4,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.4,
+              "why": "under pressure: keep the ball moving"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": 0.3,
+              "why": "nothing is on ahead"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": -0.3,
+              "why": "forward options were open, recycling wastes them"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceAhead",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "there was space to attack yourself"
+            }
+          ]
+        },
+        {
+          "id": "draw_defender",
+          "label": "Draw the defender",
+          "intent": "draw_defender",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "teammateRunAhead",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.5,
+              "why": "a teammate is running beyond: commit the defender, then release"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "already under pressure, little time to draw anyone"
+            },
+            {
+              "when": [
+                {
+                  "f": "nearestOppDist",
+                  "op": ">",
+                  "v": 10
+                }
+              ],
+              "add": -0.3,
+              "why": "no defender close enough to draw"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Turning into the touchline with a defender closing",
+        "Forcing it inside through bodies when the reset is free"
+      ],
+      "difficultyFactors": [
+        "Pressure",
+        "Inside lane",
+        "Far-side space"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Progressed, switched, or possession kept.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "hasBall": 1,
+              "progress": 0.35,
+              "pressure": 0.5
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "hasBall": 1,
+              "progress": 0.8,
+              "pressure": 0.5
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      }
+    },
+    {
+      "id": "RW_TRANS_01",
+      "role": "RW",
+      "category": "transition",
+      "phase": "transition",
+      "title": "Won it wide",
+      "trigger": {
+        "all": [
+          {
+            "f": "hasBall",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "secondsSinceTurnover",
+            "op": "<",
+            "v": 3
+          }
+        ]
+      },
+      "cues": [
+        "Is their full back out of position?",
+        "Is the striker ready to run?",
+        "Is the far side open?"
+      ],
+      "actions": [
+        {
+          "id": "attack_space",
+          "label": "Attack the space",
+          "intent": "attack_space",
+          "base": 0.6,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceAhead",
+                  "op": ">",
+                  "v": 0.5
+                }
+              ],
+              "add": 0.5,
+              "why": "open space ahead of you"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.3,
+              "why": "a defender is closing you down"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": -0.1,
+              "why": "teammates were open further up"
+            }
+          ]
+        },
+        {
+          "id": "through_gap",
+          "label": "Play through the gap",
+          "intent": "through_gap",
+          "base": 0.5,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "a forward lane is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "teammateRunAhead",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.3,
+              "why": "a runner is timing a run"
+            },
+            {
+              "when": [
+                {
+                  "f": "bestPassScore",
+                  "op": ">",
+                  "v": 1
+                }
+              ],
+              "add": 0.3,
+              "why": "the forward pass is on"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
+            }
+          ]
+        },
+        {
+          "id": "recycle",
+          "label": "Recycle possession",
+          "intent": "recycle",
+          "base": 0.4,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.4,
+              "why": "under pressure: keep the ball moving"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": 0.3,
+              "why": "nothing is on ahead"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": -0.3,
+              "why": "forward options were open, recycling wastes them"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceAhead",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "there was space to attack yourself"
+            }
+          ]
+        },
+        {
+          "id": "shoot",
+          "label": "Shoot",
+          "intent": "shoot",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "shotWindow",
+                  "op": ">",
+                  "v": 0.35
+                }
+              ],
+              "add": 0.6,
+              "why": "the goal is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "distToGoal",
+                  "op": "<",
+                  "v": 14
+                }
+              ],
+              "add": 0.4,
+              "why": "close range"
+            },
+            {
+              "when": [
+                {
+                  "f": "distToGoal",
+                  "op": ">",
+                  "v": 22
+                }
+              ],
+              "add": -0.4,
+              "why": "long range: low chance"
+            },
+            {
+              "when": [
+                {
+                  "f": "shotWindow",
+                  "op": "<",
+                  "v": 0.15
+                }
+              ],
+              "add": -0.5,
+              "why": "the shooting lane is blocked"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Slowing the counter with an extra touch",
+        "Running into the recovering defender"
+      ],
+      "difficultyFactors": [
+        "Opponent recovery",
+        "Runner timing"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Counter or possession.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "hasBall": 1,
+              "secondsSinceTurnover": 1
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "hasBall": 1,
+              "secondsSinceTurnover": 20
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      }
+    },
+    {
       "id": "RW_OFF_01",
       "role": "RW",
       "category": "off_ball",
@@ -11796,6 +12466,626 @@
       "mirrorOf": "RW_ON_02"
     },
     {
+      "id": "LW_BUILD_01",
+      "role": "LW",
+      "category": "on_ball",
+      "phase": "progression",
+      "title": "Ball wide in your own half",
+      "trigger": {
+        "all": [
+          {
+            "f": "hasBall",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "progress",
+            "op": "<=",
+            "v": 0.5
+          },
+          {
+            "f": "secondsSinceTurnover",
+            "op": ">=",
+            "v": 3
+          }
+        ]
+      },
+      "cues": [
+        "Is the full back behind you free?",
+        "Is the pass inside on, or is the lane closed?",
+        "Is the far side open?",
+        "Is the defender jumping to press?"
+      ],
+      "actions": [
+        {
+          "id": "through_gap",
+          "label": "Play through the gap",
+          "intent": "through_gap",
+          "base": 0.5,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "a forward lane is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "teammateRunAhead",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.3,
+              "why": "a runner is timing a run"
+            },
+            {
+              "when": [
+                {
+                  "f": "bestPassScore",
+                  "op": ">",
+                  "v": 1
+                }
+              ],
+              "add": 0.3,
+              "why": "the forward pass is on"
+            }
+          ]
+        },
+        {
+          "id": "attack_space",
+          "label": "Attack the space",
+          "intent": "attack_space",
+          "base": 0.6,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceAhead",
+                  "op": ">",
+                  "v": 0.5
+                }
+              ],
+              "add": 0.5,
+              "why": "open space ahead of you"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.3,
+              "why": "a defender is closing you down"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": -0.1,
+              "why": "teammates were open further up"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
+            }
+          ]
+        },
+        {
+          "id": "recycle",
+          "label": "Recycle possession",
+          "intent": "recycle",
+          "base": 0.4,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.4,
+              "why": "under pressure: keep the ball moving"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": 0.3,
+              "why": "nothing is on ahead"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": -0.3,
+              "why": "forward options were open, recycling wastes them"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceAhead",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "there was space to attack yourself"
+            }
+          ]
+        },
+        {
+          "id": "draw_defender",
+          "label": "Draw the defender",
+          "intent": "draw_defender",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "teammateRunAhead",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.5,
+              "why": "a teammate is running beyond: commit the defender, then release"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "already under pressure, little time to draw anyone"
+            },
+            {
+              "when": [
+                {
+                  "f": "nearestOppDist",
+                  "op": ">",
+                  "v": 10
+                }
+              ],
+              "add": -0.3,
+              "why": "no defender close enough to draw"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Turning into the touchline with a defender closing",
+        "Forcing it inside through bodies when the reset is free"
+      ],
+      "difficultyFactors": [
+        "Pressure",
+        "Inside lane",
+        "Far-side space"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Progressed, switched, or possession kept.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "hasBall": 1,
+              "progress": 0.35,
+              "pressure": 0.5
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "hasBall": 1,
+              "progress": 0.8,
+              "pressure": 0.5
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      },
+      "mirrorOf": "RW_BUILD_01"
+    },
+    {
+      "id": "LW_TRANS_01",
+      "role": "LW",
+      "category": "transition",
+      "phase": "transition",
+      "title": "Won it wide",
+      "trigger": {
+        "all": [
+          {
+            "f": "hasBall",
+            "op": "==",
+            "v": 1
+          },
+          {
+            "f": "secondsSinceTurnover",
+            "op": "<",
+            "v": 3
+          }
+        ]
+      },
+      "cues": [
+        "Is their full back out of position?",
+        "Is the striker ready to run?",
+        "Is the far side open?"
+      ],
+      "actions": [
+        {
+          "id": "attack_space",
+          "label": "Attack the space",
+          "intent": "attack_space",
+          "base": 0.6,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceAhead",
+                  "op": ">",
+                  "v": 0.5
+                }
+              ],
+              "add": 0.5,
+              "why": "open space ahead of you"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.3,
+              "why": "a defender is closing you down"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": -0.1,
+              "why": "teammates were open further up"
+            }
+          ]
+        },
+        {
+          "id": "through_gap",
+          "label": "Play through the gap",
+          "intent": "through_gap",
+          "base": 0.5,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 1
+                }
+              ],
+              "add": 0.4,
+              "why": "a forward lane is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "teammateRunAhead",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.3,
+              "why": "a runner is timing a run"
+            },
+            {
+              "when": [
+                {
+                  "f": "bestPassScore",
+                  "op": ">",
+                  "v": 1
+                }
+              ],
+              "add": 0.3,
+              "why": "the forward pass is on"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
+            }
+          ]
+        },
+        {
+          "id": "recycle",
+          "label": "Recycle possession",
+          "intent": "recycle",
+          "base": 0.4,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.4,
+              "why": "under pressure: keep the ball moving"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": 0.3,
+              "why": "nothing is on ahead"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 2
+                }
+              ],
+              "add": -0.3,
+              "why": "forward options were open, recycling wastes them"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceAhead",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.2,
+              "why": "there was space to attack yourself"
+            }
+          ]
+        },
+        {
+          "id": "shoot",
+          "label": "Shoot",
+          "intent": "shoot",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "shotWindow",
+                  "op": ">",
+                  "v": 0.35
+                }
+              ],
+              "add": 0.6,
+              "why": "the goal is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "distToGoal",
+                  "op": "<",
+                  "v": 14
+                }
+              ],
+              "add": 0.4,
+              "why": "close range"
+            },
+            {
+              "when": [
+                {
+                  "f": "distToGoal",
+                  "op": ">",
+                  "v": 22
+                }
+              ],
+              "add": -0.4,
+              "why": "long range: low chance"
+            },
+            {
+              "when": [
+                {
+                  "f": "shotWindow",
+                  "op": "<",
+                  "v": 0.15
+                }
+              ],
+              "add": -0.5,
+              "why": "the shooting lane is blocked"
+            }
+          ]
+        }
+      ],
+      "mistakes": [
+        "Slowing the counter with an extra touch",
+        "Running into the recovering defender"
+      ],
+      "difficultyFactors": [
+        "Opponent recovery",
+        "Runner timing"
+      ],
+      "restrictions": {
+        "ageGroups": [
+          "U11",
+          "U12"
+        ]
+      },
+      "continuation": "Counter or possession.",
+      "tests": {
+        "positive": [
+          {
+            "label": "typical",
+            "read": {
+              "hasBall": 1,
+              "secondsSinceTurnover": 1
+            }
+          }
+        ],
+        "negative": [
+          {
+            "label": "not eligible",
+            "read": {
+              "hasBall": 1,
+              "secondsSinceTurnover": 20
+            }
+          }
+        ]
+      },
+      "review": {
+        "status": "provisional",
+        "note": "Prototype content, not coach-reviewed."
+      },
+      "mirrorOf": "RW_TRANS_01"
+    },
+    {
       "id": "LW_OFF_01",
       "role": "LW",
       "category": "off_ball",
@@ -12860,6 +14150,63 @@
               ],
               "add": -0.3,
               "why": "nobody had arrived to receive it"
+            }
+          ]
+        },
+        {
+          "id": "far_side",
+          "label": "Find the far-side winger",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far-side winger is free"
+            },
+            {
+              "when": [
+                {
+                  "f": "shotWindow",
+                  "op": ">",
+                  "v": 0.35
+                }
+              ],
+              "add": -0.5,
+              "why": "the shot was open"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a cross-field pass under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is crowded: the spare player is on the far side"
             }
           ]
         }

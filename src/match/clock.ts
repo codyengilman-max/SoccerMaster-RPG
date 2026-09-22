@@ -29,14 +29,19 @@ export function createClock(scale = NORMAL_SCALE): RuntimeClock {
   return { scale, carryMs: 0, realElapsedMs: 0 };
 }
 
+/** Skipped routine play runs this many simulated seconds per real second (the match clock stays visible). */
+export const SKIP_SCALE = 180;
+/** Per-frame cap while skipping: bounded compute per frame, still ~3 s of match per frame at 60 fps. */
+export const MAX_SKIP_TICKS_PER_FRAME = 120;
+
 /** Convert a real frame of `realDtMs` into the number of ticks to run now. Deterministic in its inputs. */
-export function advanceClock(clock: RuntimeClock, realDtMs: number): number {
+export function advanceClock(clock: RuntimeClock, realDtMs: number, maxTicks = MAX_TICKS_PER_FRAME): number {
   const dt = Math.max(0, realDtMs);
   clock.realElapsedMs += dt;
   const owed = clock.carryMs + dt * clock.scale;
   let ticks = Math.floor(owed / TICK_MS);
-  if (ticks > MAX_TICKS_PER_FRAME) {
-    ticks = MAX_TICKS_PER_FRAME;
+  if (ticks > maxTicks) {
+    ticks = maxTicks;
     clock.carryMs = 0;
     return ticks;
   }

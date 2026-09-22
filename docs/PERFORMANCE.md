@@ -18,7 +18,7 @@ from the PWA manifest or run in a tab.
 | Warm / installed load | interactive ≤ 1 s offline | Service worker precaches the shell (`pwa/sw.js`) |
 | Memory | steady across a full match (no per-frame allocations that grow); heap ≤ 150 MB on a phone | Long matches on low-RAM devices |
 | Battery | no work while the tab is hidden (`requestAnimationFrame` pauses; the runtime clamps `dt` to 100 ms on return) | Background drain |
-| Real match duration | target (spec §9): a complete 60-minute match finishes in **5–7 real minutes** (4–8 acceptable, 8 hard maximum) with **12–18 meaningful direct-involvement moments**, reported as median / min / max across benchmark seeds; the current runtime (before the cinematic decision-match PR) still runs the earlier 6–8 minute, 18–25 moment pace director and is measured by `RuntimeClock.realElapsedMs`, shown live in the HUD and at full time | Playtesting feedback: the match must not drag |
+| Real match duration | target (spec §9): a complete 60-minute match finishes in **5–7 real minutes** (4–8 acceptable, 8 hard maximum) with **12–18 meaningful direct-involvement moments**, reported as median / min / max across benchmark seeds and player models; measured per runtime phase (`MatchRuntime.realMs`), shown at full time | Playtesting feedback: the match must not drag |
 | Fast-forward CPU | routine play runs up to ×32 but never more than `MAX_TICKS_PER_FRAME` (24) simulation ticks per frame; the pace bench reports the peak scale and ticks/frame actually used | Bounded per-frame work while accelerating |
 
 ## How to measure
@@ -44,21 +44,21 @@ running it*; it does **not** measure phone frame rate, GPU raster or compositing
 ### Real match duration (repeatable, any machine)
 
 ```
-npm run pace              # 4 seeds, CM, typical decision speed
-npm run pace -- 4 CM all  # 4 seeds × quick / typical / slow deciders
-npm run pace -- 3 GK      # goalkeeper (OPEN_QUESTIONS #10 — same total band, lower on-ball band)
-npm run pace -- 3 all     # every supported position, 3 seeds each
+npm run pace                  # 4 seeds, CM, typical answer speed
+npm run pace -- 4 CM all      # 4 seeds × quick / typical / slow / timeout players
+npm run pace -- 3 GK          # goalkeeper (direct-involvement pacing, OPEN_QUESTIONS #10)
+npm run pace -- 3 all all     # every supported position × every player model, 3 seeds each
 ```
 
-`tools/paceBench.ts` drives the real `MatchRuntime` at 60 Hz with a scripted user whose decision
-latency follows a profile (quick ≈ 1.5 s per decision, typical ≈ 4 s, slow lets every window
-time out — the worst case), advances
-wall-clock time exactly as the browser loop would, and reports for every match the real time,
-moments (total and on-ball), simulated minutes, score, and the split between decisions, live
-aftermath, fast-forward (with the peak scale and max ticks per frame) and half time. It exits
-non-zero if any match leaves the 6:00–8:00 band, its role's moment band (`pacingFor(role).total`) or
-60 simulated minutes. Latest run (`3 all typical`): every outfield match 6:59–7:00 with 24–25 moments
-(13–14 on the ball); goalkeeper matches 6:44 with 20 moments (5–7 on the ball). `tests/match/pace.test.ts`
+`tools/paceBench.ts` drives the real answer-only `MatchRuntime` at 60 Hz through `src/perf/pace.ts`
+with a scripted player who answers a fixed time after the timer starts (quick 3 s, typical 8 s,
+slow 13 s, timeout never answers — the engine plays every moment), advances wall-clock time exactly
+as the browser loop would, and reports for every match the real time, moments (first touch / on ball
+/ positioning), answers per moment, timeouts, simulated minutes, score, and the split between
+lead-in, answer, consequence, feedback, skipped routine play (with the max ticks per frame) and half
+time, then min / median / max. It exits non-zero if any match has fewer than 12 or more than 18
+moments, leaves 60 simulated minutes, exceeds 8:00, or — for any model but the quick answerer — ends
+under 4:00 (no waiting is added to stretch a match). `tests/match/pace.test.ts`
 keeps the budget arithmetic honest and covers every role; `tests/tactics/goalkeeper.test.ts` covers the
 keeper's moment quality and continuation.
 
@@ -87,6 +87,9 @@ or WebPageTest on a real device. Bundle sizes come from `npm run build`.
 | Desktop Chrome, in-app probe | not yet recorded in this repo | — |
 | Representative phones | **not measured** — no representative phone has been available to this project | — |
 | Real match duration, CM | 12/12 matches (4 seeds × quick / typical / slow) **6:59–7:03**, 25 moments (14 on ball), 60 simulated minutes; decisions ≈ 3:30, live aftermath ≈ 1:00, fast-forward ≈ 2:20 at peak ×21–×32 (≤ 11 ticks/frame), half time 0:02 | `npm run pace -- 4 CM all`, 2026-09 |
+| Real match duration, answer-only runtime, all nine roles | 108/108 matches (9 roles × 3 seeds × quick / typical / slow / timeout) record **13–18 moments** (3–5 answers each) over 60 simulated minutes; typical player **4:18–5:49**, slow 5:23–7:18, timeout 6:14–7:55, quick 3:13–4:18 (under the floor by design); overall min 3:13 · median 5:49 · max 7:55; skipped play ≈ 0:21 per match at ≤ 6 ticks/frame | `npm run pace -- 3 all all`, 2026-09 |
+| Answer-only runtime, headless CPU | sim p95 1.56 ms (skipping ≤ 120 ticks/frame), render path p95 0.09 ms, draw calls p95 139, ctx calls 626, 0 long frames over a 60-minute GK match | `npm run perf -- 1 GK`, 2026-09 |
+| Answer-only runtime, bundle | JS 667 kB / **169 kB gzip**, CSS 30.0 kB / 7.1 kB gzip | `npm run build`, 2026-09 |
 | Stabilization build | sim p95 0.21 ms, render path p95 0.05 ms, 554 context calls (richer turf / figures / trails; the bench counted every context method at the time); JS 502 kB / **125 kB gzip**, CSS 17.2 kB / 4.6 kB gzip, shell 2.7 kB (boot watchdog inline) | `npm run perf`, `npm run build`, 2026-09 |
 | Graphics build, sprite sheets | sim p95 0.20 ms, render path p95 **0.07 ms**, draw calls p95 **141**, ctx calls p95 622 over 2 × 60-minute matches at a portrait phone viewport; 0 long frames | `npm run perf -- 2 CM`, 2026-09 |
 | Graphics build, procedural fallback figures | render path p95 0.09 ms, draw calls p95 **199**, ctx calls p95 855 | `npm run perf -- 2 CM fallback`, 2026-09 |
@@ -101,10 +104,10 @@ the two device classes above and records the lines here (see `spec/OPEN_QUESTION
 ## Design notes that keep the budget
 
 - Fixed 20 Hz simulation tick (`TICKS_PER_SECOND`), so a 60 Hz frame does 0–1 ticks at normal speed,
-  up to `MAX_TICKS_PER_FRAME` (24) when fast-forwarding or catching up after the 100 ms frame clamp,
-  and in slow motion (`SLOW_SCALE` 0.3) roughly one tick every 10 frames; drills use
-  `DRILL_SLOW_SCALE` 0.12. The pace director's fast-forward is capped at `FAST_SCALE_MAX` (×32 ≈ 11
-  ticks per 60 Hz frame) so accelerated play stays well inside the per-frame budget.
+  up to `MAX_TICKS_PER_FRAME` (24) when catching up after the 100 ms frame clamp, and up to
+  `MAX_SKIP_TICKS_PER_FRAME` (120, ≈ 1.5 ms of simulation) while routine play is skipped at
+  `SKIP_SCALE` ×180; the lead-in replays stored positions (no simulation), the frozen question runs
+  none, and the consequence runs at normal speed. Drills use `DRILL_SLOW_SCALE` 0.12.
 - Tactical recognition runs once per tick, not per frame, and only opens a moment when none is active.
 - The renderer is immediate-mode 2D with ~140 draw calls per frame (≈200 when a sprite sheet is
   missing and figures are painted from shapes), a handful of gradients (sky, turf lighting, ball,

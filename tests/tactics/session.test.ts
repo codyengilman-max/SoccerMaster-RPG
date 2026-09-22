@@ -8,10 +8,10 @@ import { ROLE_BY_NUMBER, type MatchState, type RoleId, type RoleNumber } from ".
 import { loadCatalog, type CatalogFile } from "../../src/tactics/catalog";
 import { coverageReport } from "../../src/tactics/coverage";
 import { readField } from "../../src/tactics/features";
-import { gradeDecision, gradeExecution, resolveOutcome } from "../../src/tactics/grading";
+import { coachReasons, gradeDecision, gradeExecution, resolveOutcome } from "../../src/tactics/grading";
 import { instantiateIntent } from "../../src/tactics/intents";
-import type { MomentRecord, TacticalMoment } from "../../src/tactics/moments";
-import { DEFAULT_PACING, GK_PACING, difficultyOf, pacingFor, recognize, createRecognizer } from "../../src/tactics/recognition";
+import type { CommittedIntent, MomentRecord, TacticalMoment } from "../../src/tactics/moments";
+import { DIRECT_PACING, GK_DIRECT_PACING, difficultyOf, pacingFor, recognize, createRecognizer } from "../../src/tactics/recognition";
 import { commit, createSession, feedbackFor, observe, timeout, type TacticalSession } from "../../src/tactics/session";
 import { testConfig } from "../helpers";
 
@@ -51,7 +51,7 @@ function playMatch(seed: number, role: RoleId, policy: Policy, maxTicks = Infini
         if (policy === "timeout") timeout(session, state);
         else {
           const pick = policy === "best" ? [...m.options].sort((a, b) => b.score - a.score)[0]! : user.pick(m.options)!;
-          commit(session, state, pick.id, user.range(0.6, 1));
+          commit(session, state, pick.id);
         }
       }
     }
@@ -89,14 +89,13 @@ describe("recognition", () => {
     expect(session.rejects.not_open_play).toBeGreaterThan(0);
   });
 
-  it("paces a full match into the 18–25 band with the on-ball share for midfield/attacking roles", () => {
+  it("paces a full match into the 12–18 direct-involvement range, primarily on the ball, for outfield roles", () => {
     for (const [seed, role] of [[1, "CM"], [2, "ST"], [3, "RW"], [4, "DM"]] as const) {
       const { session } = playMatch(seed, role, "random");
-      const rep = coverageReport(session.records);
-      expect(rep.total, `${role} total`).toBeGreaterThanOrEqual(DEFAULT_PACING.total[0]);
-      expect(rep.total, `${role} total`).toBeLessThanOrEqual(DEFAULT_PACING.total[1]);
-      expect(rep.onBall, `${role} on-ball`).toBeGreaterThanOrEqual(DEFAULT_PACING.onBall[0]);
-      expect(rep.onBall, `${role} on-ball`).toBeLessThanOrEqual(DEFAULT_PACING.onBall[1]);
+      const rep = coverageReport(session.records, session.pacing);
+      expect(rep.total, `${role} total`).toBeGreaterThanOrEqual(DIRECT_PACING.total[0]);
+      expect(rep.total, `${role} total`).toBeLessThanOrEqual(DIRECT_PACING.total[1]);
+      expect(rep.onBall, `${role} on-ball`).toBeGreaterThanOrEqual(rep.total - DIRECT_PACING.direct!.maxOffBall);
       expect(rep.uniqueEntries, `${role} variety`).toBeGreaterThanOrEqual(3);
     }
   });
@@ -105,17 +104,17 @@ describe("recognition", () => {
     const { session, state } = playMatch(5, "CM", "random");
     const total = state.clock.timeMs;
     const firstHalf = session.records.filter((r) => r.moment.timeMs < total / 2).length;
-    expect(firstHalf).toBeGreaterThanOrEqual(6);
-    expect(firstHalf).toBeLessThanOrEqual(session.records.length - 6);
+    expect(firstHalf).toBeGreaterThanOrEqual(4);
+    expect(firstHalf).toBeLessThanOrEqual(session.records.length - 4);
   });
 
   it("records shortfalls instead of manufacturing moments", () => {
     const { session } = playMatch(2, "GK", "random");
-    const rep = coverageReport(session.records, GK_PACING);
-    expect(rep.total).toBeGreaterThanOrEqual(GK_PACING.total[0]);
-    expect(rep.total).toBeLessThanOrEqual(GK_PACING.total[1]);
+    const rep = coverageReport(session.records, GK_DIRECT_PACING);
+    expect(rep.total).toBeGreaterThanOrEqual(GK_DIRECT_PACING.total[0]);
+    expect(rep.total).toBeLessThanOrEqual(GK_DIRECT_PACING.total[1]);
     // the keeper's on-ball share depends on how often the engine's AI plays the ball back: any gap is stated, not papered over
-    if (rep.onBall < GK_PACING.onBall[0]) expect(rep.shortfalls.some((s) => /on-ball/.test(s))).toBe(true);
+    if (rep.onBall < GK_DIRECT_PACING.onBall[0]) expect(rep.shortfalls.some((s) => /on-ball/.test(s))).toBe(true);
     else expect(rep.shortfalls.some((s) => /on-ball/.test(s))).toBe(false);
     const empty = coverageReport([]);
     expect(empty.shortfalls.some((s) => /only 0 moments/.test(s))).toBe(true);
@@ -163,21 +162,25 @@ describe("moment lifecycle", () => {
     expect(state.awaiting).toBeNull();
   });
 
-  it("choosing and drawing is one moment: commit issues one command carrying the gesture accuracy", () => {
+  it("selecting an answer is the whole action: commit issues exactly that option's engine command, attributed to the user", () => {
     const { state, me } = controlledMatch(1, "CM");
-    const session = createSession(catalog);
+    const session = createSession(catalog, pacingFor("CM"));
     const m = nextMoment(session, state, (x) => x.read.hasBall === 1);
     expect(state.awaiting).toBe(me);
-    const drawn = m.options.find((o) => o.drawn) ?? m.options[0]!;
-    const res = commit(session, state, drawn.id, 0.7);
+    const pick = m.options[0]!;
+    const res = commit(session, state, pick.id);
     expect(res.status).toBe("committed");
-    expect(state.commands[me]?.accuracy).toBe(0.7);
+    expect(res.acted?.actor).toBe("user");
+    expect(res.acted?.optionId).toBe(pick.id);
+    expect(res.issued?.type).toBe(pick.command.type);
     expect(state.commands[me]?.command).toEqual(res.issued);
+    // no manual execution input exists: the engine executes at full intent precision
+    expect(state.commands[me]?.accuracy).toBe(1);
     expect(state.awaiting).toBeNull();
     expect(session.active).toBeNull();
     const last = session.records[session.records.length - 1]!;
     expect(last.moment.id).toBe(m.id);
-    expect(last.execution?.intentAccuracy).toBe(0.7);
+    expect(last.execution?.actor).toBe("user");
   });
 
   it("grades the decision against the field at commit time, not the moment start", () => {
@@ -218,13 +221,14 @@ describe("moment lifecycle", () => {
     expect(best.decisions.strong / best.total).toBeGreaterThan(rnd.decisions.strong / rnd.total);
   });
 
-  it("resolves a timeout through a role-specific continuation and records it as such", () => {
+  it("resolves a timeout through an engine-selected continuation: no user grade, execution attributed to the engine", () => {
     const { session, state } = playMatch(6, "CB", "timeout", 24000);
     expect(session.records.length).toBeGreaterThan(0);
     for (const r of session.records) {
       expect(r.decision.band).toBe("timeout");
       expect(r.decision.quality).toBeNull();
-      expect(r.execution).toBeNull();
+      expect(r.decision.chosenOptionId).toBeNull();
+      if (r.execution) expect(r.execution.actor).toBe("engine");
     }
     expect(state.awaiting).toBeNull();
     const rep = coverageReport(session.records);
@@ -240,12 +244,14 @@ describe("moment lifecycle", () => {
     state.ball = { ...state.ball, status: "controlled", owner: opp.id, lastTouch: opp.id, lastTouchSide: "away" };
     state.possession = "away";
     const shoot = m.options.find((o) => o.intent === "shoot")!;
-    const res = commit(session, state, shoot.id, 1);
+    const res = commit(session, state, shoot.id);
     expect(res.status).toBe("intent_unavailable");
     expect(res.decision.band).toBe("intent_unavailable");
     expect(res.decision.chosenOptionId).toBe(shoot.id);
-    expect(res.committed).toBeNull();
-    expect(session.records[session.records.length - 1]!.execution).toBeNull();
+    expect(res.decision.quality).toBeNull();
+    if (res.acted) expect(res.acted.actor).toBe("engine");
+    const last = session.records[session.records.length - 1]!;
+    if (last.execution) expect(last.execution.actor).toBe("engine");
   });
 
   it("feedback describes the field first and the outcome last", () => {
@@ -258,19 +264,40 @@ describe("moment lifecycle", () => {
     expect(lines.some((l) => l.startsWith("Outcome:"))).toBe(true);
     expect(lines[lines.length - 1]).toMatch(/^(Outcome:|Common trap:)/);
   });
+
+  it("feedback speaks in field conditions, never in engine telemetry, and never claims a ball action for an off-ball moment", () => {
+    expect(coachReasons(["a forward lane is open", "lane margin 0.32 s; receiver space 0.79; to feet"])).toBe(
+      "a forward lane is open; the passing lane is clearly open; the receiver has time",
+    );
+    expect(coachReasons(["space 0.51 ahead; pressure 0.08 at end; open space to attack"])).toBe("some room ahead; nobody at the end of the run; open space to attack");
+    expect(coachReasons(["shot window 12°; 15 m from goal"])).toBe("a narrow sight of goal");
+    expect(coachReasons(["lane margin 0.20 s; receiver space 0.45; to feet"])).toBe("no field condition stood out either way");
+    for (const role of ["GK", "CM", "ST"] as RoleId[]) {
+      const { session } = playMatch(role === "GK" ? 2001 : 2000, role, "random");
+      for (const r of session.records) {
+        const lines = feedbackFor(session, r);
+        for (const l of lines) expect(l, `${role} ${r.moment.entryId}: ${l}`).not.toMatch(/\d\.\d|\d°/);
+        if (r.outcome && r.moment.read.hasBall !== 1) {
+          expect(r.outcome.summary, `${role} ${r.moment.entryId}`).not.toMatch(/^(Held the ball|Carried|Took the touch)/);
+        }
+      }
+    }
+  });
 });
 
 describe("grading primitives", () => {
-  it("execution blends gesture accuracy with pressure when no kick evidence exists", () => {
+  it("execution is graded from the character's kick evidence, else pressure and fatigue — never from any user input", () => {
     const { state, me } = controlledMatch(1, "CM");
     const p = playerById(state, me)!;
-    const committed = { option: { id: "m:x", actionId: "x", label: "x", intent: "hold_position" as const, drawn: false, command: { type: "hold" as const }, anchor: null, score: 0, feasibility: 1, reasons: [] }, command: { type: "hold" as const }, commitTick: 0, accuracy: 1 };
+    const committed: CommittedIntent = { momentId: "m", actor: "user", optionId: "m:x", label: "x", command: { type: "hold" }, commitTick: 0 };
     const clean = gradeExecution(state, p, committed, null);
-    const poor = gradeExecution(state, p, { ...committed, accuracy: 0.3 }, null);
     expect(clean.band).toBe("clean");
-    expect(poor.band).toBe("poor");
+    expect(clean.actor).toBe("user");
+    const tired = gradeExecution(state, { ...p, fatigue: 1 }, committed, null);
+    expect(tired.quality).toBeLessThan(clean.quality);
     expect(gradeExecution(state, p, committed, 0.9).band).toBe("poor");
     expect(gradeExecution(state, p, committed, 0.05).band).toBe("clean");
+    expect(gradeExecution(state, p, { ...committed, actor: "engine" }, null).actor).toBe("engine");
   });
 
   it("outcomes wait for the observation window and then read events", () => {
@@ -278,15 +305,15 @@ describe("grading primitives", () => {
     const session = createSession(catalog);
     const m = nextMoment(session, state, (x) => x.read.hasBall === 1);
     const res = commit(session, state, m.options[0]!.id);
-    expect(resolveOutcome(state, m, res.committed)).toBeNull();
+    expect(resolveOutcome(state, m, res.acted)).toBeNull();
     for (let i = 0; i < 81; i++) tick(state);
-    const out = resolveOutcome(state, m, res.committed);
+    const out = resolveOutcome(state, m, res.acted);
     expect(out).not.toBeNull();
     expect(["success", "partial", "failure", "neutral"]).toContain(out!.result);
     expect(out!.eventIds.every((id) => state.events.some((e) => e.id === id))).toBe(true);
     // a goal for the player's side in the window dominates
-    state.events.push({ id: "fake", tick: res.committed!.commitTick + 1, type: "goal", side: "home", scorer: me, assist: null });
-    expect(resolveOutcome(state, m, res.committed)!.result).toBe("success");
+    state.events.push({ id: "fake", tick: res.acted!.commitTick + 1, type: "goal", side: "home", scorer: me, assist: null });
+    expect(resolveOutcome(state, m, res.acted)!.result).toBe("success");
   });
 });
 

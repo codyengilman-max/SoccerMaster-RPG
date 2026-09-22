@@ -38,12 +38,21 @@ reported in `spec/OPEN_QUESTIONS.md`, never resolved silently.
   DM / CM, wingers, striker, keeper distribution) and is scored from the state — far-side space,
   near-side space, pressure, overload — never assumed best because the ball is wide.
 - Lay-off / recycle answers are offered to the striker so the underneath option cannot vanish
-  when the shot or the forward lane is closed.
-- `DRAWN_INTENTS` (`src/tactics/catalog.ts`) only marks which intents the pre-PR-B runtime and
-  the training drills execute by drawing; it carries no soccer meaning and official matches after
-  PR B execute every answer automatically.
-- Between recognition and commit the state keeps moving. `commit()` re-instantiates the chosen
-  intent in the *current* state; if it no longer exists (the ball went out, possession turned over,
+  when the shot or the forward lane is closed; near goal the striker is also offered the far-side
+  winger (`far_side`, a `switch_play` instantiation), the engine's own best route across a crowded box.
+- Grading an on-ball answer: `scoreAction` = catalog base + 0.8 × feasibility + the entry's
+  field-condition criteria, minus `ENGINE_GAP_WEIGHT` (0.8) × how far the engine's own
+  `evaluateOnBall` score for that exact command sits below the engine's best from the same state.
+  The gap term is what stops a safe, feasible recycle outranking a free carry or an open switch
+  that the simulation rates far higher; the catalog criteria still decide between close options,
+  and the engine's best is not automatically the graded best (`tools/reviewMatch.ts` prints the
+  agreement rate and every wide gap per match — about two thirds agree, the rest are close calls
+  such as `draw_defender`, which the engine never proposes as a distinct option).
+- `DRAWN_INTENTS` (`src/tactics/catalog.ts`) only marks which intents the training drills execute
+  by drawing; it carries no soccer meaning and official matches execute every answer automatically.
+- Official matches freeze the state at recognition, so the answers and the commit see the same
+  field. `commit()` re-instantiates the chosen intent in the state it is given; if it no longer
+  exists (in a drill the ball went out, possession turned over,
   a long route closed) the record is `intent_unavailable`, no user grade is awarded, and the role's
   continuation default is issued so the match continues. This is a rare edge (≈3% of keeper
   moments across 60 seeds), guarded in `tests/tactics/goalkeeper.test.ts`.

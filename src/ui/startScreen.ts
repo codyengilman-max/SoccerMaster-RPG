@@ -1,4 +1,4 @@
-import { APP_NAME, APP_VERSION } from "../app/version";
+import { APP_NAME, APP_VERSION, BUILD_ID } from "../app/version";
 import { formatDay } from "../calendar/date";
 import type { SaveSummary } from "../save/save";
 import { escapeHtml } from "./html";
@@ -15,7 +15,7 @@ export function mountStartScreen(root: HTMLElement, saved: SaveSummary | null, h
   root.innerHTML = `
     <section class="start">
       <h1>${APP_NAME}</h1>
-      <p>Build ${APP_VERSION} — U11 opening.</p>
+      <p>Build ${APP_VERSION} · ${BUILD_ID} — U11 opening.</p>
       <div class="card menu">
         ${
           saved

@@ -44,7 +44,7 @@ const t0 = Date.now();
 while (!isFinished(state)) {
   const moment = observe(session, state);
   if (moment) {
-    // slow motion: a 1–3 s real decision at 0.12× is 0.12–0.36 simulated seconds (2–7 ticks)
+    // the frozen question: the headless user answers 2–7 ticks later (the real runtime freezes the state instead)
     pendingUntil = state.clock.tick + user.int(2, 8);
   }
   if (session.active && state.clock.tick >= pendingUntil) {
@@ -53,7 +53,7 @@ while (!isFinished(state)) {
     if (policy === "timeout") timeout(session, state);
     else {
       const pick = policy === "best" ? sorted[0] : policy === "worst" ? sorted[sorted.length - 1] : user.pick(m.options);
-      if (pick) commit(session, state, pick.id, policy === "best" ? 1 : user.range(0.6, 1));
+      if (pick) commit(session, state, pick.id);
     }
   }
   tick(state);

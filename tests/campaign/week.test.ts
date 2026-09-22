@@ -3,7 +3,7 @@ import catalogJson from "../../content/catalog/provisional-u11.json";
 import { standings } from "../../src/calendar/competitions";
 import { mondayOf, weekday } from "../../src/calendar/date";
 import { advanceDays, currentLeagueId, eligibilityPreview, FRIEND_ID, fixturesFor, PLAYER_ID, scheduleWeek } from "../../src/campaign/campaign";
-import { campaignMatchConfig, completeCampaignMatch, fixtureById, MATCH_FACTS, reportFromRuntime, weekAttendance } from "../../src/campaign/match";
+import { campaignMatchConfig, checkpointMatch, completeCampaignMatch, fixtureById, MATCH_FACTS, pendingMatchRuntime, reportFromRuntime, weekAttendance } from "../../src/campaign/match";
 import {
   abandonPending,
   cancelPending,
@@ -22,7 +22,8 @@ import {
   trainingActivity,
   weekView,
 } from "../../src/campaign/week";
-import { createRuntime, frame, liveAnchor, select, setAccessible, tapTarget, type MatchRuntime } from "../../src/match/runtime";
+import { answer, createRuntime, frame, ready, serializeRuntime } from "../../src/match/runtime";
+import { playToFullTime } from "../helpers";
 import { playedIn, resultFor } from "../../src/match/report";
 import { resumeSession } from "../../src/app/session";
 import { MemoryStore } from "../../src/save/save";
@@ -70,21 +71,6 @@ function playTraining(s: ReturnType<typeof joinedSession>): Summary {
   const summary = summarize(d);
   completeTraining(c, summary);
   return summary;
-}
-
-/** Drive the browser runtime to full time, answering every moment with an accessible tap on its first option. */
-function playToFullTime(rt: MatchRuntime): void {
-  setAccessible(rt, true);
-  rt.fast = true;
-  for (let i = 0; i < 2_000_000; i++) {
-    const r = frame(rt, 1000);
-    if (r.opened) {
-      const first = r.opened.options[0]!;
-      if (!select(rt, first.id) && rt.active) tapTarget(rt, liveAnchor(rt, first) ?? rt.state.ball.pos);
-    }
-    if (r.finished) return;
-  }
-  throw new Error("match did not finish");
 }
 
 describe("regular week: calendar and slot actions", () => {
@@ -419,6 +405,48 @@ describe("regular week: campaign match through the runtime", () => {
 });
 
 describe("regular week: save/resume and previews", () => {
+  it("a match checkpoint taken at the frozen question survives a reload: the pending fixture restores to the same moment, clock and score", () => {
+    const store = new MemoryStore();
+    const s = joinedSession({}, store);
+    const c = s.campaign;
+    reach(s, "play_match");
+    const r = takeAction(c, "play_match");
+    if (!r.ok || !r.launch || r.launch.kind !== "match") throw new Error("match not launched");
+    const fixture = fixtureById(c, r.launch.fixtureId);
+    const pacing = pacingFor(ROLE_BY_NUMBER[c.player.position]);
+    const rt = pendingMatchRuntime(c, fixture, catalog, pacing);
+    // play a few moments, then stop at the next frozen question exactly as the screen does before checkpointing
+    let answered = 0;
+    for (let guard = 0; guard < 400_000 && answered < 3; guard++) {
+      frame(rt, 1000 / 30);
+      if (rt.phase === "question") {
+        ready(rt);
+        answer(rt, rt.active!.moment.options[0]!.id);
+        answered++;
+      }
+    }
+    for (let guard = 0; guard < 400_000 && rt.phase !== "question"; guard++) frame(rt, 1000 / 30);
+    expect(rt.phase).toBe("question");
+    expect(checkpointMatch(c, serializeRuntime(rt))).toBe(true);
+    s.save();
+
+    const back = resumeSession(store)!;
+    expect(back.campaign.pending?.kind).toBe("match");
+    const again = pendingMatchRuntime(back.campaign, fixtureById(back.campaign, fixture.id), catalog, pacing);
+    expect(again.phase).toBe("question");
+    expect(again.active!.moment.id).toBe(rt.active!.moment.id);
+    expect(again.state.clock.tick).toBe(rt.state.clock.tick);
+    expect(again.state.score).toEqual(rt.state.score);
+    expect(again.session.records.length).toBe(rt.session.records.length);
+    // without a checkpoint the pending fixture starts fresh
+    const fresh = joinedSession();
+    reach(fresh, "play_match");
+    takeAction(fresh.campaign, "play_match");
+    const f = fresh.campaign.pending!;
+    if (f.kind !== "match") throw new Error("match not pending");
+    expect(pendingMatchRuntime(fresh.campaign, fixtureById(fresh.campaign, f.fixtureId), catalog, pacing).state.clock.tick).toBe(0);
+  });
+
   it("resuming mid-week restores slot, pending activity, commitments, reports and queued scenes", () => {
     const store = new MemoryStore();
     const s = joinedSession({}, store);

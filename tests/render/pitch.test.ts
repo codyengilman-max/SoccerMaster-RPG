@@ -58,7 +58,7 @@ function scene(): { state: ReturnType<typeof createMatch>; base: RenderOptions; 
   const visuals = deriveVisuals(createPresentation(), state, cam, 50, 1, 0);
   const base: RenderOptions = {
     controlledId,
-    window: null,
+    moment: null,
     optionAnchors: new Map(),
     slow: 0,
     major: false,
@@ -95,16 +95,7 @@ describe("pitch frame", () => {
   });
 });
 
-const fakeWindow = (playerId: string): NonNullable<RenderOptions["window"]> =>
-  ({
-    moment: { playerId, major: false, options: [] },
-    openedTick: 0,
-    expiresTick: 200,
-    stage: "reading",
-    selected: null,
-    preview: null,
-    previewPoints: [],
-  }) as unknown as NonNullable<RenderOptions["window"]>;
+const fakeMoment = (playerId: string): NonNullable<RenderOptions["moment"]> => ({ playerId, major: false, options: [] }) as unknown as NonNullable<RenderOptions["moment"]>;
 
 describe("golden-moment effects", () => {
   const pulses: GroundPulse[] = [
@@ -117,21 +108,21 @@ describe("golden-moment effects", () => {
     const { state, base, cam, controlledId } = scene();
     const plain = countingContext();
     render(plain.ctx, cam, state, base);
-    const window = fakeWindow(controlledId);
+    const moment = fakeMoment(controlledId);
 
     const withEffects = countingContext();
-    render(withEffects.ctx, cam, state, { ...base, window, momentAge: 0.1, pulses });
+    render(withEffects.ctx, cam, state, { ...base, moment, momentAge: 0.1, pulses });
     expect(withEffects.count("ellipse")).toBeGreaterThan(plain.count("ellipse"));
     expect(withEffects.count("drawImage")).toBe(plain.count("drawImage"));
   });
 
   it("stops drawing a ripple once the moment is older than its life and ignores expired pulses", () => {
     const { state, base, cam, controlledId } = scene();
-    const window = fakeWindow(controlledId);
+    const moment = fakeMoment(controlledId);
     const young = countingContext();
-    render(young.ctx, cam, state, { ...base, window, momentAge: 0.1 });
+    render(young.ctx, cam, state, { ...base, moment, momentAge: 0.1 });
     const old = countingContext();
-    render(old.ctx, cam, state, { ...base, window, momentAge: 5 });
+    render(old.ctx, cam, state, { ...base, moment, momentAge: 5 });
     expect(old.count("ellipse")).toBeLessThan(young.count("ellipse"));
 
     const none = countingContext();

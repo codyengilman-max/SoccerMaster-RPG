@@ -3,7 +3,8 @@ import catalogJson from "../../content/catalog/provisional-u11.json";
 import { PLAYER_ID, resolvePerson } from "../../src/campaign/campaign";
 import { campaignMatchConfig } from "../../src/campaign/match";
 import type { Fixture } from "../../src/calendar/competitions";
-import { createRuntime, frame, liveAnchor, select, setAccessible, tapTarget } from "../../src/match/runtime";
+import { createRuntime } from "../../src/match/runtime";
+import { playToFullTime } from "../helpers";
 import { DEFAULT_ACCESSIBILITY } from "../../src/minigame/contract";
 import { start } from "../../src/minigame/machine";
 import { adjustRelation } from "../../src/story/memory";
@@ -51,16 +52,7 @@ function playFixture(s: Session) {
   const fixture = c.competitions.fixtures.find((f: Fixture) => !f.result && (f.homeClubId === "batavia" || f.awayClubId === "batavia"))!;
   const cfg = campaignMatchConfig(c, fixture);
   const rt = createRuntime(cfg, catalog, { pacing: pacingFor(ROLE_BY_NUMBER[c.player.position]) });
-  setAccessible(rt, true);
-  rt.fast = true;
-  for (let i = 0; i < 2_000_000; i++) {
-    const r = frame(rt, 1000);
-    if (r.opened) {
-      const first = r.opened.options[0]!;
-      if (!select(rt, first.id) && rt.active) tapTarget(rt, liveAnchor(rt, first) ?? rt.state.ball.pos);
-    }
-    if (r.finished) break;
-  }
+  playToFullTime(rt);
   const report = buildReport(rt.state, rt.session.records, { fixtureId: fixture.id, homeClubId: fixture.homeClubId, awayClubId: fixture.awayClubId });
   return { cfg, report, records: rt.session.records };
 }

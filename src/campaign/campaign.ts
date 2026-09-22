@@ -19,6 +19,7 @@ import {
 import { dayOfIso, isWeekend, mondayOf, nextWeekday, weekday, type CampaignDay } from "../calendar/date";
 import { addCommitment, advanceTo, createSchedule, slotsFor, type Commitment, type Schedule, type Slot } from "../calendar/schedule";
 import type { MatchReport } from "../match/report";
+import type { RuntimeSave } from "../match/runtime";
 import type { MinigameSession } from "../minigame/machine";
 import { createRosterState, joinRoster, squadFor, type Club, type Person, type RosterState } from "../roster/roster";
 import type { SquadPlayer } from "../sim/engine";
@@ -83,7 +84,8 @@ export interface CampaignState {
 
 export type PendingActivity =
   | { kind: "training"; commitmentId: string; activity: Activity }
-  | { kind: "match"; commitmentId: string; fixtureId: string }
+  /** `save` holds the match mid-flight (state, records, open question) when the player left the screen. */
+  | { kind: "match"; commitmentId: string; fixtureId: string; save?: RuntimeSave }
   | { kind: "crossbar" }
   | { kind: "juggling" }
   | { kind: "home_skill"; assignmentId: string }
