@@ -266,9 +266,12 @@ describe("moment lifecycle", () => {
   });
 
   it("feedback speaks in field conditions, never in engine telemetry, and never claims a ball action for an off-ball moment", () => {
-    expect(coachReasons(["a forward lane is open", "lane margin 0.32 s; receiver space 0.79; to feet"])).toBe("a forward lane is open");
-    expect(coachReasons(["space 0.51 ahead; pressure 0.08 at end; open space to attack"])).toBe("open space to attack");
-    expect(coachReasons(["shot window 12°; 15 m from goal"])).toBe("no field condition stood out either way");
+    expect(coachReasons(["a forward lane is open", "lane margin 0.32 s; receiver space 0.79; to feet"])).toBe(
+      "a forward lane is open; the passing lane is clearly open; the receiver has time",
+    );
+    expect(coachReasons(["space 0.51 ahead; pressure 0.08 at end; open space to attack"])).toBe("some room ahead; nobody at the end of the run; open space to attack");
+    expect(coachReasons(["shot window 12°; 15 m from goal"])).toBe("a narrow sight of goal");
+    expect(coachReasons(["lane margin 0.20 s; receiver space 0.45; to feet"])).toBe("no field condition stood out either way");
     for (const role of ["GK", "CM", "ST"] as RoleId[]) {
       const { session } = playMatch(role === "GK" ? 2001 : 2000, role, "random");
       for (const r of session.records) {

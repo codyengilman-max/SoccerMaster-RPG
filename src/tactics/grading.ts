@@ -32,15 +32,39 @@ export function rescoreAtCommit(state: MatchState, catalog: Catalog, moment: Tac
 }
 
 /**
- * The reasons a player is told: the catalog's field-condition sentences. Engine telemetry that the
- * option also carries ("lane margin 0.32 s", "space 0.51 ahead", "shot window 12°") stays on the
- * option for review tools, but is not coaching language and is not something a U11 sees on the field.
+ * The reasons a player is told: the catalog's field-condition sentences, plus the engine's telemetry
+ * ("lane margin 0.32 s", "space 0.51 ahead", "shot window 12°") translated into what a coach would
+ * point at on the field. The raw numbers stay on the option for review tools only.
  */
 export function coachReasons(reasons: readonly string[]): string {
-  const plain = reasons
-    .flatMap((r) => r.split("; "))
-    .filter((r) => !/\d\.\d|\d°|^\d+ m from goal$|^(to feet|into space ahead)$/.test(r));
-  return plain.length ? plain.join("; ") : "no field condition stood out either way";
+  const out: string[] = [];
+  for (const r of reasons.flatMap((s) => s.split("; "))) {
+    const plain = fieldLanguage(r);
+    if (plain && !out.includes(plain)) out.push(plain);
+  }
+  return out.length ? out.join("; ") : "no field condition stood out either way";
+}
+
+/** One engine reason → what a coach would say about it, or null when it adds nothing a player can see. */
+function fieldLanguage(reason: string): string | null {
+  const num = (re: RegExp): number | null => {
+    const m = re.exec(reason);
+    return m ? Number(m[1]) : null;
+  };
+  const space = num(/^space (\d+\.\d+) ahead$/);
+  if (space !== null) return space > 0.6 ? "plenty of grass in front of you" : space > 0.35 ? "some room ahead" : null;
+  const endPressure = num(/^pressure (\d+\.\d+) at end$/);
+  if (endPressure !== null) return endPressure > 0.6 ? "a defender is waiting where the carry ends" : endPressure < 0.15 ? "nobody at the end of the run" : null;
+  const lane = num(/^lane margin (\d+\.\d+) s$/);
+  if (lane !== null) return lane > 0.3 ? "the passing lane is clearly open" : lane < 0.12 ? "the lane is tight" : null;
+  const receiver = num(/^receiver space (\d+\.\d+)$/);
+  if (receiver !== null) return receiver > 0.6 ? "the receiver has time" : receiver < 0.3 ? "the receiver is marked" : null;
+  const window = num(/^shot window (\d+)°$/);
+  if (window !== null) return window >= 25 ? "the goal is open" : window >= 12 ? "a narrow sight of goal" : "the shot is blocked";
+  const dist = num(/^(\d+) m from goal$/);
+  if (dist !== null) return dist <= 14 ? "close enough to score" : dist >= 22 ? "a long way out" : null;
+  if (/\d\.\d|\d°/.test(reason) || reason === "to feet" || reason === "into space ahead") return null;
+  return reason;
 }
 
 export function gradeDecision(state: MatchState, catalog: Catalog, moment: TacticalMoment, chosenOptionId: string | null): DecisionRecord {
