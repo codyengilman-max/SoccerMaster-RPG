@@ -1,7 +1,7 @@
 import catalogJson from "../content/catalog/provisional-u11.json";
 import { installRecovery } from "./app/recovery";
 import { AUTOSAVE_SLOT, newSession, resumeSession, savedSummary, type Session } from "./app/session";
-import { APP_NAME, APP_VERSION } from "./app/version";
+import { APP_NAME, APP_VERSION, BUILD_ID, BUILD_SHA } from "./app/version";
 import { FRIEND_ID, PLAYER_ID, type PendingActivity } from "./campaign/campaign";
 import { checkpointMatch, fixtureById, pendingMatchRuntime, reportFromRuntime } from "./campaign/match";
 import { clubRule } from "./campaign/tryouts";
@@ -35,6 +35,7 @@ import { mountStartScreen } from "./ui/startScreen";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("#app root missing");
+document.documentElement.dataset["build"] = BUILD_SHA;
 
 const catalog = loadCatalog(catalogJson as CatalogFile);
 const store = new LocalStorageStore();
@@ -280,7 +281,7 @@ function showQuickMatch(): void {
   root!.innerHTML = `
     <section class="start">
       <h1>${APP_NAME}</h1>
-      <p>Build ${APP_VERSION} — quick match (debug).</p>
+      <p>Build ${APP_VERSION} · ${BUILD_ID} — quick match (debug).</p>
       <div class="card">
         <h2>Quick match</h2>
         <p class="muted">Pick the position you'll play. It stays locked for the whole match; the rest of the team is AI.</p>

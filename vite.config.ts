@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -34,8 +35,22 @@ function serviceWorker(): Plugin {
   };
 }
 
+/** Commit the bundle was built from: Cloudflare Pages exposes it, a local build asks git. */
+function buildSha(): string {
+  const fromPages = process.env["CF_PAGES_COMMIT_SHA"];
+  if (fromPages) return fromPages;
+  try {
+    return execSync("git rev-parse HEAD", { cwd: ROOT_DIR, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  } catch {
+    return "unknown";
+  }
+}
+
 export default defineConfig({
   plugins: [serviceWorker()],
+  define: {
+    __BUILD_SHA__: JSON.stringify(buildSha()),
+  },
   build: {
     target: "es2022",
     outDir: "dist",
