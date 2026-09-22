@@ -219,7 +219,9 @@ export function feedbackFor(session: TacticalSession, record: MomentRecord): str
   const lines = [...record.decision.explanation];
   if (record.execution) {
     const who = record.execution.actor === "engine" ? "Execution (engine-selected action)" : "Execution";
-    lines.push(`${who} ${record.execution.band} (pressure ${record.execution.pressureAtCommit.toFixed(2)}).`);
+    const pr = record.execution.pressureAtCommit;
+    const under = pr > 1.2 ? "under heavy pressure" : pr > 0.6 ? "under pressure" : pr > 0.2 ? "with a defender near" : "with time and space";
+    lines.push(`${who} ${record.execution.band} ${under}.`);
   }
   if (record.outcome) lines.push(`Outcome: ${record.outcome.summary}`);
   if (record.decision.band === "weak" && entry.mistakes[0]) lines.push(`Common trap: ${entry.mistakes[0]}`);

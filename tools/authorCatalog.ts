@@ -42,6 +42,12 @@ const A = {
     when([c("pressure", ">", 0.7)], -0.2, "a long switch under pressure is risky"),
     when([c("pressure", ">", 0.5), c("spaceNearSide", "<", 0.4)], 0.3, "your side is overloaded: the spare player is on the far side"),
   ]),
+  farSide: action("far_side", "Find the far-side winger", "switch_play", 0.35, [
+    when([c("spaceFarSide", ">", 0.6)], 0.6, "the far-side winger is free"),
+    when([c("shotWindow", ">", 0.35)], -0.5, "the shot was open"),
+    when([c("pressure", ">", 0.7)], -0.2, "a cross-field pass under pressure is risky"),
+    when([c("pressure", ">", 0.5), c("spaceNearSide", "<", 0.4)], 0.3, "your side is crowded: the spare player is on the far side"),
+  ]),
   layoff: action("lay_off", "Lay it off to the arriving teammate", "recycle", 0.4, [
     when([c("pressure", ">", 0.6)], 0.4, "marked from behind: the first-time lay-off keeps it"),
     when([c("shotWindow", ">", 0.35)], -0.4, "the shot was open"),
@@ -766,7 +772,7 @@ entries.push(
     id: "ST_ON_01", role: "ST", category: "on_ball", phase: "final_third", title: "On the ball near goal",
     trigger: { all: [...ON, c("distToGoal", "<", 20)] },
     cues: ["Is the shot open?", "Is a teammate better placed?", "Is the defender committed?"],
-    actions: [A.shoot, A.gap, A.space, A.draw, A.layoff],
+    actions: [A.shoot, A.gap, A.space, A.draw, A.layoff, A.farSide],
     mistakes: ["Shooting through a wall", "Passing when the shot is open"],
     difficultyFactors: ["Shot window", "Support"],
     continuation: "Shot, combination, or reset.",

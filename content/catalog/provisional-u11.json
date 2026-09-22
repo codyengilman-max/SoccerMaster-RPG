@@ -14152,6 +14152,63 @@
               "why": "nobody had arrived to receive it"
             }
           ]
+        },
+        {
+          "id": "far_side",
+          "label": "Find the far-side winger",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far-side winger is free"
+            },
+            {
+              "when": [
+                {
+                  "f": "shotWindow",
+                  "op": ">",
+                  "v": 0.35
+                }
+              ],
+              "add": -0.5,
+              "why": "the shot was open"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a cross-field pass under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is crowded: the spare player is on the far side"
+            }
+          ]
         }
       ],
       "mistakes": [

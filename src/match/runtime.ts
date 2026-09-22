@@ -401,8 +401,12 @@ export const questionOpen = (rt: MatchRuntime): boolean => rt.active !== null &&
 
 /** The one soccer-intelligence question asked at the freeze, worded by how the player is involved. */
 export function questionFor(moment: TacticalMoment): string {
-  if (moment.role === "GK" && moment.category !== "on_ball") return "How do you deal with this?";
-  if (moment.involvement === "first_touch") return "The ball is arriving — what do you do with your first touch?";
+  if (moment.role === "GK" && moment.category !== "on_ball") {
+    if (moment.phase === "final_third") return "The attack is on you — what is the keeper's job right now?";
+    if (moment.category === "transition") return "The ball has just changed hands — where do you start from now?";
+    return moment.category === "defending" ? "They have the ball — how do you set up behind your line?" : "Your team has the ball — where should the keeper be?";
+  }
+  if (moment.involvement === "first_touch") return "First touch taken — what is the play from here?";
   switch (moment.category) {
     case "on_ball":
       return "You have the ball — what is the right play?";

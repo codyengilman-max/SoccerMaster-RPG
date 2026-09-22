@@ -1,3 +1,4 @@
+import { evaluateOnBall } from "../sim/ai";
 import { clamp } from "../sim/geometry";
 import { playerById } from "../sim/perception";
 import type { MatchState, PlayerState, RoleId } from "../sim/types";
@@ -158,17 +159,35 @@ export function scoreAction(entry: CatalogEntry, actionId: string, read: FieldRe
   return { score, reasons };
 }
 
+/**
+ * Weight of the engine's own view when an answer is on the ball: an option the simulation rates
+ * below its best play from the same state is marked down in proportion to the gap. The catalog's
+ * field-condition reasons still decide between close options; this only stops a safe but passive
+ * answer outranking a play the engine sees as clearly better (a free carry, an open switch).
+ */
+export const ENGINE_GAP_WEIGHT = 0.8;
+
 /** Build the concrete, scored options for `entry` in the current state. Fewer than two ⇒ not a moment. */
 export function buildOptions(state: MatchState, p: PlayerState, entry: CatalogEntry, read: FieldRead, momentId: string): TacticalOption[] {
   const options: TacticalOption[] = [];
   const seen = new Set<string>();
+  const engine = read.hasBall === 1 ? evaluateOnBall(state, p) : [];
+  const engineBest = engine.reduce((m, o) => Math.max(m, o.score), -Infinity);
   for (const a of entry.actions) {
     const inst = instantiateIntent(state, p, a.intent);
     if (!inst) continue;
     const key = JSON.stringify(inst.command);
     if (seen.has(key)) continue;
     seen.add(key);
-    const { score, reasons } = scoreAction(entry, a.id, read, inst.feasibility);
+    const scored = scoreAction(entry, a.id, read, inst.feasibility);
+    let { score } = scored;
+    const reasons = [...scored.reasons];
+    const own = engine.find((o) => JSON.stringify(o.command) === key);
+    if (own && engineBest > own.score) {
+      const gap = engineBest - own.score;
+      score -= ENGINE_GAP_WEIGHT * gap;
+      if (gap > 0.5) reasons.push("a clearly better play was on from here");
+    }
     const opt: TacticalOption = {
       id: `${momentId}:${a.id}`,
       actionId: a.id,

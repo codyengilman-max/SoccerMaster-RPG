@@ -23,7 +23,9 @@ interface Observed {
   /** Every displayed option, re-instantiated against the same state it was shown in. */
   infeasible: string[];
   /** Engine's highest-scoring on-ball option when the player had the ball, else null. */
-  engineBest: { kind: OnBallOption["kind"]; command: string; shown: boolean } | null;
+  engineBest: { kind: OnBallOption["kind"]; command: string; shown: boolean; score: number } | null;
+  /** The graded-best (top-scored) displayed answer, with the engine's own score for that exact command when it has one. */
+  top: { intent: string; engineScore: number | null };
   switchShown: boolean;
   switchIsTop: boolean;
   switchBackedByEngine: boolean;
@@ -70,9 +72,10 @@ function inspect(role: RoleId, seed: number, state: MatchState, m: TacticalMomen
   const best = engine[0];
   if (hasBall && best) {
     const shown = m.options.some((o) => key(o.command) === key(best.command));
-    engineBest = { kind: best.kind, command: key(best.command), shown };
+    engineBest = { kind: best.kind, command: key(best.command), shown, score: best.score };
   }
   const top = m.options.reduce((a, b) => (b.score > a.score ? b : a));
+  const topEngine = engine.find((o) => key(o.command) === key(top.command));
   const sw = m.options.find((o) => o.intent === "switch_play");
   const narrow = m.options.find((o) => o.intent === "narrow_inside");
   return {
@@ -81,6 +84,7 @@ function inspect(role: RoleId, seed: number, state: MatchState, m: TacticalMomen
     moment: m,
     infeasible,
     engineBest,
+    top: { intent: top.intent, engineScore: topEngine ? topEngine.score : null },
     switchShown: sw !== undefined,
     switchIsTop: sw !== undefined && top.intent === "switch_play",
     switchBackedByEngine: sw !== undefined && engine.some((o) => o.kind === "switch" && key(o.command) === key(sw.command)),
@@ -137,6 +141,18 @@ describe("answer sets are drawn from the live state (spec §16)", () => {
     // state-scored: the switch is shown in wide situations where another answer scores higher
     expect(shown.some((o) => !o.switchIsTop)).toBe(true);
     expect(shown.filter((o) => o.switchIsTop).length).toBeLessThan(shown.length);
+  });
+
+  it("the graded-best answer is never an option the engine rates far below its own best from the same state", () => {
+    // decision grades come from the catalog criteria plus the engine-gap term (ENGINE_GAP_WEIGHT): a safe
+    // recycle must not be taught as the best play when the simulation sees a clearly better carry or switch
+    const onBall = observed.filter((o) => o.engineBest !== null);
+    const agree = onBall.filter((o) => o.top.engineScore !== null && o.top.engineScore >= o.engineBest!.score - 1e-9);
+    expect(agree.length / onBall.length, `graded best equals engine best in ${agree.length}/${onBall.length}`).toBeGreaterThan(0.55);
+    const wide = onBall
+      .filter((o) => o.top.engineScore !== null && o.engineBest!.score - o.top.engineScore > 1.2)
+      .map((o) => `${o.role} s${o.seed} ${o.moment.entryId} top=${o.top.intent} (engine ${o.top.engineScore?.toFixed(2)}) engine best=${o.engineBest?.kind} ${o.engineBest?.score.toFixed(2)}`);
+    expect(wide).toEqual([]);
   });
 
   it("narrow_inside is shown only when the contextual second-9 read is on", () => {

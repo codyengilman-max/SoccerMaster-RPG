@@ -8,7 +8,7 @@ import { ROLE_BY_NUMBER, type MatchState, type RoleId, type RoleNumber } from ".
 import { loadCatalog, type CatalogFile } from "../../src/tactics/catalog";
 import { coverageReport } from "../../src/tactics/coverage";
 import { readField } from "../../src/tactics/features";
-import { gradeDecision, gradeExecution, resolveOutcome } from "../../src/tactics/grading";
+import { coachReasons, gradeDecision, gradeExecution, resolveOutcome } from "../../src/tactics/grading";
 import { instantiateIntent } from "../../src/tactics/intents";
 import type { CommittedIntent, MomentRecord, TacticalMoment } from "../../src/tactics/moments";
 import { DIRECT_PACING, GK_DIRECT_PACING, difficultyOf, pacingFor, recognize, createRecognizer } from "../../src/tactics/recognition";
@@ -263,6 +263,22 @@ describe("moment lifecycle", () => {
     expect(lines[0]).toMatch(/:/);
     expect(lines.some((l) => l.startsWith("Outcome:"))).toBe(true);
     expect(lines[lines.length - 1]).toMatch(/^(Outcome:|Common trap:)/);
+  });
+
+  it("feedback speaks in field conditions, never in engine telemetry, and never claims a ball action for an off-ball moment", () => {
+    expect(coachReasons(["a forward lane is open", "lane margin 0.32 s; receiver space 0.79; to feet"])).toBe("a forward lane is open");
+    expect(coachReasons(["space 0.51 ahead; pressure 0.08 at end; open space to attack"])).toBe("open space to attack");
+    expect(coachReasons(["shot window 12°; 15 m from goal"])).toBe("no field condition stood out either way");
+    for (const role of ["GK", "CM", "ST"] as RoleId[]) {
+      const { session } = playMatch(role === "GK" ? 2001 : 2000, role, "random");
+      for (const r of session.records) {
+        const lines = feedbackFor(session, r);
+        for (const l of lines) expect(l, `${role} ${r.moment.entryId}: ${l}`).not.toMatch(/\d\.\d|\d°/);
+        if (r.outcome && r.moment.read.hasBall !== 1) {
+          expect(r.outcome.summary, `${role} ${r.moment.entryId}`).not.toMatch(/^(Held the ball|Carried|Took the touch)/);
+        }
+      }
+    }
   });
 });
 
