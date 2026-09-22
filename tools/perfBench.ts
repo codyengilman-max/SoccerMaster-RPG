@@ -11,7 +11,7 @@
  *   `fallback` benches the procedural-figure path used when a sprite sheet failed to load.
  */
 import catalogJson from "../content/catalog/provisional-u11.json";
-import { createRuntime, frame, releaseGesture, select, type MatchRuntime } from "../src/match/runtime";
+import { answer, createRuntime, frame, ready, viewState, type MatchRuntime } from "../src/match/runtime";
 import { isFinished } from "../src/sim/engine";
 import { formatSummary, summarize, type FrameSample, type ProbeSummary } from "../src/perf/probe";
 import { createCamera, follow, frameFor, setInsets } from "../src/render/camera";
@@ -118,25 +118,23 @@ function benchMatch(seed: number): MatchBench {
   let slow = 0;
   let answerIn = 0;
 
-  // a 60-minute match at 60 Hz is ~216k frames plus slow-motion windows
+  // a 60-minute match at 60 Hz: skipped routine play, lead-ins, frozen questions, consequences
   for (let f = 0; f < 400_000 && !isFinished(runtime.state); f++) {
     const t0 = performance.now();
     const res = frame(runtime, FRAME_MS);
-    // scripted user: answer each moment ~0.8 s in, half by drawing, half by choosing
-    if (res.opened) answerIn = Math.round(800 / FRAME_MS);
-    if (runtime.active && --answerIn === 0) {
-      const opts = runtime.active.moment.options;
-      const pick = opts[Math.floor(user.next() * opts.length)]!;
-      const me2 = runtime.state.players.find((p) => p.id === runtime.active!.moment.playerId)!;
-      if (pick.drawn && user.next() < 0.5) {
-        const to = pick.anchor ?? me2.pos;
-        releaseGesture(runtime, [me2.pos, { x: (me2.pos.x + to.x) / 2, y: (me2.pos.y + to.y) / 2 }, to]);
-      } else select(runtime, pick.id);
+    // scripted user: the screen calls ready() once the question is painted, the answer lands ~0.8 s later
+    if (runtime.phase === "question") {
+      ready(runtime);
+      answerIn = Math.round(800 / FRAME_MS);
+    }
+    if (runtime.phase === "timer" && --answerIn === 0) {
+      const opts = runtime.active!.moment.options;
+      answer(runtime, opts[Math.floor(user.next() * opts.length)]!.id);
     }
     const t1 = performance.now();
 
-    const st = runtime.state;
-    const w = runtime.active;
+    const st = viewState(runtime);
+    const w = runtime.phase === "question" || runtime.phase === "timer" ? runtime.active : null;
     slow += ((w ? 1 : 0) - slow) * 0.15;
     anchors.clear();
     const ctrl = st.players.find((p) => p.id === me.id) ?? null;
@@ -145,7 +143,7 @@ function benchMatch(seed: number): MatchBench {
     const visuals = deriveVisuals(presentation, st, cam, res.ticks * TICK_MS, 1, runtime.clock.carryMs);
     render(ctx, cam, st, {
       controlledId: me.id,
-      window: w,
+      moment: w?.moment ?? null,
       optionAnchors: anchors,
       slow,
       major: w?.moment.major ?? false,

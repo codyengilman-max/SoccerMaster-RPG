@@ -49,7 +49,7 @@ function playRole(role: RoleId, seed: number): Observed[] {
     }
     if (session.active && state.clock.tick >= pendingUntil) {
       const pick = user.pick(session.active.options);
-      if (pick) commit(session, state, pick.id, user.range(0.6, 1));
+      if (pick) commit(session, state, pick.id);
     }
     tick(state);
   }

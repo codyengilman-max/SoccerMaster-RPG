@@ -3,7 +3,7 @@ import { installRecovery } from "./app/recovery";
 import { AUTOSAVE_SLOT, newSession, resumeSession, savedSummary, type Session } from "./app/session";
 import { APP_NAME, APP_VERSION } from "./app/version";
 import { FRIEND_ID, PLAYER_ID, type PendingActivity } from "./campaign/campaign";
-import { campaignMatchConfig, fixtureById, reportFromRuntime } from "./campaign/match";
+import { checkpointMatch, fixtureById, pendingMatchRuntime, reportFromRuntime } from "./campaign/match";
 import { clubRule } from "./campaign/tryouts";
 import { abandonPending, cancelPending, completeCrossbar, completeHomeSkill, completeJuggling, completeMatch, completeTraining, completeTryout, isTired, type Completion } from "./campaign/week";
 import { createRuntime } from "./match/runtime";
@@ -171,14 +171,21 @@ function showPending(s: Session, p: PendingActivity): void {
       return;
     case "match": {
       const fixture = fixtureById(c, p.fixtureId);
-      const cfg = campaignMatchConfig(c, fixture);
-      const runtime = createRuntime(cfg, catalog, { pacing: pacingFor(ROLE_BY_NUMBER[c.player.position]) });
+      const runtime = pendingMatchRuntime(c, fixture, catalog, pacingFor(ROLE_BY_NUMBER[c.player.position]));
       const lesson = activeLessonCue(c.story.facts, ROLE_BY_NUMBER[c.player.position]);
       mountMatchScreen(
         root!,
         runtime,
         (rt) => after(completeMatch(c, reportFromRuntime(rt, fixture))),
-        { exitLabel: "Back to the week", ...(lesson ? { lesson } : {}) },
+        {
+          exitLabel: "Back to the week",
+          ...(lesson ? { lesson } : {}),
+          onSave: (save) => {
+            checkpointMatch(c, save);
+            s.save();
+            showCampaign(s);
+          },
+        },
       );
       return;
     }

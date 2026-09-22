@@ -67,7 +67,7 @@ for (const [label, s] of [
   layer(label, () =>
     render(ctx, cam, state, {
       controlledId: home[5]!.id,
-      window: null,
+      moment: null,
       optionAnchors: new Map(),
       slow: 0,
       major: false,
@@ -79,12 +79,12 @@ for (const [label, s] of [
   );
 }
 layer("frame/empty", () =>
-  render(ctx, cam, state, { controlledId: null, window: null, optionAnchors: new Map(), slow: 0, major: false, visuals: [], sprites, ballHeightM: 0, timeS: 1 }),
+  render(ctx, cam, state, { controlledId: null, moment: null, optionAnchors: new Map(), slow: 0, major: false, visuals: [], sprites, ballHeightM: 0, timeS: 1 }),
 );
 layer("frame/1 spr", () =>
-  render(ctx, cam, state, { controlledId: null, window: null, optionAnchors: new Map(), slow: 0, major: false, visuals: visuals.slice(0, 1), sprites, ballHeightM: 0, timeS: 1 }),
+  render(ctx, cam, state, { controlledId: null, moment: null, optionAnchors: new Map(), slow: 0, major: false, visuals: visuals.slice(0, 1), sprites, ballHeightM: 0, timeS: 1 }),
 );
 layer("frame/1 fb", () =>
-  render(ctx, cam, state, { controlledId: null, window: null, optionAnchors: new Map(), slow: 0, major: false, visuals: visuals.slice(0, 1), sprites: null, ballHeightM: 0, timeS: 1 }),
+  render(ctx, cam, state, { controlledId: null, moment: null, optionAnchors: new Map(), slow: 0, major: false, visuals: visuals.slice(0, 1), sprites: null, ballHeightM: 0, timeS: 1 }),
 );
 console.log("zoom", cam.zoom.toFixed(2), "portrait", cam.portrait);

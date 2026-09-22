@@ -39,11 +39,11 @@ reported in `spec/OPEN_QUESTIONS.md`, never resolved silently.
   near-side space, pressure, overload — never assumed best because the ball is wide.
 - Lay-off / recycle answers are offered to the striker so the underneath option cannot vanish
   when the shot or the forward lane is closed.
-- `DRAWN_INTENTS` (`src/tactics/catalog.ts`) only marks which intents the pre-PR-B runtime and
-  the training drills execute by drawing; it carries no soccer meaning and official matches after
-  PR B execute every answer automatically.
-- Between recognition and commit the state keeps moving. `commit()` re-instantiates the chosen
-  intent in the *current* state; if it no longer exists (the ball went out, possession turned over,
+- `DRAWN_INTENTS` (`src/tactics/catalog.ts`) only marks which intents the training drills execute
+  by drawing; it carries no soccer meaning and official matches execute every answer automatically.
+- Official matches freeze the state at recognition, so the answers and the commit see the same
+  field. `commit()` re-instantiates the chosen intent in the state it is given; if it no longer
+  exists (in a drill the ball went out, possession turned over,
   a long route closed) the record is `intent_unavailable`, no user grade is awarded, and the role's
   continuation default is issued so the match continues. This is a rare edge (≈3% of keeper
   moments across 60 seeds), guarded in `tests/tactics/goalkeeper.test.ts`.

@@ -10,7 +10,8 @@ import { buildOptions } from "./recognition";
  * The three layers the spec (§13) insists stay separate:
  *  - decision quality: the chosen intention relative to the alternatives, judged on the field state
  *    at commit time (not at the moment start);
- *  - execution: how well the action was performed (gesture precision + attributes + pressure + fatigue);
+ *  - execution: how well the character performed the action (attributes + pressure + fatigue + the
+ *    engine's own kick error); the user never executes, only chooses;
  *  - outcome: what actually happened in the simulation afterwards.
  */
 
@@ -64,21 +65,15 @@ export function gradeDecision(state: MatchState, catalog: Catalog, moment: Tacti
   };
 }
 
-/** Execution grade: gesture precision blended with the sim's own error for the resulting kick when available. */
+/** Execution grade: the sim's own error for the resulting kick when there is one; otherwise pressure and fatigue at commit. */
 export function gradeExecution(state: MatchState, p: PlayerState, committed: CommittedIntent, kickError: number | null): ExecutionRecord {
   const pressure = pressureAt(p.pos, opponents(state, p.side));
   const fatigue = p.fatigue;
-  let quality: number;
-  if (kickError !== null) {
-    quality = clamp(1 - kickError, 0, 1);
-  } else {
-    // non-kick actions: precision of intent, eased for tired/pressed players
-    quality = clamp(committed.accuracy * (1 - 0.15 * pressure) * (1 - 0.1 * fatigue), 0, 1);
-  }
+  const quality = kickError !== null ? clamp(1 - kickError, 0, 1) : clamp((1 - 0.15 * pressure) * (1 - 0.1 * fatigue), 0, 1);
   const band = quality >= 0.75 ? "clean" : quality >= 0.45 ? "loose" : "poor";
   return {
-    momentId: committed.option.id.split(":").slice(0, -1).join(":"),
-    intentAccuracy: committed.accuracy,
+    momentId: committed.momentId,
+    actor: committed.actor,
     quality,
     band,
     pressureAtCommit: pressure,

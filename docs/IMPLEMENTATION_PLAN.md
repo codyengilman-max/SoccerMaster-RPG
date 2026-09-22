@@ -81,66 +81,76 @@ for outfield roles; distribution / claim / sweep / 1v1 / positioning / communica
 for the keeper), each a cinematic lead-in, a freeze, a 15-second multiple-choice answer, automatic
 execution and brief feedback, in 5–7 real minutes (4–8 acceptable). It lands in two stacked PRs:
 
-- **PR A (this state of the repo) — soccer logic and answer catalog.** `switch_play` and the
-  lay-off / recycle answers are offered wherever the engine has the route (`tools/authorCatalog.ts`
-  → `content/catalog/provisional-u11.json`); the contextual second-9 read (`secondNineRead`,
+- **PR A — soccer logic and answer catalog.** `switch_play` and the lay-off / recycle answers are
+  offered wherever the engine has the route (`tools/authorCatalog.ts` →
+  `content/catalog/provisional-u11.json`); the contextual second-9 read (`secondNineRead`,
   `SECOND_NINE` in `src/sim/ai.ts`) drives both the AI wingers' off-ball movement and the
   `narrow_inside` answer; `src/tactics/exclusions.ts` lists the only documented omissions of an
   engine-best option; `tests/tactics/answerSet.test.ts` proves every displayed answer instantiates
   in its state and that the engine's highest-scoring on-ball option is never omitted without a
   documented exclusion; `tests/tactics/secondNine.test.ts` proves narrowing is contextual and never
-  pulls both wingers inside. The match runtime, pace director and gesture input are unchanged.
-- **PR B — cinematic decision match.** Moment selection and skipping, lead-in, freeze, question +
-  answers, 15-second timer with the approved timeout semantics, automatic execution, match summary
-  and the re-baselined pace proof. Until PR B lands, sections 3.1–3.2 below describe the runtime
-  that is actually in the repository.
+  pulls both wingers inside.
+- **PR B — cinematic decision match (this state of the repo).** The runtime, moment director, timer,
+  answer-only screen, automatic execution, skipping, intelligence report and re-baselined pace proof
+  described in 3.1–3.2 below.
 
-### 3.1 Match time and moving slow motion (§9, §12)
+### 3.1 Match time: skipped routine play, lead-in, freeze, answer, consequence (§9, §12)
 
-- The simulation advances in fixed ticks (`dt = 50 ms` simulated). Presentation runs at a
-  time scale chosen by the pace director (`src/match/pace.ts`): routine play is fast-forwarded
-  adaptively (×2 up to ×32, every event still surfaced in the ticker and commentary), a tactical
-  moment runs at `0.3`, the aftermath of a decision runs live at `1.0` for 2.5 simulated seconds
-  so cause and effect stay visible, and half time is a 2.5 s beat. The director keeps a real-time
-  budget (7 minutes, band 6–8; to be re-baselined to 5–7 with 12–18 moments in PR B, §3.0) for a complete 60-minute match, spending it on
-  the moments still expected and using whatever remains for fast-forward. Training drills keep
-  the deeper `0.12` slow motion (`DRILL_SLOW_SCALE`). Real elapsed time is measured by the runtime
-  clock and shown in the HUD and at full time; `npm run pace` proves the band headlessly.
-- Inside a moment the same tick function runs at the slow scale: defenders step, teammates
-  move, the ball travels. There is no frozen snapshot with decorative animation.
-- **Decision window**: opens when the moment triggers, expires after `W` simulated seconds
-  (2.5 s simulated ≈ 8 s real at 0.3; harder reads get shorter windows). Expiry
-  applies the role's "continue" default (keep shape / carry safely / hold) and is recorded as a
-  `timed_out` decision, graded against the alternatives at the moment of expiry.
-- **Commit**: the chosen option plus the gesture intent are evaluated against the state at
-  release time, not trigger time. If the intended action has become unavailable (receiver
-  marked out, lane closed, ball already lost), the runtime resolves the nearest supported
-  action, records `intent_unavailable`, and grades decision quality against what was available
-  when the moment opened — the player is not penalised for the world moving.
-- **Cancel**: dragging back onto the origin marker or a two-finger tap cancels a preview; the
-  window keeps running.
-- **Accessible alternative**: tap an option, then tap a target (teammate / space / goal zone);
-  the window is extended by a fixed factor (proposal ×1.5) when this mode is on. Time pressure
-  still exists.
+- The simulation advances in fixed ticks (`dt = 50 ms` simulated). The runtime
+  (`src/match/runtime.ts`) is a phase machine driven by real-time frames:
+  `routine → lead_in → question → timer → resolving → feedback → routine …`, with `halftime` and
+  `finished`. Nothing is jumped over: **routine** play is simulated tick by tick at `SKIP_SCALE`
+  (×180, at most `MAX_SKIP_TICKS_PER_FRAME` = 120 ticks per frame) with the match clock visible, so
+  the score, the clock and the event ledger are exactly those of the full simulation; the player just
+  does not watch it.
+- **Lead-in**: when a direct involvement is recognised on the current tick, the last `LEAD_IN_MS`
+  (3 s; `LEAD_IN_MIN_MS` 2 s) of authoritative ticks are replayed at real speed from the position
+  history so the ball's travel, teammate and defender movement, pressure and space are seen before
+  the freeze. The authoritative state does not advance during the replay; `skipLeadIn` (reduced
+  motion) jumps straight to the freeze.
+- **Question**: the field is frozen at the involvement tick (first controlled contact for outfield
+  roles; the keeper's intervention point). The title, cues and 3–6 answers are instantiated from that
+  frozen state. The 15-second timer (`ANSWER_MS`) waits for `ready()`, which the screen calls once the
+  answers are painted and any read-aloud has finished; pause stops it; answering ends it.
+- **Answer**: `answer(optionId)` re-instantiates the option's intent against the frozen state, issues
+  exactly that command, and closes the moment with one record. If the intent cannot be instantiated
+  the record says `intent_unavailable` and the engine acts — nothing is silently swapped.
+- **Timeout**: the record's decision band is `timeout` with no quality; the engine picks and executes
+  the character's action, `execution.actor` is `engine`, and the feedback says no choice was committed
+  in time. A single timeout carries no extra penalty; the story may remember repeated hesitation.
+- **Resolving** plays the consequence at real speed until the outcome window has closed from recorded
+  events; **feedback** is `FEEDBACK_MS` (3 s) of factual lines; **half time** is a 2.5 s beat.
+  Training drills keep their own slow-motion and drawn execution (`DRILL_SLOW_SCALE`); official
+  matches have no drawing, aiming, timing or power input of any kind.
+- Real elapsed time per phase is measured by the runtime (`realMs`) and shown at full time;
+  `npm run pace -- 3 all all` proves 12–18 moments and the 4–8 minute band for every role and player
+  model (a quick answerer may finish under 4:00; no waiting is added to stretch a match).
+- Direct-involvement pacing (`DIRECT_PACING`, `GK_DIRECT_PACING` in `src/tactics/recognition.ts`)
+  takes outfield on-ball moments as they appear up to 18 with a 45 s gap, and gives the keeper its
+  authentic distribution / claim / sweep / 1v1 / positioning decisions instead of fabricated touches.
 
 ### 3.2 One moment, three records (§10, §11, §13)
 
 `TacticalMoment { id, entryId, role, playerId, cues, options[], difficulty, read }` plus one
 `MomentRecord { moment, decision, execution, outcome }` (see `src/tactics/moments.ts`).
-Choice and drawing are one moment. `decision.quality` is fixed at commit by re-scoring the
-option set against the *current* field (`grading.rescoreAtCommit`); `execution.quality` comes
-from gesture accuracy, pressure and fatigue, replaced by the sim's own kick error once the
-pass/shot event exists; `outcome` is read from the event stream in a short window after commit
-(`grading.resolveOutcome`). A shaky line can lower execution, never decision quality.
+Selecting the answer is the whole moment. `decision.quality` is fixed at commit by scoring the
+option set against the frozen field (`grading.rescoreAtCommit`); `execution.quality` comes from the
+engine's own resolution of the command (ability, pressure, fatigue, difficulty — the sim's kick
+error once the pass/shot event exists) and names its `actor` (`user`-selected or `engine`-selected);
+`outcome` is read from the event stream in a short window after commit (`grading.resolveOutcome`).
+A good read that the character fumbles lowers execution, never decision quality; a poor read that
+comes off is still a poor read.
 
 Lifecycle (`src/tactics/session.ts`): `observe` → `recognize` forms a moment from a live
-eligible state and suspends the controlled player's AI (`engine.suspendDecisions`); the user
-chooses (and draws) while the sim keeps moving; `commit` re-instantiates the intent
-(`intents.instantiateIntent`), grades, and issues one command with the gesture accuracy;
-`timeout` applies a role default and is recorded as `timeout`; an intent the field has taken
-away is recorded as `intent_unavailable`. Pacing (`recognition.allowance`) spreads moments over
-the match — on-ball ones are taken whenever they appear, up to the band; off-ball/defending/
-transition ones are metered — and `coverage.coverageReport` lists shortfalls.
+eligible state and suspends the controlled player's AI (`engine.suspendDecisions`); the runtime
+freezes; `commit(session, state, optionId)` re-instantiates the intent (`intents.instantiateIntent`),
+grades, and issues one command; `timeout` lets the engine choose and is recorded as `timeout`; an
+intent the frozen state cannot produce is recorded as `intent_unavailable`. Pacing
+(`recognition.allowance`) keeps the completed match inside 12–18 direct involvements and
+`coverage.coverageReport` lists shortfalls. `src/match/intelligence.ts` turns the records into the
+post-match soccer-intelligence report (overall decision grade, six recognition categories with
+strongest/weakest, good reads that failed in execution, poor reads with favourable outcomes, and one
+Coach Code teaching point).
 
 ### 3.3 Catalog as content (§16)
 
@@ -212,9 +222,8 @@ Beyond the first playable (spec §17, §5):
 - Unit tests per module; property-style tests for simulation invariants (18 players, ball on
   field or in a restart state, no teleporting: per-tick displacement ≤ speed × dt).
 - Seeded headless matches as fixtures; a coverage tool that reports moments per role, on/off-ball
-  mix and difficulty spread against the moment targets (12–18 direct-involvement moments after
-  PR B, §3.0; the pre-PR-B runtime still reports against 18–25 / 10–14), recording shortfalls
-  instead of fabricating moments.
+  mix and difficulty spread against the moment target (12–18 direct-involvement moments, §3.0),
+  recording shortfalls instead of fabricating moments.
 - Answer-set integrity (spec §16): `tests/tactics/answerSet.test.ts` replays seeded matches for
   all nine roles and fails on any displayed answer that does not instantiate in its state, on any
   engine-best on-ball option missing from the answers without a `DOCUMENTED_EXCLUSIONS` entry, on

@@ -12,6 +12,27 @@ import type { Difficulty, TacticalMoment, TacticalOption } from "./moments";
  * the count near the target band without manufacturing situations. Shortfalls are recorded, not hidden.
  */
 
+/**
+ * Official-match "meaningful direct involvement" policy (spec §9). Outfield moments freeze at the
+ * player's first controlled contact; a small minority of defending decisions is admitted only when
+ * the ball is not arriving often enough. Goalkeepers additionally get authentic positioning and
+ * intervention decisions (cross, 1v1, sweep, shot, backpass, distribution) without inventing touches.
+ */
+export interface DirectPolicy {
+  /** Fewest distinct, currently available answers a state must support to become a moment. */
+  minOptions: number;
+  /** Most answers shown. */
+  maxOptions: number;
+  /** Off-ball categories that count as direct involvement for this role. */
+  offBall: readonly MomentCategory[];
+  /** Cap on off-ball moments per match (outfield: keeps the mix overwhelmingly on-ball). */
+  maxOffBall: number;
+  /** Same catalog entry at most this many times per match. */
+  maxPerEntry: number;
+  /** On-ball moments open within this many ticks of the first controlled contact (unless behind schedule). */
+  firstContactTicks: number;
+}
+
 export interface PacingConfig {
   /** Target total moments per match (inclusive band). */
   total: [number, number];
@@ -20,8 +41,11 @@ export interface PacingConfig {
   minGapSeconds: number;
   /** Don't repeat the same catalog entry within this many seconds. */
   repeatGapSeconds: number;
+  /** Present: official direct-involvement selection. Absent: the legacy metered mix (training tools, older tests). */
+  direct?: DirectPolicy;
 }
 
+/** Legacy metered mix kept for headless tooling; official matches use `DIRECT_PACING` / `GK_DIRECT_PACING`. */
 export const DEFAULT_PACING: PacingConfig = {
   total: [18, 25],
   onBall: [10, 14],
@@ -29,10 +53,7 @@ export const DEFAULT_PACING: PacingConfig = {
   repeatGapSeconds: 180,
 };
 
-/**
- * Goalkeepers share the total band; the ball reaches them less often, so a larger share of their
- * moments are positioning, organising and transition decisions (OPEN_QUESTIONS #10).
- */
+/** Legacy goalkeeper mix (OPEN_QUESTIONS #10). */
 export const GK_PACING: PacingConfig = {
   total: [18, 25],
   onBall: [7, 12],
@@ -40,29 +61,69 @@ export const GK_PACING: PacingConfig = {
   repeatGapSeconds: 180,
 };
 
+/** Hard player-facing range for a completed official match. */
+export const DIRECT_RANGE: readonly [number, number] = [12, 18];
+
+export const DIRECT_PACING: PacingConfig = {
+  total: [DIRECT_RANGE[0], DIRECT_RANGE[1]],
+  onBall: [DIRECT_RANGE[0], DIRECT_RANGE[1]],
+  minGapSeconds: 45,
+  repeatGapSeconds: 60,
+  direct: { minOptions: 3, maxOptions: 6, offBall: ["defending"], maxOffBall: 3, maxPerEntry: 6, firstContactTicks: 6 },
+};
+
+/**
+ * Goalkeeper direct involvement: backpasses and distribution are on-ball; crosses, 1v1s, sweeps,
+ * shots and starting position are authentic keeper decisions even when the best answer is to hold.
+ */
+export const GK_DIRECT_PACING: PacingConfig = {
+  total: [DIRECT_RANGE[0], DIRECT_RANGE[1]],
+  onBall: [2, DIRECT_RANGE[1]],
+  minGapSeconds: 30,
+  repeatGapSeconds: 150,
+  direct: { minOptions: 3, maxOptions: 6, offBall: ["defending", "transition", "off_ball"], maxOffBall: DIRECT_RANGE[1], maxPerEntry: 5, firstContactTicks: 6 },
+};
+
+/** Official-match pacing for a role. */
 export function pacingFor(role: RoleId): PacingConfig {
+  return role === "GK" ? GK_DIRECT_PACING : DIRECT_PACING;
+}
+
+/** The metered mix used before direct involvement; kept for tools that still compare against it. */
+export function legacyPacingFor(role: RoleId): PacingConfig {
   return role === "GK" ? GK_PACING : DEFAULT_PACING;
 }
 
 export interface RecognizerState {
   lastMomentTick: number;
   lastByEntry: Record<string, number>;
+  /** Times each entry has been used this match. */
+  usesByEntry: Record<string, number>;
   count: number;
   /** Moments where the player had or was receiving the ball (any category). */
   onBallCount: number;
   byCategory: Record<MomentCategory, number>;
   seq: number;
+  /** Tick the controlled player's current possession spell began; -1 when not in possession. */
+  controlSinceTick: number;
 }
 
 export function createRecognizer(): RecognizerState {
   return {
     lastMomentTick: -Infinity,
     lastByEntry: {},
+    usesByEntry: {},
     count: 0,
     onBallCount: 0,
     byCategory: { on_ball: 0, off_ball: 0, defending: 0, transition: 0 },
     seq: 0,
+    controlSinceTick: -1,
   };
+}
+
+/** JSON-safe copy of the recognizer (the `-Infinity` sentinel does not survive JSON). */
+export function serializeRecognizer(rec: RecognizerState): RecognizerState {
+  return { ...rec, lastMomentTick: Number.isFinite(rec.lastMomentTick) ? rec.lastMomentTick : -1_000_000, lastByEntry: { ...rec.lastByEntry }, usesByEntry: { ...rec.usesByEntry }, byCategory: { ...rec.byCategory } };
 }
 
 /** Why recognition declined this tick; exposed for tests and coverage diagnostics (acceptance check 9). */
@@ -148,9 +209,49 @@ interface Allowance {
 }
 
 /**
- * Pacing: on-ball moments are scarce (the player only has the ball so often), so they are allowed
- * with a short gap whenever they appear, up to their band. Off-ball/defending/transition states are
- * abundant, so they are metered to the remaining share of the target, spread across the match.
+ * Direct-involvement pacing. Supply is uneven (a striker may see the ball 40 times, a centre back
+ * 20), so the gap between moments tightens when the count is behind the even-spread schedule and
+ * widens when ahead; the hard cap is never exceeded. Off-ball decisions are metered against the
+ * schedule and, for outfield players, capped so the match stays overwhelmingly on-ball.
+ */
+function directAllowance(rec: RecognizerState, state: MatchState, pacing: PacingConfig, policy: DirectPolicy): DirectAllowance {
+  const totalS = state.rules.halves * state.rules.halfLengthSeconds;
+  const elapsedS = state.clock.timeMs / 1000;
+  const frac = clamp(elapsedS / totalS, 0, 1);
+  const [lo, hi] = pacing.total;
+  // aim high inside the range: every extra involvement is a real touch the player gets to read
+  const target = lo + (hi - lo) * 0.8;
+  const expected = target * frac;
+  const remainingS = Math.max(1, totalS - elapsedS);
+  const behind = rec.count < expected - 1.5;
+  const ahead = rec.count > expected + 1.5;
+  const sinceLast = (state.clock.tick - rec.lastMomentTick) * 0.05;
+  const shortfall = lo - rec.count;
+  // the remaining match can no longer supply the floor at a comfortable spacing: take what comes
+  const urgent = shortfall > 0 && remainingS / shortfall < 150;
+  const relaxed = behind || urgent;
+  const onGap = urgent ? 3 : behind ? 10 : ahead ? pacing.minGapSeconds * 2.5 : pacing.minGapSeconds;
+  // spread moments across the whole match instead of exhausting the range early
+  const room = rec.count < hi && (rec.count < Math.ceil(expected) + 3 || frac > 0.9);
+  const onBall = room && sinceLast >= onGap;
+  const offCount = rec.count - rec.onBallCount;
+  const offGap = urgent ? 12 : behind ? 20 : pacing.minGapSeconds * 1.5;
+  const keeper = policy.offBall.length > 1;
+  const other = room && offCount < policy.maxOffBall && sinceLast >= offGap && (keeper ? !ahead || urgent : relaxed);
+  return { onBall, other, anyTickOfControl: relaxed, ignoreEntryCap: relaxed };
+}
+
+interface DirectAllowance extends Allowance {
+  /** Behind schedule: accept a controlled-possession moment even after the first contact. */
+  anyTickOfControl: boolean;
+  /** Behind schedule: the per-entry variety cap yields to the 12–18 floor. */
+  ignoreEntryCap: boolean;
+}
+
+/**
+ * Legacy pacing: on-ball moments are scarce (the player only has the ball so often), so they are
+ * allowed with a short gap whenever they appear, up to their band. Off-ball/defending/transition
+ * states are abundant, so they are metered to the remaining share of the target across the match.
  */
 function allowance(rec: RecognizerState, state: MatchState, pacing: PacingConfig): Allowance {
   const total = state.rules.halves * state.rules.halfLengthSeconds;
@@ -176,6 +277,9 @@ function ticksSinceResume(state: MatchState): number {
 
 export function recognize(state: MatchState, catalog: Catalog, rec: RecognizerState, pacing: PacingConfig = DEFAULT_PACING): RecognitionResult {
   if (!state.controlled) return { moment: null, reject: "no_controlled_player" };
+  const hasBall = state.ball.status === "controlled" && state.ball.owner === state.controlled.playerId;
+  if (!hasBall) rec.controlSinceTick = -1;
+  else if (rec.controlSinceTick < 0) rec.controlSinceTick = state.clock.tick;
   if (state.phase.kind === "full_time") return { moment: null, reject: "finished" };
   if (state.phase.kind !== "open_play") return { moment: null, reject: "not_open_play" };
   if (state.ball.status === "dead") return { moment: null, reject: "ball_dead" };
@@ -184,16 +288,20 @@ export function recognize(state: MatchState, catalog: Catalog, rec: RecognizerSt
 
   const p = playerById(state, state.controlled.playerId);
   if (!p) return { moment: null, reject: "no_controlled_player" };
-  const allow = allowance(rec, state, pacing);
+  const direct = pacing.direct;
+  const allow: DirectAllowance = direct ? directAllowance(rec, state, pacing, direct) : { ...allowance(rec, state, pacing), anyTickOfControl: true, ignoreEntryCap: true };
   if (!allow.onBall && !allow.other) return { moment: null, reject: "too_soon" };
 
   const read = readField(state, p);
-  const onBallMoment = read.hasBall === 1 || read.receiving === 1;
+  const onBallMoment = direct ? hasBall : read.hasBall === 1 || read.receiving === 1;
   if (onBallMoment ? !allow.onBall : !allow.other) return { moment: null, reject: "too_soon" };
+  // official moments freeze at first controlled contact; mid-carry decisions only when the count is behind
+  if (direct && onBallMoment && !allow.anyTickOfControl && state.clock.tick - rec.controlSinceTick > direct.firstContactTicks) return { moment: null, reject: "too_soon" };
   // right after a restart the shape is still settling; the taker's own delivery is a legitimate moment though
   if (!onBallMoment && ticksSinceResume(state) < 3 / 0.05) return { moment: null, reject: "too_soon" };
   const entries = catalog.byRole.get(roleOf(p)) ?? [];
   const repeatTicks = pacing.repeatGapSeconds / 0.05;
+  const minOptions = direct?.minOptions ?? 2;
 
   let best: { entry: CatalogEntry; options: TacticalOption[]; salience: number } | null = null;
   let sawTrigger = false;
@@ -201,19 +309,23 @@ export function recognize(state: MatchState, catalog: Catalog, rec: RecognizerSt
   for (const entry of entries) {
     if (entry.restrictions.requiresOffside && !state.rules.offside) continue;
     if (!triggerFires(read, entry.trigger)) continue;
+    if (direct && !onBallMoment && !direct.offBall.includes(entry.category)) continue;
+    if (direct && !allow.ignoreEntryCap && (rec.usesByEntry[entry.id] ?? 0) >= direct.maxPerEntry) continue;
     sawTrigger = true;
     const last = rec.lastByEntry[entry.id];
     const recent = last !== undefined && state.clock.tick - last < repeatTicks;
     const options = buildOptions(state, p, entry, read, momentId);
-    if (options.length < 2) continue;
+    if (options.length < minOptions) continue;
     const top = Math.max(...options.map((o) => o.score));
     // prefer consequential, varied situations; on-ball moments carry the target mix
     let salience = top + (entry.category === "transition" ? 0.3 : 0) - (recent ? 1.0 : 0);
     if (rec.byCategory[entry.category] === 0 && rec.count >= 4) salience += 0.4;
+    if (direct) salience += directSalience(entry, read) - 0.15 * (rec.usesByEntry[entry.id] ?? 0);
     if (!best || salience > best.salience) best = { entry, options, salience };
   }
   if (!best) return { moment: null, reject: sawTrigger ? "too_few_options" : "no_trigger" };
 
+  const options = direct ? trimOptions(best.options, direct.maxOptions) : best.options;
   const moment: TacticalMoment = {
     id: momentId,
     tick: state.clock.tick,
@@ -225,16 +337,45 @@ export function recognize(state: MatchState, catalog: Catalog, rec: RecognizerSt
     role: best.entry.role,
     playerId: p.id,
     cues: best.entry.cues,
-    options: best.options,
-    difficulty: difficultyOf(best.options, read),
+    options,
+    difficulty: difficultyOf(options, read),
     major: isMajor(best.entry, read, state),
+    involvement: onBallMoment ? (state.clock.tick - rec.controlSinceTick <= (direct?.firstContactTicks ?? 6) ? "first_touch" : "on_ball") : "off_ball",
     read,
   };
   rec.seq++;
   rec.count++;
   rec.lastMomentTick = state.clock.tick;
   rec.lastByEntry[best.entry.id] = state.clock.tick;
+  rec.usesByEntry[best.entry.id] = (rec.usesByEntry[best.entry.id] ?? 0) + 1;
   rec.byCategory[best.entry.category]++;
   if (onBallMoment) rec.onBallCount++;
   return { moment, reject: null };
+}
+
+/**
+ * What makes a state worth stopping for: the ball in a scoring area, pressure that forces a real
+ * choice, a keeper intervention (cross, 1v1, sweep, shot) over a quiet starting-position check.
+ */
+function directSalience(entry: CatalogEntry, read: FieldRead): number {
+  let s = 0;
+  if (entry.category === "on_ball") s += 0.6;
+  if (entry.phase === "final_third") s += 0.3;
+  if (read.ballInOurBox === 1 || read.shotWindow > 0.3) s += 0.3;
+  s += 0.25 * read.pressure;
+  if (entry.role === "GK") {
+    if (/CROSS|1V1|SWEEP|SHOT/.test(entry.id)) s += 0.5;
+    else if (/POS|LINE/.test(entry.id)) s -= 0.3;
+  }
+  return s;
+}
+
+/**
+ * Never show more than `max` answers. The engine's highest-scoring option is always kept (the
+ * answer-set integrity rule), then the rest by score; the displayed order stays the catalog order.
+ */
+function trimOptions(options: TacticalOption[], max: number): TacticalOption[] {
+  if (options.length <= max) return options;
+  const keep = new Set([...options].sort((a, b) => b.score - a.score).slice(0, max).map((o) => o.id));
+  return options.filter((o) => keep.has(o.id));
 }

@@ -4,7 +4,8 @@ import { weekday } from "../../src/calendar/date";
 import { PLAYER_ID, resolvePerson } from "../../src/campaign/campaign";
 import { campaignMatchConfig, fixtureById, reportFromRuntime } from "../../src/campaign/match";
 import { completeMatch, slotActions, takeAction } from "../../src/campaign/week";
-import { createRuntime, frame, liveAnchor, select, setAccessible, tapTarget, type MatchRuntime } from "../../src/match/runtime";
+import { createRuntime } from "../../src/match/runtime";
+import { playToFullTime } from "../helpers";
 import { DEFAULT_ACCESSIBILITY, type GameLogic } from "../../src/minigame/contract";
 import { exit, resume, start, tick, type MinigameSession } from "../../src/minigame/machine";
 import { gameLogic } from "../../src/minigame/registry";
@@ -54,20 +55,6 @@ function drainOne(s: Session): void {
   if (v.minigame) playMinigameHeadless(s);
   else if (v.choices.length) chooseInScene(c, s.scenes, v.choices[0]!.id);
   else continueScene(c, s.scenes);
-}
-
-function playToFullTime(rt: MatchRuntime): void {
-  setAccessible(rt, true);
-  rt.fast = true;
-  for (let i = 0; i < 2_000_000; i++) {
-    const r = frame(rt, 1000);
-    if (r.opened) {
-      const first = r.opened.options[0]!;
-      if (!select(rt, first.id) && rt.active) tapTarget(rt, liveAnchor(rt, first) ?? rt.state.ball.pos);
-    }
-    if (r.finished) return;
-  }
-  throw new Error("match did not finish");
 }
 
 /** Reach Saturday's match slot, play the fixture through the real runtime and commit the report. */

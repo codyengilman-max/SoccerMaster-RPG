@@ -12,9 +12,9 @@ Run everything with `npm test`; the acceptance file alone with `npx vitest run t
 | 1 | No dependency on the previous project | scans `package.json`, `src/`, `content/`, `tests/`, `tools/`, `public/` for the old repository URL/package, and rejects relative imports that leave the repo | — | — |
 | 2 | Selected role locked throughout a match | full campaign match through `MatchRuntime`; role and `controlled` asserted every frame; every moment records the same role | `tests/campaign/week.test.ts` (roster → match) | — |
 | 3 | Story characters map to roster identities | both campaigns: `sceneVars().friend` and the match squad names/ids equal `roster.people` | `tests/campaign/campaign.test.ts` (roster), `tests/app/session.test.ts`, `tests/campaign/tryouts.test.ts` (the transfer moves the same person; relationships, knowledge, position and attributes untouched) | — |
-| 4 | Slow motion advances the real simulation | while a moment is open, `clock.tick` advances at the reduced rate and other players/ball move | `tests/match/runtime.test.ts` | — |
-| 5 | Gesture commitment uses the current field state | select a drawn option, let ticks pass, release toward `liveAnchor` (= receiver's live position); `commitTick` is the current tick | `tests/match/runtime.test.ts`, `tests/tactics/session.test.ts` | — |
-| 6 | Choice + drawing = one moment | select adds no record; preview adds no record; release adds exactly one record for that moment | `tests/tactics/session.test.ts` | — |
+| 4 | Cinematic lead-in replays real simulation; the frozen decision state is the live state | the lead-in history is the last 3 s of authoritative ticks (consecutive, ball/players moving); during lead-in and the question `clock.tick` does not advance; the frozen `state` is the one the answers were instantiated from | `tests/match/runtime.test.ts` | — |
+| 5 | The selected answer is executed against the frozen field state | `answer()` issues exactly the command `instantiateIntent` produces for that option at the frozen state; `commitTick` is the frozen tick; an answer whose intent is no longer available is recorded as `unavailable`, never silently swapped | `tests/match/runtime.test.ts`, `tests/tactics/session.test.ts`, `tests/tactics/answerSet.test.ts` | — |
+| 6 | Selecting the answer is the whole tactical moment | one `answer()` call adds exactly one record and issues one command; no manual-execution API (`select`/`releaseGesture`/`previewGesture`/`tapTarget`/`intentAccuracy`) exists on the official-match runtime | `tests/match/runtime.test.ts`, `tests/tactics/session.test.ts` | — |
 | 7 | Decision, execution, outcome separate | every record has independent bands; the report's decision tallies sum to `moments.total`; `goodReadPoorExecution` / `poorReadGoodOutcome` exist | `tests/tactics/session.test.ts`, `tests/campaign/campaign.test.ts` (match reports) | — |
 | 8 | Play continues from the actual outcome | tick and event counts are monotonic across commits; score never decreases; ≥ 2 kick-offs | `tests/match/runtime.test.ts` | — |
 | 9 | Triggers reject unsuitable states | `no_controlled_player`, `not_open_play`, `moment_pending` | `tests/tactics/session.test.ts` | — |
@@ -25,16 +25,11 @@ Run everything with `npm test`; the acceptance file alone with `npx vitest run t
 | 14 | State qualification uses cutoff evidence | decision at the cutoff is unchanged by later results; a later cutoff sees them; `asOfDay` before any result is ineligible; in a live season the club registers only inside the window and only when eligible that day | `tests/calendar/competitions.test.ts`, `tests/campaign/season.test.ts` | — |
 | 15 | Different first-week commitments → different later interactions, same score | two identical campaigns, one attends training and one skips; the same deterministic report is applied to both; the coach's post-match scene differs in lines and choices (`lead_warmup` vs `own_it`), sets different flags/pending consequences and diverges the coach relationship | `tests/campaign/week.test.ts` | — |
 | 16 | Playable without AI | `AuthoredProvider.available()` is false; `acceptResponse(null)` falls back to the authored line; no `fetch`/socket/model API in `src/`; opening + week run headless | `tests/campaign/campaign.test.ts` (dialogue provider), `npm run smoke:week` | — |
-| 17 | Drawing, cancel, accessible alternatives on mobile | static: Pointer Events only, `touch-action: none`, viewport meta, "Tap targets" toggle, Back button; runtime: drag-back cancel, `cancel()`, tap-target commit | `tests/gesture/gesture.test.ts`, `tests/match/runtime.test.ts` | **yes — below** |
-| 18 | Tactical information readable during cinematic presentation | static: opaque option panel, bold title, ≥ 44 px option height, text-shadow on the window bar, no font below 0.75 rem, live regions; runtime: every moment has title, cues and labelled options | — | **yes — below** |
+| 17 | Answer selection, 15 s timer, pause and read-aloud on mobile | static: answer group (`role=group`), `role=timer`, Pause, Read aloud toggle, viewport meta, safe-area insets; runtime: the timer does not move before `ready()`, pause holds it, answering ends it, `ANSWER_MS` = 15 000 | `tests/match/runtime.test.ts`, `tests/acceptance/spec24.test.ts` | **yes — below** |
+| 18 | Tactical information readable during cinematic presentation | static: opaque answer dock pinned to the bottom, bold title, ≥ 44 px answer height, text-shadow on the timer, no font below 0.75 rem, live regions, reduced-motion hook; runtime: every moment has title, cues and 3–6 labelled answers | — | **yes — below** |
 | 19 | Every displayed answer is available in the state; the engine's highest-scoring option is never omitted without a documented exclusion | seeded matches for all nine roles through the tactical session: each option re-instantiates to the same command at the tick it was shown; on-ball moments contain the engine's `evaluateOnBall` best or hit `DOCUMENTED_EXCLUSIONS`; `switch_play` only with a matching engine route; `narrow_inside` only with the second-9 read on | `tests/tactics/answerSet.test.ts`, `tests/tactics/secondNine.test.ts` | — |
-| 20 | 12–18 direct-involvement moments in 5–7 real minutes | pending the cinematic decision-match PR (PR B); the current runtime is proven against the earlier 18–25 / 6–8 band by `tests/match/pace.test.ts` | — | — |
-| 21 | Timeout: no decision grade, engine action graded separately, shown as the character acting | pending PR B | — | — |
-
-Checks 4–6 and 17 are stated in the spec for the answer-only match model; the tests listed above
-verify the pre-PR-B runtime's equivalents (slow motion advances the simulation, commit uses the
-live state, choice + drawing form one record, drawing/cancel/accessible alternatives). PR B
-replaces them with the lead-in / freeze / answer / timer equivalents.
+| 20 | 12–18 direct-involvement moments in 5–7 real minutes | a complete campaign match at 30 fps records 12–18 moments and `totalRealMs` within 4–8 minutes; every match across nine roles × player models lands in 12–18 and the acceptable band (`npm run pace -- 3 all all`) | `tests/match/pace.test.ts`, `tests/tactics/session.test.ts` (nine-role benchmark) | — |
+| 21 | Timeout: no decision grade, engine action graded separately, shown as the character acting | letting `ANSWER_MS` elapse closes the moment with `decision.band === "timeout"` and no quality; `execution.actor === "engine"`; the feedback says no choice was committed in time | `tests/match/runtime.test.ts` | — |
 
 ## Manual procedure for 17 and 18
 
@@ -44,25 +39,24 @@ device, OS/browser version and the outcome of each step in the PR.
 
 1. Start → New campaign → any name → any position → play the opening to the first match. Confirm
    the hub and scene screens fit the viewport with no horizontal scroll in portrait.
-2. In the match, wait for the first moment. Confirm (18): the pitch is still moving in slow motion,
-   the window bar counts down, the title and cues are legible over the pitch, the option panel is
-   readable at arm's length, and the options are tappable without zooming.
-3. Tap a **drawn** option (the hint says "Draw from your player…"). Draw from your player toward
-   the highlighted receiver and release. Confirm (17): the intended arrow is visible while drawing,
-   the moment closes on release, and play continues from the result without a reset.
-4. On the next drawn option, start drawing and drag back to the start point, then release.
-   Confirm: the moment stays open and the option list is shown again (cancel by drag-back).
-5. On another drawn option, start drawing and touch the screen with a second finger. Confirm: the
-   gesture is cancelled and the moment stays open (cancel by `pointercancel`).
-6. Tap **Back** in the hint. Confirm the option list returns with the window still counting down.
-7. Toggle **Tap targets**. Tap a drawn option, then tap the target on the pitch. Confirm the moment
-   closes and the window was noticeably longer (×1.5).
-8. Toggle **Pause** and **Fast play**; confirm the window bar and ticker keep their readability.
-9. Let a moment time out. Confirm the ticker names the fallback that was taken and play continues.
-10. Rotate to landscape and repeat step 2 once.
+2. In the match, wait for the first moment. Confirm (18): routine play is skipped (the clock jumps),
+   the lead-in shows the ball travelling and players moving for 2–4 s, the picture freezes on your
+   player, and the title, cues and answers are legible over the pitch and tappable without zooming.
+3. Confirm (17): the 15-second timer bar appears only once the answers are painted (with **Read
+   aloud** on, only after the spoken question and answers finish).
+4. Tap an answer. Confirm: the answers disappear, your character executes that action with no
+   further input, the consequence plays at real speed, one line of factual feedback follows, and the
+   next moment (or skipped play) begins without a reset.
+5. Toggle **Pause** during a question. Confirm the timer bar and the remaining seconds stop; resume
+   and confirm they continue from the same value.
+6. Let a moment time out. Confirm the feedback says no choice was committed in time and names the
+   action the character took, and that the report lists it as a timeout, not as your decision.
+7. Tap **Save & leave** during a question, return from the hub, and confirm the same question and
+   answers are shown with the timer stopped until you are ready.
+8. Rotate to landscape and repeat step 2 once.
 
 Pass criteria: every "Confirm" holds; no control needed a second attempt because of size or
-overlap; no text overlapped the pitch canvas in a way that hid the ball or the receiver marker.
+overlap; no text overlapped the pitch canvas in a way that hid the ball or your player.
 
 ## Not covered by software tests
 

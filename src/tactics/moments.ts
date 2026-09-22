@@ -47,8 +47,12 @@ export interface TacticalMoment {
   difficulty: Difficulty;
   /** Stronger cinematic emphasis (spec §12): shots, last-defender situations, late-game swings. */
   major: boolean;
+  /** How the player is involved: frozen at first controlled contact, later in a possession spell, or a positioning/defending decision. */
+  involvement: Involvement;
   read: FieldRead;
 }
+
+export type Involvement = "first_touch" | "on_ball" | "off_ball";
 
 export type DecisionBand = "strong" | "acceptable" | "weak";
 
@@ -67,10 +71,13 @@ export interface DecisionRecord {
 
 export type ExecutionBand = "clean" | "loose" | "poor";
 
+/** Who chose the action the character executed: the user's answer, or the engine after a timeout / unavailable intent. */
+export type Actor = "user" | "engine";
+
 export interface ExecutionRecord {
   momentId: string;
-  /** 0..1 how precisely the intent was expressed (gesture); 1 = perfect / not drawn. */
-  intentAccuracy: number;
+  /** Whose choice the character executed; the grade describes the character's execution either way. */
+  actor: Actor;
   /** 0..1 how well the player performed the action given attributes, pressure and fatigue. */
   quality: number;
   band: ExecutionBand;
@@ -91,15 +98,20 @@ export interface OutcomeRecord {
 export interface MomentRecord {
   moment: TacticalMoment;
   decision: DecisionRecord;
+  /** The action the character actually carried out (user-selected or engine-selected); null when play stopped first. */
+  acted: CommittedIntent | null;
   execution: ExecutionRecord | null;
   outcome: OutcomeRecord | null;
 }
 
 export interface CommittedIntent {
-  option: TacticalOption;
+  momentId: string;
+  actor: Actor;
+  /** Displayed option whose command this is; null when the engine chose something that was not on offer. */
+  optionId: string | null;
+  label: string;
   command: PlayerCommand;
   commitTick: number;
-  accuracy: number;
 }
 
 export type MomentEventFilter = (e: MatchEvent) => boolean;

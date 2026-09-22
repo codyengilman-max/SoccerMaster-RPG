@@ -1,8 +1,7 @@
-import type { GestureRead } from "../gesture/gesture";
-import type { ActiveWindow } from "../match/runtime";
-import { add, scale, sub, type Vec2 } from "../sim/geometry";
+import type { Vec2 } from "../sim/geometry";
 import { buildOutLineX, type Rules } from "../sim/rules";
 import type { MatchState } from "../sim/types";
+import type { TacticalMoment } from "../tactics/moments";
 import { toScreen, type Camera } from "./camera";
 import { drawBackdrop, drawFurniture, drawGoal, drawGrass, GRASS } from "./environment";
 import { LIGHT, paintBall, paintFigure } from "./figures";
@@ -12,15 +11,21 @@ import { drawSprite, type SpriteSet } from "./sprites";
 /**
  * Canvas 2D presentation of the live state (spec §21). The picture is derived from the authoritative
  * match state through the presentation adapter: sprites (or procedural fallbacks) for the players,
- * a ball with height and shadow, the environment, and — during a moment — a restrained tactical
- * overlay that shows *where* each option would go but never which one scores best.
+ * a ball with height and shadow, the environment, and — while a question is open — a restrained
+ * tactical overlay that shows *where* each answer would go (numbered like the answer list) but never
+ * which one scores best.
  */
 
 export interface RenderOptions {
   controlledId: string | null;
-  window: ActiveWindow | null;
-  /** Anchors for the options currently on offer (live positions), keyed by option id. */
+  /** The frozen moment whose answers are on offer; null while play runs. */
+  moment: TacticalMoment | null;
+  /** Anchors for the answers currently on offer (frozen positions), keyed by option id. */
   optionAnchors: Map<string, Vec2>;
+  /** Answer the user is hovering/focusing: its lane is sketched (no commitment, no scoring hint). */
+  highlightOptionId?: string | null;
+  /** Show the answer numbers on the field (hidden once an answer is in). */
+  showBadges?: boolean;
   /** 0..1 slow-motion intensity for vignette/focus. */
   slow: number;
   /** 0..1 fast-forward intensity (ball trail, motion streaks). */
@@ -63,7 +68,6 @@ const COLORS = {
   space: "rgba(125, 230, 255, 0.28)",
   anchor: "rgba(234, 246, 255, 0.85)",
   preview: "#7de6ff",
-  cancel: "rgba(255, 122, 89, 0.9)",
   select: "rgba(53, 214, 255, 0.95)",
   receive: "rgba(255, 255, 255, 0.75)",
 };
@@ -80,7 +84,7 @@ export function render(ctx: CanvasRenderingContext2D, cam: Camera, state: MatchS
   drawMarkings(ctx, cam, state.rules);
 
   const controlled = opts.controlledId ? opts.visuals.find((v) => v.id === opts.controlledId) ?? null : null;
-  if (opts.window && controlled) drawMomentField(ctx, cam, controlled, opts);
+  if (opts.moment && controlled) drawMomentField(ctx, cam, controlled, opts);
 
   const fast = opts.fast ?? 0;
   if (fast > 0.05 && opts.trail && opts.trail.length > 1) drawTrail(ctx, cam, opts.trail, fast);
@@ -104,8 +108,8 @@ export function render(ctx: CanvasRenderingContext2D, cam: Camera, state: MatchS
   if (!ballDrawn) drawBall(ctx, cam, ballPos, opts.ballHeightM);
 
   if (opts.pulses) for (const p of opts.pulses) drawPulse(ctx, cam, p);
-  if (opts.window && controlled) drawMomentOverlay(ctx, cam, controlled, opts);
-  if (opts.window && controlled && opts.momentAge !== undefined && opts.momentAge < RIPPLE_LIFE_S) drawFocusRipple(ctx, cam, controlled, opts.momentAge);
+  if (opts.moment && controlled) drawMomentOverlay(ctx, cam, controlled, opts);
+  if (opts.moment && controlled && opts.momentAge !== undefined && opts.momentAge < RIPPLE_LIFE_S) drawFocusRipple(ctx, cam, controlled, opts.momentAge);
   if (opts.slow > 0) drawVignette(ctx, cam, opts.slow, opts.major);
   if (fast > 0.05) drawFastFrame(ctx, cam, fast);
 }
@@ -181,7 +185,7 @@ function drawShadows(ctx: CanvasRenderingContext2D, placed: readonly Placed[], h
 
 /** Rings under the feet: selected player (cyan, pulsing only while a decision is open), intended receiver. */
 function drawGroundMarkers(ctx: CanvasRenderingContext2D, placed: readonly Placed[], h: number, opts: RenderOptions): void {
-  const deciding = opts.window?.moment.playerId ?? null;
+  const deciding = opts.moment?.playerId ?? null;
   for (const { v, s } of placed) {
     if (v.id === opts.controlledId) {
       const pulse = deciding === v.id ? 0.5 + 0.5 * Math.sin(opts.timeS * 5) : 0;
@@ -193,7 +197,7 @@ function drawGroundMarkers(ctx: CanvasRenderingContext2D, placed: readonly Place
       ctx.ellipse(s.x, s.y + h * 0.04, rx, rx * 0.42, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.globalAlpha = 1;
-    } else if (v.receiving && opts.window) {
+    } else if (v.receiving && opts.moment) {
       ctx.strokeStyle = COLORS.receive;
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
@@ -318,11 +322,11 @@ function drawMomentField(ctx: CanvasRenderingContext2D, cam: Camera, me: PlayerV
   }
 }
 
-/** Over the players: option markers, the selected lane, live drawing preview, cancel hint. */
+/** Over the players: answer markers numbered like the list, and the lane of the answer being considered. */
 function drawMomentOverlay(ctx: CanvasRenderingContext2D, cam: Camera, me: PlayerVisual, opts: RenderOptions): void {
-  const w = opts.window!;
+  const moment = opts.moment!;
   const s = toScreen(cam, me.pos);
-  const selectedId = w.selected?.id ?? null;
+  const selectedId = opts.highlightOptionId ?? null;
   const dashOffset = -(opts.timeS * 24) % 14;
   const ringR = Math.max(6, 0.8 * cam.zoom);
   for (const [id, anchor] of opts.optionAnchors) {
@@ -336,11 +340,9 @@ function drawMomentOverlay(ctx: CanvasRenderingContext2D, cam: Camera, me: Playe
     ctx.arc(a.x, a.y, ringR, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
-    // the option's number in the panel (and on the keyboard) so the cue and the list read as one
-    const index = w.moment.options.findIndex((o) => o.id === id) + 1;
-    if (index > 0 && w.stage === "reading") drawOptionBadge(ctx, a.x, a.y - ringR, String(index), selected);
+    const index = moment.options.findIndex((o) => o.id === id) + 1;
+    if (index > 0 && opts.showBadges !== false) drawOptionBadge(ctx, a.x, a.y - ringR, String(index), selected);
     if (selected) {
-      // suggested lane: thin, animated dashes; the confirmed drawing is drawn solid below
       ctx.setLineDash([8, 6]);
       ctx.lineDashOffset = dashOffset;
       ctx.globalAlpha = 0.6;
@@ -355,21 +357,6 @@ function drawMomentOverlay(ctx: CanvasRenderingContext2D, cam: Camera, me: Playe
   }
   ctx.setLineDash([]);
   ctx.lineDashOffset = 0;
-
-  if (w.stage === "drawing") {
-    ctx.strokeStyle = COLORS.cancel;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, 1.5 * cam.zoom, 0, Math.PI * 2);
-    ctx.stroke();
-    if (w.previewPoints.length > 1) drawPreviewPath(ctx, cam, w.previewPoints, w.preview);
-  }
-  if (w.stage === "targeting") {
-    ctx.fillStyle = "rgba(234,246,255,0.9)";
-    ctx.font = `${Math.max(11, 0.9 * cam.zoom)}px system-ui, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillText("tap where it should go", s.x, s.y - 2.6 * cam.zoom - figureHeightPx(cam));
-  }
 }
 
 function drawOptionBadge(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, selected: boolean): void {
@@ -405,32 +392,6 @@ function arrowHead(ctx: CanvasRenderingContext2D, from: Vec2, to: Vec2, size: nu
   ctx.lineTo(bx + uy * size * 0.5, by - ux * size * 0.5);
   ctx.closePath();
   ctx.fill();
-}
-
-function drawPreviewPath(ctx: CanvasRenderingContext2D, cam: Camera, points: readonly Vec2[], read: GestureRead | null): void {
-  ctx.strokeStyle = read ? COLORS.preview : COLORS.cancel;
-  ctx.lineWidth = 3;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.beginPath();
-  const first = toScreen(cam, points[0]!);
-  ctx.moveTo(first.x, first.y);
-  for (const p of points.slice(1)) {
-    const s = toScreen(cam, p);
-    ctx.lineTo(s.x, s.y);
-  }
-  ctx.stroke();
-  if (read) {
-    const end = toScreen(cam, read.end);
-    const back = toScreen(cam, sub(read.end, scale(read.direction, 1.2)));
-    arrowHead(ctx, back, end, Math.hypot(end.x - back.x, end.y - back.y), COLORS.preview);
-    const ghost = toScreen(cam, add(read.origin, scale(read.direction, read.length)));
-    ctx.strokeStyle = "rgba(125,230,255,0.5)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(ghost.x, ghost.y, 0.6 * cam.zoom, 0, Math.PI * 2);
-    ctx.stroke();
-  }
 }
 
 /** Two rings racing out from the deciding player as the moment opens: the eye lands where the read is. */

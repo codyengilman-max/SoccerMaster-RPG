@@ -1,6 +1,8 @@
 import { tournamentSummary, type Fixture } from "../calendar/competitions";
 import { buildReport, lineFor, playedIn, resultFor, type MatchReport } from "../match/report";
-import type { MatchRuntime } from "../match/runtime";
+import { createRuntime, restoreRuntime, type MatchRuntime, type RuntimeSave } from "../match/runtime";
+import type { Catalog } from "../tactics/catalog";
+import type { PacingConfig } from "../tactics/recognition";
 import { isPoolPlayer } from "../roster/roster";
 import type { MatchConfig } from "../sim/engine";
 import { U11_9V9 } from "../sim/rules";
@@ -51,6 +53,21 @@ export function campaignMatchConfig(c: CampaignState, fixture: Fixture): MatchCo
     away: { side: "away", name: away?.name ?? fixture.awayClubId, shortName: away?.shortName ?? fixture.awayClubId.slice(0, 3).toUpperCase(), squad: squads.away },
     controlled: { side, playerId: PLAYER_ID },
   };
+}
+
+/** Persist the live match into the pending activity so a reload comes back to the same question. */
+export function checkpointMatch(c: CampaignState, save: RuntimeSave): boolean {
+  if (!c.pending || c.pending.kind !== "match") return false;
+  c.pending = { ...c.pending, save };
+  touch(c);
+  return true;
+}
+
+/** The pending fixture's runtime: restored from its checkpoint when one exists, otherwise a fresh deterministic match. */
+export function pendingMatchRuntime(c: CampaignState, fixture: Fixture, catalog: Catalog, pacing: PacingConfig): MatchRuntime {
+  const p = c.pending;
+  if (p?.kind === "match" && p.save) return restoreRuntime(p.save, catalog);
+  return createRuntime(campaignMatchConfig(c, fixture), catalog, { pacing });
 }
 
 export function reportFromRuntime(runtime: MatchRuntime, fixture: Fixture): MatchReport {

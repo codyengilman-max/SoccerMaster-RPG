@@ -22,7 +22,8 @@ import {
   trainingActivity,
   weekView,
 } from "../../src/campaign/week";
-import { createRuntime, frame, liveAnchor, select, setAccessible, tapTarget, type MatchRuntime } from "../../src/match/runtime";
+import { createRuntime } from "../../src/match/runtime";
+import { playToFullTime } from "../helpers";
 import { playedIn, resultFor } from "../../src/match/report";
 import { resumeSession } from "../../src/app/session";
 import { MemoryStore } from "../../src/save/save";
@@ -70,21 +71,6 @@ function playTraining(s: ReturnType<typeof joinedSession>): Summary {
   const summary = summarize(d);
   completeTraining(c, summary);
   return summary;
-}
-
-/** Drive the browser runtime to full time, answering every moment with an accessible tap on its first option. */
-function playToFullTime(rt: MatchRuntime): void {
-  setAccessible(rt, true);
-  rt.fast = true;
-  for (let i = 0; i < 2_000_000; i++) {
-    const r = frame(rt, 1000);
-    if (r.opened) {
-      const first = r.opened.options[0]!;
-      if (!select(rt, first.id) && rt.active) tapTarget(rt, liveAnchor(rt, first) ?? rt.state.ball.pos);
-    }
-    if (r.finished) return;
-  }
-  throw new Error("match did not finish");
 }
 
 describe("regular week: calendar and slot actions", () => {
