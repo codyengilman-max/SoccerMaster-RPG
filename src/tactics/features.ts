@@ -1,4 +1,4 @@
-import { evaluateOnBall, lastDefenderLine } from "../sim/ai";
+import { evaluateOnBall, lastDefenderLine, secondNineRead } from "../sim/ai";
 import { speedForDistance } from "../sim/actions";
 import { add, clamp, dist, scale, type Vec2 } from "../sim/geometry";
 import {
@@ -90,6 +90,14 @@ export interface FieldRead {
   carrierPressure: number;
   /** Distance to the teammate carrier. */
   teammateCarrierDist: number;
+  /** Wingers: a teammate (usually the outside back) already holds the wide lane on my flank past halfway. */
+  widthProvidedMyFlank: number;
+  /** Wingers: space (0..1) in the far-post / cutback half-space I would narrow into; 0 when not applicable. */
+  farPostSpace: number;
+  /** Outfield teammates behind the ball while we attack (rest defence). */
+  restDefenseCount: number;
+  /** Wingers: every second-9 condition holds — ball secured on the far flank, width provided, striker pinning, far-post space, rest defence. */
+  secondNineOn: number;
 }
 
 export type FeatureName = keyof FieldRead;
@@ -137,6 +145,10 @@ export const FEATURE_NAMES: readonly FeatureName[] = [
   "minute",
   "carrierPressure",
   "teammateCarrierDist",
+  "widthProvidedMyFlank",
+  "farPostSpace",
+  "restDefenseCount",
+  "secondNineOn",
 ];
 
 const b = (v: boolean): number => (v ? 1 : 0);
@@ -226,6 +238,8 @@ export function readField(state: MatchState, p: PlayerState): FieldRead {
 
   const ourLineDepth = Math.abs(lastDefenderLine(state, p.side) - ourGoalX);
 
+  const nine = secondNineRead(state, p);
+
   const my = p.side === "home" ? state.score.home : state.score.away;
   const theirs = p.side === "home" ? state.score.away : state.score.home;
 
@@ -272,6 +286,10 @@ export function readField(state: MatchState, p: PlayerState): FieldRead {
     minute: state.clock.timeMs / 60000,
     carrierPressure: teammateCarrier ? pressureAt(teammateCarrier.pos, opps) : 0,
     teammateCarrierDist: teammateCarrier ? dist(teammateCarrier.pos, p.pos) : 999,
+    widthProvidedMyFlank: b(nine.widthProvided),
+    farPostSpace: nine.farPostSpace,
+    restDefenseCount: nine.restDefense,
+    secondNineOn: b(nine.on),
   };
 }
 

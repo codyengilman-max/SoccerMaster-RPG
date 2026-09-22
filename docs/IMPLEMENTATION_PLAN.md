@@ -73,6 +73,28 @@ depend only on `sim` types. Nothing depends on `ui`.
 
 ## 3. Key design decisions that need stating up front
 
+### 3.0 Corrected official-match model (spec §9–§14, approved after the match-system audit, PR #18)
+
+The canonical match experience is answer-only: the engine simulates the whole match, routine play
+is skipped, and the user gets 12–18 meaningful direct-involvement moments (first-touch decisions
+for outfield roles; distribution / claim / sweep / 1v1 / positioning / communication decisions
+for the keeper), each a cinematic lead-in, a freeze, a 15-second multiple-choice answer, automatic
+execution and brief feedback, in 5–7 real minutes (4–8 acceptable). It lands in two stacked PRs:
+
+- **PR A (this state of the repo) — soccer logic and answer catalog.** `switch_play` and the
+  lay-off / recycle answers are offered wherever the engine has the route (`tools/authorCatalog.ts`
+  → `content/catalog/provisional-u11.json`); the contextual second-9 read (`secondNineRead`,
+  `SECOND_NINE` in `src/sim/ai.ts`) drives both the AI wingers' off-ball movement and the
+  `narrow_inside` answer; `src/tactics/exclusions.ts` lists the only documented omissions of an
+  engine-best option; `tests/tactics/answerSet.test.ts` proves every displayed answer instantiates
+  in its state and that the engine's highest-scoring on-ball option is never omitted without a
+  documented exclusion; `tests/tactics/secondNine.test.ts` proves narrowing is contextual and never
+  pulls both wingers inside. The match runtime, pace director and gesture input are unchanged.
+- **PR B — cinematic decision match.** Moment selection and skipping, lead-in, freeze, question +
+  answers, 15-second timer with the approved timeout semantics, automatic execution, match summary
+  and the re-baselined pace proof. Until PR B lands, sections 3.1–3.2 below describe the runtime
+  that is actually in the repository.
+
 ### 3.1 Match time and moving slow motion (§9, §12)
 
 - The simulation advances in fixed ticks (`dt = 50 ms` simulated). Presentation runs at a
@@ -80,7 +102,7 @@ depend only on `sim` types. Nothing depends on `ui`.
   adaptively (×2 up to ×32, every event still surfaced in the ticker and commentary), a tactical
   moment runs at `0.3`, the aftermath of a decision runs live at `1.0` for 2.5 simulated seconds
   so cause and effect stay visible, and half time is a 2.5 s beat. The director keeps a real-time
-  budget (7 minutes, band 6–8) for a complete 60-minute match with 18–25 moments, spending it on
+  budget (7 minutes, band 6–8; to be re-baselined to 5–7 with 12–18 moments in PR B, §3.0) for a complete 60-minute match, spending it on
   the moments still expected and using whatever remains for fast-forward. Training drills keep
   the deeper `0.12` slow motion (`DRILL_SLOW_SCALE`). Real elapsed time is measured by the runtime
   clock and shown in the HUD and at full time; `npm run pace` proves the band headlessly.
@@ -190,8 +212,14 @@ Beyond the first playable (spec §17, §5):
 - Unit tests per module; property-style tests for simulation invariants (18 players, ball on
   field or in a restart state, no teleporting: per-tick displacement ≤ speed × dt).
 - Seeded headless matches as fixtures; a coverage tool that reports moments per role, on/off-ball
-  mix and difficulty spread against the 18–25 / 10–14 targets, recording shortfalls instead of
-  fabricating moments.
+  mix and difficulty spread against the moment targets (12–18 direct-involvement moments after
+  PR B, §3.0; the pre-PR-B runtime still reports against 18–25 / 10–14), recording shortfalls
+  instead of fabricating moments.
+- Answer-set integrity (spec §16): `tests/tactics/answerSet.test.ts` replays seeded matches for
+  all nine roles and fails on any displayed answer that does not instantiate in its state, on any
+  engine-best on-ball option missing from the answers without a `DOCUMENTED_EXCLUSIONS` entry, on
+  a `switch_play` answer without a matching engine switch route, and on a `narrow_inside` answer
+  without the second-9 read being on.
 - Acceptance checks §24 each map to a named test or a documented manual procedure in
   `tests/acceptance/`.
 - Soccer plausibility of provisional content is explicitly flagged for coaching review; tests do

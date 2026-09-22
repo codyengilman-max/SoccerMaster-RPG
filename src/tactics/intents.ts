@@ -1,4 +1,4 @@
-import { clampField, evaluateOnBall, lastDefenderLine } from "../sim/ai";
+import { clampField, evaluateOnBall, lastDefenderLine, secondNineRead } from "../sim/ai";
 import { speedForDistance } from "../sim/actions";
 import { add, clamp, dist, norm, scale, sub, type Vec2 } from "../sim/geometry";
 import { shapePoint } from "../sim/formation";
@@ -142,6 +142,16 @@ export function instantiateIntent(state: MatchState, p: PlayerState, intent: Int
       const wideY = p.pos.y < rules.width / 2 ? 2.5 : rules.width - 2.5;
       const target = clampField(rules, { x: p.pos.x + dir * 2, y: wideY });
       return { command: { type: "move", target }, feasibility: clamp(spaceAt(target, opps), 0, 1), anchor: target, detail: "stay wide to stretch the defence" };
+    }
+    case "narrow_inside": {
+      const nine = secondNineRead(state, p);
+      if (!nine.on || !nine.target) return null;
+      return {
+        command: { type: "move", target: nine.target },
+        feasibility: clamp(nine.farPostSpace, 0, 1),
+        anchor: nine.target,
+        detail: "narrow into the far half-space as a temporary second striker",
+      };
     }
     case "hold_position": {
       const shape = shapePoint(rules, p, ball.pos, state.possession === p.side);

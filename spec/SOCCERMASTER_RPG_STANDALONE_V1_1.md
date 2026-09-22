@@ -18,7 +18,7 @@ Build SoccerMaster RPG as a completely new, independent game.
 
 Save this document as spec/SOCCERMASTER_RPG_STANDALONE_V1_1.md.
 
-This version restores drawing-based execution and supersedes the instruction to remove it.
+Revision note (approved with the match-system audit, PR #18): official matches are answer-only decision moments. The AI engine simulates the whole match; the user experiences 12–18 meaningful direct-involvement moments and selects one displayed answer per moment. Sections 9–16, 21–25 below are canonical for that model and supersede the earlier continuous-control, drawing-based description. Drawing-based execution is retained only for training drills and minigames outside official matches.
 
 2. The game we are building
 
@@ -27,8 +27,8 @@ SoccerMaster combines an accurate soccer simulation with an engaging, character-
 The player develops from a recreational soccer background into a club player, starting at U11 and progressing through U16.
 
 Influence	Application
-Score! Hero	Direct drawing interaction for passes, shots and supported movement
-Max Payne	Dramatic slow motion while the field continues moving
+Score! Hero	One decisive choice per moment, framed cinematically; in official matches the choice is an answer selection, in training drills it may be a drawn gesture
+Max Payne	Short cinematic lead-in that freezes at the instant of decision
 Kingdom Hearts	Friendship, attachment, discovery and meaningful reunions
 Final Fantasy	Cinematic presentation, memorable characters and seasonal story arcs
 The Sims	School, home, relationships and everyday activities
@@ -184,26 +184,31 @@ The prototype must include at least one enjoyable optional activity with the fri
 
 9. Full-match structure
 
-Each full match targets 18–25 meaningful tactical decision moments for the selected position.
+SoccerMaster is a cinematic soccer-intelligence RPG. The AI match engine simulates the complete match in the background; the user experiences only the selected character’s meaningful direct involvements.
 
-These are the Golden Situations. They emerge when the live simulation produces eligible conditions.
+Every completed match presents 12–18 meaningful direct-involvement moments for the selected position. This is a hard player-facing range for the completed match. Moments emerge when the live simulation produces eligible conditions; they are never authored puzzles.
 
-The match remains continuous:
+* Outfield players: moments are primarily first-touch decisions — the situation freezes at the character’s first controlled touch (or the instant before it) and asks what the situation requires.
+* Goalkeepers (explicit exception): a direct involvement also includes receiving a backpass, distribution selection, playing through or over pressure, claim/punch/hold decisions, starting position against a developing attack, one-versus-one positioning, sweeper-keeper decisions, cross management, rebound control and communication that directly determines the keeper’s next action. A cross, sweep or one-versus-one counts even when the best decision is positioning, holding or delaying rather than touching the ball. Do not fabricate unrealistic keeper touches to reach the count; adjust scenario selection and match-event generation so the keeper receives 12–18 authentic decisions.
 
-1. Ordinary play unfolds.
-2. A meaningful situation emerges.
-3. The camera focuses and play slows almost to a freeze.
-4. Players continue moving slowly.
-5. The user reads the situation and makes a tactical choice.
-6. Where appropriate, the user draws the intended execution.
-7. The simulation resolves the action.
-8. Play continues from that outcome.
+The player-facing flow of one moment:
 
-Selecting “Pass” and drawing the pass are two parts of one moment—not two scored decisions.
+1. Routine AI play is skipped; the match clock advances accurately through the skipped simulation.
+2. A short cinematic lead-in shows the developing situation: the ball travelling, teammate and defender movement, pressure and available space.
+3. The selected character receives or makes first contact with the ball (or, for the keeper, reaches the decision point).
+4. The action freezes.
+5. A question and multiple-choice answers appear. The answers are generated from the role and the live state (§10, §16).
+6. A visible 15-second real-time timer starts only after the freeze and after the question and answers are fully visible (and after any accessibility read-aloud has finished). Pausing stops the timer. The user may answer early.
+7. The user selects one answer. This selection is the entire player action.
+8. The engine grades the decision, then the character and engine execute the selected action automatically.
+9. The immediate consequence plays cinematically; brief feedback follows.
+10. Background simulation resumes and the experience jumps to the next meaningful moment.
 
-Do not turn the match into 18–25 disconnected puzzles. Possession, positioning, score, fatigue and consequences carry forward.
+Timeout: if the timer expires, the moment is recorded as a timeout (no decision). No user decision grade is awarded. The engine selects the character’s action so the simulated match continues, and that engine-selected action is graded separately from the player. The presentation must state clearly that the character acted because the player did not choose; the engine’s action is never presented as the player’s decision. The story may remember repeated hesitation, but a single timeout must not create an excessive punishment.
 
-Routine passages may use accelerated presentation, but the user must be able to understand what happened.
+Duration: a completed match should take five to seven real minutes (preferred); four to eight minutes is acceptable; eight minutes is the hard maximum under normal settings. Do not add artificial waiting, longer cinematics or feedback screens merely to lengthen a match. Report median, minimum and maximum completion times across benchmark matches.
+
+Possession, positioning, score, fatigue and consequences carry forward between moments: the match is one continuous deterministic simulation, not 12–18 disconnected puzzles.
 
 10. Tactical choice comes before execution
 
@@ -216,10 +221,11 @@ Depending on the field state, plausible choices might involve:
 * Attacking available space.
 * Drawing a defender.
 * Playing through a gap.
-* Switching the point of attack.
-* Recycling possession.
+* Switching the point of attack (only when the far-side route exists in the state; see §15).
+* Recycling possession or laying the ball off.
 * Supporting underneath.
 * Holding width or position.
+* Narrowing inside as a temporary second 9 (opposite winger only, contextual; see §15).
 * Tracking a runner.
 * Covering a teammate.
 * Screening a passing lane.
@@ -228,56 +234,41 @@ Depending on the field state, plausible choices might involve:
 
 Options must be generated from the selected role and current state. Do not show a static responsibilities menu.
 
-Present multiple credible alternatives without labeling the best answer before selection.
+Present multiple credible alternatives without labeling the best answer before selection. Answer order must not reveal the engine’s ranking.
 
-11. Score! Hero-inspired execution controls
+Answer-set rule: every displayed answer must be available in the current state (it instantiates to a valid command at that tick), and the engine’s own highest-scoring action for the character must never be omitted from the answers without an explicit, documented reason (§16).
 
-Keep the drawing component.
+11. Execution is automatic in official matches
 
-Selected action	Execution interaction
-Pass	Draw toward a teammate or intended receiving space
-Dribble	Direct the intended carry
-Shoot	Draw toward the intended goal target
-First touch	Direct the intended receiving touch
-Off-ball run	Draw the intended movement into space
-Hold, screen, delay or communicate	Use a suitable contextual control; drawing is not mandatory
+Selecting one of the displayed answers is the only gameplay input during an official-match moment. There is no manual player movement, pass aiming, shot aiming, power meter, first-touch timing, dribbling input, reflex test, button combination, action-execution input or direct control after the answer is chosen.
 
-A drawing communicates intent. It does not guarantee the ball or player follows the exact line successfully.
+Selected answer	What happens
+Pass / switch / lay-off	The engine plays the pass to the receiver or space the answer named, using the character’s attributes and the pressure at commit
+Carry / attack space	The engine drives the carry along the instantiated direction and distance
+Shoot	The engine takes the shot at the instantiated target
+First touch	The engine performs the directional touch
+Off-ball movement, hold, screen, delay, communicate	The engine issues the movement or positioning command
 
-Proposed initial interaction:
+Execution quality is resolved by the engine from attributes, pressure and timing (§13); the user does not perform it.
 
-* Preview while the finger is down.
-* Commit on release.
-* Provide a cancel gesture.
-* Provide an accessible alternative to drawing.
+Drawing-based (Score! Hero-inspired) controls remain available only for training drills and minigames outside official matches, where they teach technique rather than decide match results. Their preview/commit/cancel behaviour and accessible alternative continue to apply there.
 
-The preview should show intended execution without revealing guaranteed success or the correct tactical answer.
+12. Cinematic lead-in and freeze
 
-A practical first implementation may translate gestures into supported simulation actions. Do not promise unrestricted freehand physics without implementing and testing it.
+Each moment opens with a short cinematic lead-in replayed from the real simulation: defenders stepping and recovering, teammates moving, passing windows opening or closing, pressure and space changing, the ball travelling. This is real simulation state, never decorative animation over frozen calculations.
 
-12. Max Payne-style moving slow motion
+At the decision point the action freezes (or enters near-frozen dramatic slow motion). The question and answers are generated from that frozen state, and the 15-second timer begins only once they are fully visible (§9).
 
-During tactical moments:
-
-* Defenders continue stepping and recovering.
-* Teammates continue moving.
-* Passing windows can open or close.
-* Pressure and space continue changing.
-* The ball continues according to the simulation state.
-
-This movement must be real simulation movement.
-
-The engine evaluates execution against the state when the action is committed, not the state when the moment began.
+After the answer is selected, the engine re-instantiates the chosen intent against the current state and executes it. If the intent has become unavailable, the moment records that explicitly and the engine continues with a plausible default; the user is never asked to execute manually.
 
 Specify:
 
-* Slow-motion time behavior.
-* Decision-window expiration.
-* Cancellation.
+* Lead-in length and what it must show.
+* Freeze behaviour and timer start.
+* Timer expiration (timeout semantics, §9).
+* Pause behaviour.
 * What happens if an intended action becomes unavailable.
-* How accessible input alternatives handle time pressure.
-
-Do not use decorative defender animation over frozen calculations.
+* How accessibility read-aloud and reduced motion interact with the timer.
 
 Major moments should receive stronger cinematic emphasis while preserving the information needed to decide.
 
@@ -292,7 +283,9 @@ Outcome	What actually happened
 
 A good decision can fail. A poor decision can succeed.
 
-A shaky drawing must not automatically become evidence of poor tactical understanding.
+Execution is resolved by the engine from the character’s attributes and the pressure at commit; a failed execution must not automatically become evidence of poor tactical understanding.
+
+A timeout produces no decision grade. The engine-selected action taken on timeout is graded and recorded separately and is never attributed to the player.
 
 Feedback should explain the relevant field conditions rather than simply reward successful outcomes.
 
@@ -302,7 +295,7 @@ Match evidence should carry more importance than training evidence in soccer ass
 
 Include on-ball, off-ball, defending and transition decisions.
 
-The target mix is approximately 10–14 on-ball moments, with remaining moments drawn from other responsibilities where appropriate to the role. Goalkeeper and other role-specific distributions may need different tuning.
+For outfield players the 12–18 moments are overwhelmingly on-ball, first-touch situations; off-ball, defending and transition decisions appear where the role and state make them meaningful. For goalkeepers the mix follows the direct-involvement definition in §9 (distribution, backpasses, claims, sweeps, one-versus-ones, positioning, communication).
 
 Difficulty should arise from:
 
@@ -337,11 +330,25 @@ Build a stateful simulation supporting:
 
 Attacking methodology:
 
-Attack space first. If necessary, draw defenders. Switch the point of attack when the opposite side offers the better opportunity.
+Attack space first. If necessary, draw defenders. Find the spare player on the opposite side and switch the point of attack when the far side offers the better next state. The opposite winger may narrow or become a temporary second 9 when the context supports it. Recognize pressure before receiving. Separate decision quality from execution and outcome.
 
 Support context-appropriate overlaps, underlaps, slips, third-player combinations, runs behind, support underneath and recovery movements.
 
 Movement distances must vary with the state.
+
+Canonical soccer-logic implementation (this repository):
+
+* `readField` (src/tactics/features.ts) computes the live field read — pressure, lanes, space near/far side, receiving state, keeper context, second-9 context — from the deterministic match state.
+* `evaluateOnBall` (src/sim/ai.ts) is the engine’s own scored list of on-ball options (carry, pass, switch, shoot, hold) for the player on the ball; the AI plays from the same list.
+* `instantiateIntent` (src/tactics/intents.ts) turns a catalog intent into a concrete command for the current state or returns null when the state does not support it.
+* `scoreAction` (src/tactics/recognition.ts) scores each instantiated catalog action from the read and the entry’s conditional criteria; grading compares the chosen action against those scores (src/tactics/grading.ts).
+* Deterministic match-state evaluation and continuation live in src/sim/engine.ts.
+
+There is no separately named “HGA” or “Decision Utility” system in this repository. Where earlier material used those terms, they describe the concept above: a state-derived score of each plausible action, computed by the existing pipeline. Do not introduce such a named system unless it is actually implemented and tested.
+
+Switch of play (`switch_play`) must be available whenever pressure has overloaded the current side, the opposite-side player is available, the passing route is technically possible, the character has sufficient awareness of the option and the switch produces a better next state than forcing the crowded side. It is scored from the actual state and is not the automatic best answer in every wide situation; when no far-side route exists the intent instantiates to null and is not displayed.
+
+Winger narrowing / second 9 (`narrow_inside`, `secondNineRead` in src/sim/ai.ts) is a contextual movement intent, not a permanent winger behaviour. The opposite winger may narrow into the far half-space only when the ball is secured on the other flank (carrier not pressed, attacking phase), width on the winger’s flank is already provided by an outside back or another teammate, the striker pins the central defenders, the far-post / cutback space is open and rest defence remains protected. The ball-side winger never narrows, so both wingers are never forced inside. The same predicate drives the AI wingers’ off-ball movement and the catalog answer, so the space is real rather than authored. Thresholds are the `SECOND_NINE` constants.
 
 Define age and competition rules explicitly. Verify applicable heading, offside, field and restart rules from current primary sources before presenting a ruleset as accurate.
 
@@ -367,6 +374,12 @@ Each entry needs:
 * Coaching-review status.
 
 Identify left/right mirrors explicitly.
+
+Answer-set integrity (tested in tests/tactics/answerSet.test.ts):
+
+* Every displayed answer must instantiate to a valid command in the state it was shown in; answers that do not exist in the state are removed before display.
+* When the character is on the ball, the engine’s highest-scoring `evaluateOnBall` option must be reproducible from the displayed answers. Any deliberate omission must be listed with its soccer reason in `DOCUMENTED_EXCLUSIONS` (src/tactics/exclusions.ts); undocumented omissions fail the test suite. Current exclusion: the goalkeeper is never offered a carry.
+* `switch_play` is shown only when the engine has that exact far-side route; `narrow_inside` only when the second-9 read is on.
 
 For the prototype, independently author a small provisional set that demonstrates the system. Keep content separate from implementation so reviewed situations can be added without rewriting the engine.
 
@@ -491,7 +504,7 @@ First visual review should cover:
 2. Best-friend invitation.
 3. Weekly hub.
 4. Training.
-5. Moving slow-motion tactical moment with drawing interaction.
+5. Cinematic decision moment: lead-in, freeze, question and answers, 15-second timer.
 
 Propose measurable mobile performance targets and demonstrate them on representative phones.
 
@@ -501,7 +514,7 @@ Separate responsibility for:
 
 * Soccer simulation.
 * Tactical recognition and grading.
-* Gesture input.
+* Answer selection and timer (official matches); gesture input (training only).
 * Rendering and camera.
 * Calendar and competitions.
 * Rosters and transfers.
@@ -528,7 +541,7 @@ Build a connected prototype containing:
 * One full regular week.
 * Three playable training activities.
 * One optional activity with the friend.
-* One continuous simulated match with tactical recognition, moving slow motion and drawing execution.
+* One complete simulated match presented as 12–18 direct-involvement moments: cinematic lead-in, freeze, 15-second multiple-choice decision, automatic execution, skipped routine play.
 * Postgame scenes responding to actual match evidence.
 * Save/resume.
 * A calendar preview showing different tournament eligibility paths.
@@ -542,9 +555,9 @@ Demonstrate that:
 1. No dependency on the previous project exists.
 2. The selected role remains locked throughout a match.
 3. Story characters map consistently to roster identities.
-4. Slow motion advances the real simulation.
-5. Gesture commitment uses the current field state.
-6. Choice and drawing count as one tactical moment.
+4. The cinematic lead-in replays real simulation state and the frozen decision state is the live state.
+5. The selected answer is executed against the field state at commit; unavailable intents are recorded explicitly.
+6. Selecting the answer is the whole tactical moment; no manual execution input exists or is graded.
 7. Decision quality, execution and outcome remain separate.
 8. Play continues from the actual outcome without resetting.
 9. Tactical triggers reject unsuitable states.
@@ -555,8 +568,11 @@ Demonstrate that:
 14. State qualification uses league evidence available at the cutoff.
 15. Different first-week commitments produce meaningfully different later interactions or opportunities, even with identical match scores.
 16. The prototype remains playable without AI.
-17. Drawing, cancellation and accessible alternatives function on mobile.
+17. Answer selection, the 15-second timer, pause and accessibility read-aloud function on mobile; the timer starts only after the answers are visible.
 18. Tactical information remains readable during cinematic presentation.
+19. Every displayed answer is available in the state, and the engine’s highest-scoring option is never omitted without a documented exclusion.
+20. Completed matches present 12–18 direct-involvement moments and finish in five to seven real minutes (four to eight acceptable, eight hard maximum).
+21. A timeout records no decision, the engine’s action is graded separately, and the presentation says the character acted because the player did not choose.
 
 Software tests alone do not establish soccer accuracy. Provisional tactical content requires coaching review.
 
@@ -566,4 +582,4 @@ Add this specification and the implementation plan through a PR. Reconcile spec/
 
 Keep proposed defaults, missing content and unfinished features visible.
 
-Retain Score! Hero-inspired drawing. Retain Max Payne-style moving slow motion. Retain 18–25 meaningful tactical moments. Build everything independently within SoccerMaster-RPG.
+Official matches are answer-only: cinematic lead-in, freeze, 15-second multiple-choice decision, automatic execution, skipped routine play, 12–18 meaningful direct-involvement moments in five to seven minutes. Drawing survives only in training. Build everything independently within SoccerMaster-RPG.

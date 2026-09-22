@@ -30,6 +30,8 @@ export interface PaceRun {
   byPhase: Record<PacePhase, number>;
   moments: number;
   onBall: number;
+  /** Spells in which the controlled player had the ball under control (sampled per frame). */
+  possessions: number;
   simMinutes: number;
   score: string;
   /** Goals counted from the event timeline (must equal the scoreboard). */
@@ -73,10 +75,15 @@ export function runPace(catalog: Catalog, seed: number, role: RoleId, player: Pl
   let peakScale = 0;
   let maxTicks = 0;
   let goalEvents = 0;
+  let possessions = 0;
+  let hadBall = false;
   for (let f = 0; f < 2_000_000 && !isFinished(runtime.state); f++) {
     const res = frame(runtime, frameMs);
     maxTicks = Math.max(maxTicks, res.ticks);
     for (const e of res.events) if (e.type === "goal") goalEvents++;
+    const hasBall = runtime.state.ball.status === "controlled" && runtime.state.ball.owner === me.id;
+    if (hasBall && !hadBall) possessions++;
+    hadBall = hasBall;
     if (!runtime.active) peakScale = Math.max(peakScale, runtime.clock.scale);
     if (res.opened) answerIn = Number.isFinite(ANSWER_MS[player]) ? Math.round(ANSWER_MS[player] / frameMs) : -1;
     if (runtime.active && answerIn > 0 && --answerIn === 0) {
@@ -102,6 +109,7 @@ export function runPace(catalog: Catalog, seed: number, role: RoleId, player: Pl
     byPhase: { ...runtime.pace.realMs },
     moments: rep.total,
     onBall: rep.onBall,
+    possessions,
     simMinutes: st.clock.timeMs / 60_000,
     score: `${st.score.home}–${st.score.away}`,
     goalEvents,
