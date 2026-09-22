@@ -1,5 +1,5 @@
 import { add, clamp, dist, len, lerp, norm, rotate, scale, sub, type Vec2 } from "./geometry";
-import { shapePoint } from "./formation";
+import { basePosition, shapePoint } from "./formation";
 import {
   arrivalTime,
   distanceToGoal,
@@ -134,6 +134,80 @@ export function evaluateOnBall(state: MatchState, p: PlayerState): OnBallOption[
   return options.sort((a, b) => b.score - a.score);
 }
 
+/**
+ * Contextual second-9 read for a winger whose team has the ball on the OTHER flank (spec §15).
+ * `on` is true only when every condition holds: the ball is secured on the far side, a teammate
+ * already provides width on the winger's flank, the striker occupies the central defenders, the
+ * far-post / cutback space is open and enough outfield players stay behind the ball. `target` is
+ * the half-space point the winger would narrow into (null when the read does not apply at all).
+ */
+export interface SecondNineRead {
+  on: boolean;
+  target: Vec2 | null;
+  widthProvided: boolean;
+  farPostSpace: number;
+  restDefense: number;
+}
+
+export const SECOND_NINE = {
+  /** Ball must be at least this far from the centre line (fraction of width) to count as "on a flank". */
+  ballWideMin: 0.15,
+  /** Carrier pressure above which the ball is not "secured". */
+  carrierPressureMax: 0.5,
+  /** Carrier progress below which the phase is not yet an attack. */
+  carrierProgressMin: 0.55,
+  /** Far-post / cutback space required at the narrowing target. */
+  farPostSpaceMin: 0.45,
+  /** Outfield teammates that must remain behind the ball (rest defence). */
+  restDefenseMin: 3,
+  /** How far the striker may sit from the last defender line and still pin it. */
+  strikerPinDist: 10,
+  /** A teammate at least this far from the centre line (fraction of width) and past halfway holds the wide lane. */
+  widthLaneMin: 0.18,
+  /** Where the narrowing winger ends up laterally (fraction of width from the centre line). */
+  narrowLane: 0.12,
+} as const;
+
+export function secondNineRead(state: MatchState, p: PlayerState): SecondNineRead {
+  const none: SecondNineRead = { on: false, target: null, widthProvided: false, farPostSpace: 0, restDefense: 0 };
+  if (p.role !== 7 && p.role !== 11) return none;
+  const ball = state.ball;
+  if (state.possession !== p.side || ball.status !== "controlled" || !ball.owner || ball.owner === p.id) return none;
+  const carrier = state.players.find((q) => q.id === ball.owner);
+  if (!carrier || carrier.side !== p.side) return none;
+  const rules = state.rules;
+  const dir = p.side === "home" ? 1 : -1;
+  const half = rules.width / 2;
+  // the winger's flank is the formation flank, so a drifted winger cannot claim the other side
+  const mySign = Math.sign(basePosition(rules, p.side, p.role).y - half);
+  if (mySign === 0) return none;
+  const ballOffset = (ball.pos.y - half) * mySign;
+  // the ball must be genuinely on the opposite flank, never central and never on my side
+  if (ballOffset > -rules.width * SECOND_NINE.ballWideMin) return none;
+
+  const opps = opponents(state, p.side);
+  const mates = teammates(state, p.side).filter((m) => m.id !== p.id && m.role !== 1);
+  const lineX = lastDefenderLine(state, other(p.side));
+  const carrierProgress = progress(rules, p.side, carrier.pos);
+  const widthProvided = mates.some(
+    (m) => Math.sign(m.pos.y - half) === mySign && Math.abs(m.pos.y - half) >= rules.width * SECOND_NINE.widthLaneMin && progress(rules, p.side, m.pos) > 0.4,
+  );
+  const restDefense = mates.filter((m) => progress(rules, p.side, m.pos) < carrierProgress - 0.05).length;
+  const target = clampField(rules, { x: lineX - dir * 1.5, y: half + mySign * rules.width * SECOND_NINE.narrowLane });
+  const farPostSpace = spaceAt(target, opps);
+  const striker = mates.find((m) => m.role === 9);
+  const strikerPins = striker !== undefined && Math.abs(striker.pos.x - lineX) < SECOND_NINE.strikerPinDist && Math.abs(striker.pos.y - half) < rules.width * 0.2;
+  const on =
+    widthProvided &&
+    strikerPins &&
+    pressureAt(carrier.pos, opps) < SECOND_NINE.carrierPressureMax &&
+    carrierProgress >= SECOND_NINE.carrierProgressMin &&
+    farPostSpace >= SECOND_NINE.farPostSpaceMin &&
+    restDefense >= SECOND_NINE.restDefenseMin &&
+    Math.abs(attackingGoalX(rules, p.side) - lineX) > 6;
+  return { on, target, widthProvided, farPostSpace, restDefense };
+}
+
 export function decideOnBall(state: MatchState, p: PlayerState, rng: Rng): PlayerCommand {
   const options = evaluateOnBall(state, p);
   const best = options[0];
@@ -188,6 +262,11 @@ export function decideOffBall(state: MatchState, p: PlayerState): PlayerCommand 
         if (offsideSafe && Math.abs(goalX - lastDefX) > 8 && spaceAt(behind, opps) > 0.3 && dist(carrier.pos, behind) < 35) {
           return { type: "move", target: behind };
         }
+      }
+      // Opposite winger narrows into the far half-space as a temporary second 9 (contextual, see secondNineRead)
+      if (p.role === 7 || p.role === 11) {
+        const nine = secondNineRead(state, p);
+        if (nine.on && nine.target) return { type: "move", target: nine.target };
       }
       // Overlap: full back on the same flank when the winger has the ball with space wide of them
       if ((p.role === 2 || p.role === 3) && sameFlank && (carrier.role === 7 || carrier.role === 11)) {

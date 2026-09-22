@@ -149,6 +149,22 @@
               ],
               "add": -0.2,
               "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -337,6 +353,63 @@
           ]
         },
         {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
+            }
+          ]
+        },
+        {
           "id": "hold_ball",
           "label": "Hold and shield",
           "intent": "hold_ball",
@@ -513,6 +586,22 @@
               ],
               "add": -0.2,
               "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -745,6 +834,63 @@
               ],
               "add": -0.3,
               "why": "short options are covered"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -2896,6 +3042,22 @@
               ],
               "add": -0.2,
               "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -3156,6 +3318,63 @@
               ],
               "add": -0.1,
               "why": "teammates were open further up"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -4189,6 +4408,63 @@
           ]
         },
         {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
+            }
+          ]
+        },
+        {
           "id": "hold_ball",
           "label": "Hold and shield",
           "intent": "hold_ball",
@@ -4531,6 +4807,22 @@
               ],
               "add": -0.2,
               "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -5754,6 +6046,22 @@
               ],
               "add": -0.2,
               "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -6824,6 +7132,22 @@
               ],
               "add": -0.2,
               "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -7079,6 +7403,63 @@
               ],
               "add": 0.3,
               "why": "the forward pass is on"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -8123,6 +8504,22 @@
               ],
               "add": -0.2,
               "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -8244,7 +8641,8 @@
       },
       "cues": [
         "Where is the free teammate?",
-        "Is there a gap behind the presser?"
+        "Is there a gap behind the presser?",
+        "Is the spare player on the far side?"
       ],
       "actions": [
         {
@@ -8337,6 +8735,63 @@
               ],
               "add": 0.3,
               "why": "the forward pass is on"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -8991,7 +9446,8 @@
       "cues": [
         "Are they disorganised?",
         "Is the striker ready to run?",
-        "Is a shot on?"
+        "Is a shot on?",
+        "Is the far side open?"
       ],
       "actions": [
         {
@@ -9073,6 +9529,63 @@
               ],
               "add": -0.1,
               "why": "teammates were open further up"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -9249,7 +9762,8 @@
       "cues": [
         "Which foot is the defender on?",
         "Is the full back overlapping?",
-        "Is the cutback on?"
+        "Is the cutback on?",
+        "Is the far winger free?"
       ],
       "actions": [
         {
@@ -9372,6 +9886,63 @@
               ],
               "add": 0.3,
               "why": "the forward pass is on"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -9673,6 +10244,22 @@
               ],
               "add": -0.2,
               "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -9804,7 +10391,8 @@
       "cues": [
         "Is the far-side defender watching the ball?",
         "Is a switch possible?",
-        "Is there room behind?"
+        "Is there room behind?",
+        "Is the full back already giving width, and is the far post open?"
       ],
       "actions": [
         {
@@ -9845,6 +10433,80 @@
               ],
               "add": -0.2,
               "why": "there was room behind: a run was on"
+            },
+            {
+              "when": [
+                {
+                  "f": "secondNineOn",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "the full back already held width: the far-post run was on"
+            }
+          ]
+        },
+        {
+          "id": "narrow_inside",
+          "label": "Narrow inside as the second striker",
+          "intent": "narrow_inside",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "secondNineOn",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.5,
+              "why": "ball secured on the far side, width covered, far-post space open"
+            },
+            {
+              "when": [
+                {
+                  "f": "widthProvidedMyFlank",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": -0.5,
+              "why": "nobody else holds width on your side: narrowing kills the switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "restDefenseCount",
+                  "op": "<",
+                  "v": 3
+                }
+              ],
+              "add": -0.3,
+              "why": "too few behind the ball to protect the counter"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.5
+                }
+              ],
+              "add": -0.3,
+              "why": "the carrier is pressed: the ball is not secured on the far side"
+            },
+            {
+              "when": [
+                {
+                  "f": "farPostSpace",
+                  "op": "<",
+                  "v": 0.45
+                }
+              ],
+              "add": -0.3,
+              "why": "the far-post space is crowded"
             }
           ]
         },
@@ -9933,11 +10595,13 @@
       ],
       "mistakes": [
         "Drifting inside and closing the switch",
-        "Running offside early"
+        "Running offside early",
+        "Narrowing when nobody else holds width"
       ],
       "difficultyFactors": [
         "Switch availability",
-        "Space behind"
+        "Space behind",
+        "Width cover from the full back"
       ],
       "restrictions": {
         "ageGroups": [
@@ -9945,7 +10609,7 @@
           "U12"
         ]
       },
-      "continuation": "Switch found, run behind, or shape.",
+      "continuation": "Switch found, far-post run, run behind, or shape.",
       "tests": {
         "positive": [
           {
@@ -10137,6 +10801,17 @@
               ],
               "add": -0.2,
               "why": "there was room behind: a run was on"
+            },
+            {
+              "when": [
+                {
+                  "f": "secondNineOn",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "the full back already held width: the far-post run was on"
             }
           ]
         }
@@ -10522,7 +11197,8 @@
       "cues": [
         "Which foot is the defender on?",
         "Is the full back overlapping?",
-        "Is the cutback on?"
+        "Is the cutback on?",
+        "Is the far winger free?"
       ],
       "actions": [
         {
@@ -10645,6 +11321,63 @@
               ],
               "add": 0.3,
               "why": "the forward pass is on"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -10947,6 +11680,22 @@
               ],
               "add": -0.2,
               "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         },
@@ -11079,7 +11828,8 @@
       "cues": [
         "Is the far-side defender watching the ball?",
         "Is a switch possible?",
-        "Is there room behind?"
+        "Is there room behind?",
+        "Is the full back already giving width, and is the far post open?"
       ],
       "actions": [
         {
@@ -11120,6 +11870,80 @@
               ],
               "add": -0.2,
               "why": "there was room behind: a run was on"
+            },
+            {
+              "when": [
+                {
+                  "f": "secondNineOn",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "the full back already held width: the far-post run was on"
+            }
+          ]
+        },
+        {
+          "id": "narrow_inside",
+          "label": "Narrow inside as the second striker",
+          "intent": "narrow_inside",
+          "base": 0.3,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "secondNineOn",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": 0.5,
+              "why": "ball secured on the far side, width covered, far-post space open"
+            },
+            {
+              "when": [
+                {
+                  "f": "widthProvidedMyFlank",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": -0.5,
+              "why": "nobody else holds width on your side: narrowing kills the switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "restDefenseCount",
+                  "op": "<",
+                  "v": 3
+                }
+              ],
+              "add": -0.3,
+              "why": "too few behind the ball to protect the counter"
+            },
+            {
+              "when": [
+                {
+                  "f": "carrierPressure",
+                  "op": ">",
+                  "v": 0.5
+                }
+              ],
+              "add": -0.3,
+              "why": "the carrier is pressed: the ball is not secured on the far side"
+            },
+            {
+              "when": [
+                {
+                  "f": "farPostSpace",
+                  "op": "<",
+                  "v": 0.45
+                }
+              ],
+              "add": -0.3,
+              "why": "the far-post space is crowded"
             }
           ]
         },
@@ -11208,11 +12032,13 @@
       ],
       "mistakes": [
         "Drifting inside and closing the switch",
-        "Running offside early"
+        "Running offside early",
+        "Narrowing when nobody else holds width"
       ],
       "difficultyFactors": [
         "Switch availability",
-        "Space behind"
+        "Space behind",
+        "Width cover from the full back"
       ],
       "restrictions": {
         "ageGroups": [
@@ -11220,7 +12046,7 @@
           "U12"
         ]
       },
-      "continuation": "Switch found, run behind, or shape.",
+      "continuation": "Switch found, far-post run, run behind, or shape.",
       "tests": {
         "positive": [
           {
@@ -11413,6 +12239,17 @@
               ],
               "add": -0.2,
               "why": "there was room behind: a run was on"
+            },
+            {
+              "when": [
+                {
+                  "f": "secondNineOn",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "the full back already held width: the far-post run was on"
             }
           ]
         }
@@ -11973,6 +12810,58 @@
               "why": "no defender close enough to draw"
             }
           ]
+        },
+        {
+          "id": "lay_off",
+          "label": "Lay it off to the arriving teammate",
+          "intent": "recycle",
+          "base": 0.4,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.4,
+              "why": "marked from behind: the first-time lay-off keeps it"
+            },
+            {
+              "when": [
+                {
+                  "f": "shotWindow",
+                  "op": ">",
+                  "v": 0.35
+                }
+              ],
+              "add": -0.4,
+              "why": "the shot was open"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "a forward option was on"
+            },
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": -0.3,
+              "why": "nobody had arrived to receive it"
+            }
+          ]
         }
       ],
       "mistakes": [
@@ -12043,7 +12932,8 @@
       "cues": [
         "Who is arriving underneath?",
         "Can you turn?",
-        "Is a winger running?"
+        "Is a winger running?",
+        "Is the far winger free?"
       ],
       "actions": [
         {
@@ -12207,6 +13097,63 @@
               ],
               "add": 0.3,
               "why": "the forward pass is on"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         }
@@ -12598,6 +13545,17 @@
               ],
               "add": -0.2,
               "why": "there was room behind: a run was on"
+            },
+            {
+              "when": [
+                {
+                  "f": "secondNineOn",
+                  "op": "==",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "the full back already held width: the far-post run was on"
             }
           ]
         }
@@ -13131,6 +14089,115 @@
               ],
               "add": 0.3,
               "why": "the forward pass is on"
+            }
+          ]
+        },
+        {
+          "id": "lay_off",
+          "label": "Lay it off to the arriving teammate",
+          "intent": "recycle",
+          "base": 0.4,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.4,
+              "why": "marked from behind: the first-time lay-off keeps it"
+            },
+            {
+              "when": [
+                {
+                  "f": "shotWindow",
+                  "op": ">",
+                  "v": 0.35
+                }
+              ],
+              "add": -0.4,
+              "why": "the shot was open"
+            },
+            {
+              "when": [
+                {
+                  "f": "progressiveLanes",
+                  "op": ">=",
+                  "v": 1
+                }
+              ],
+              "add": -0.2,
+              "why": "a forward option was on"
+            },
+            {
+              "when": [
+                {
+                  "f": "openLanes",
+                  "op": "==",
+                  "v": 0
+                }
+              ],
+              "add": -0.3,
+              "why": "nobody had arrived to receive it"
+            }
+          ]
+        },
+        {
+          "id": "switch_play",
+          "label": "Switch the point of attack",
+          "intent": "switch_play",
+          "base": 0.35,
+          "eval": [
+            {
+              "when": [
+                {
+                  "f": "spaceFarSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": 0.6,
+              "why": "the far side is open"
+            },
+            {
+              "when": [
+                {
+                  "f": "spaceNearSide",
+                  "op": ">",
+                  "v": 0.6
+                }
+              ],
+              "add": -0.3,
+              "why": "space near you is just as good, no need to switch"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.7
+                }
+              ],
+              "add": -0.2,
+              "why": "a long switch under pressure is risky"
+            },
+            {
+              "when": [
+                {
+                  "f": "pressure",
+                  "op": ">",
+                  "v": 0.5
+                },
+                {
+                  "f": "spaceNearSide",
+                  "op": "<",
+                  "v": 0.4
+                }
+              ],
+              "add": 0.3,
+              "why": "your side is overloaded: the spare player is on the far side"
             }
           ]
         }

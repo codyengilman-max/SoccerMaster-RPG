@@ -33,7 +33,7 @@ if (asJson) {
     const ph = r.byPhase;
     console.log(
       `  ${r.role.padEnd(2)} seed ${r.seed} ${r.player.padEnd(7)} real ${formatRealTime(r.realMs)} (${r.withinBand ? "in band" : "OUT OF BAND"})` +
-        ` · ${r.moments} moments (${r.onBall} on ball) · ${r.simMinutes.toFixed(0)} sim min · ${r.score}` +
+        ` · ${r.moments} moments (${r.onBall} on ball of ${r.possessions} touches) · ${r.simMinutes.toFixed(0)} sim min · ${r.score}` +
         ` · decisions ${formatRealTime(ph.window)} · live ${formatRealTime(ph.aftermath)} · fast-forward ${formatRealTime(ph.routine)} (peak ×${r.peakScale.toFixed(0)}, max ${r.maxTicksPerFrame} ticks/frame) · half time ${formatRealTime(ph.halftime)}`,
     );
   }

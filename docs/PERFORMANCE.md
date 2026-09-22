@@ -18,7 +18,7 @@ from the PWA manifest or run in a tab.
 | Warm / installed load | interactive ≤ 1 s offline | Service worker precaches the shell (`pwa/sw.js`) |
 | Memory | steady across a full match (no per-frame allocations that grow); heap ≤ 150 MB on a phone | Long matches on low-RAM devices |
 | Battery | no work while the tab is hidden (`requestAnimationFrame` pauses; the runtime clamps `dt` to 100 ms on return) | Background drain |
-| Real match duration | a complete 60-minute match finishes in **6–8 real minutes** with 18–25 tactical moments, measured by `RuntimeClock.realElapsedMs` and shown live in the HUD and at full time | Playtesting feedback: the match must not drag |
+| Real match duration | target (spec §9): a complete 60-minute match finishes in **5–7 real minutes** (4–8 acceptable, 8 hard maximum) with **12–18 meaningful direct-involvement moments**, reported as median / min / max across benchmark seeds; the current runtime (before the cinematic decision-match PR) still runs the earlier 6–8 minute, 18–25 moment pace director and is measured by `RuntimeClock.realElapsedMs`, shown live in the HUD and at full time | Playtesting feedback: the match must not drag |
 | Fast-forward CPU | routine play runs up to ×32 but never more than `MAX_TICKS_PER_FRAME` (24) simulation ticks per frame; the pace bench reports the peak scale and ticks/frame actually used | Bounded per-frame work while accelerating |
 
 ## How to measure

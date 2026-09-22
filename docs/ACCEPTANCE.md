@@ -27,6 +27,14 @@ Run everything with `npm test`; the acceptance file alone with `npx vitest run t
 | 16 | Playable without AI | `AuthoredProvider.available()` is false; `acceptResponse(null)` falls back to the authored line; no `fetch`/socket/model API in `src/`; opening + week run headless | `tests/campaign/campaign.test.ts` (dialogue provider), `npm run smoke:week` | — |
 | 17 | Drawing, cancel, accessible alternatives on mobile | static: Pointer Events only, `touch-action: none`, viewport meta, "Tap targets" toggle, Back button; runtime: drag-back cancel, `cancel()`, tap-target commit | `tests/gesture/gesture.test.ts`, `tests/match/runtime.test.ts` | **yes — below** |
 | 18 | Tactical information readable during cinematic presentation | static: opaque option panel, bold title, ≥ 44 px option height, text-shadow on the window bar, no font below 0.75 rem, live regions; runtime: every moment has title, cues and labelled options | — | **yes — below** |
+| 19 | Every displayed answer is available in the state; the engine's highest-scoring option is never omitted without a documented exclusion | seeded matches for all nine roles through the tactical session: each option re-instantiates to the same command at the tick it was shown; on-ball moments contain the engine's `evaluateOnBall` best or hit `DOCUMENTED_EXCLUSIONS`; `switch_play` only with a matching engine route; `narrow_inside` only with the second-9 read on | `tests/tactics/answerSet.test.ts`, `tests/tactics/secondNine.test.ts` | — |
+| 20 | 12–18 direct-involvement moments in 5–7 real minutes | pending the cinematic decision-match PR (PR B); the current runtime is proven against the earlier 18–25 / 6–8 band by `tests/match/pace.test.ts` | — | — |
+| 21 | Timeout: no decision grade, engine action graded separately, shown as the character acting | pending PR B | — | — |
+
+Checks 4–6 and 17 are stated in the spec for the answer-only match model; the tests listed above
+verify the pre-PR-B runtime's equivalents (slow motion advances the simulation, commit uses the
+live state, choice + drawing form one record, drawing/cancel/accessible alternatives). PR B
+replaces them with the lead-in / freeze / answer / timer equivalents.
 
 ## Manual procedure for 17 and 18
 

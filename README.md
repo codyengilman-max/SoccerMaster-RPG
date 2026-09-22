@@ -2,8 +2,13 @@
 
 A youth soccer role-playing game: a player's journey from U11 to U16, combining an authored
 life/campaign layer (identity, school, family, relationships, training, calendar, clubs,
-progression, consequences) with continuous, accurately simulated soccer matches in which the
-player's tactical decisions — chosen, then drawn — carry real, truthfully reported consequences.
+progression, consequences) with accurately simulated, deterministic soccer matches in which the
+player's tactical decisions carry real, truthfully reported consequences. The canonical official-
+match model (spec §9–§14) is a cinematic soccer-intelligence RPG: the engine simulates the whole
+match, the player experiences 12–18 meaningful direct-involvement moments and selects one
+displayed answer per moment within 15 seconds; execution is automatic. The current runtime still
+uses the earlier slow-motion / drawn-execution presentation until the cinematic decision-match PR
+lands; the soccer logic and answer catalogs already follow the canonical model (spec §15–§16).
 
 Proprietary. All rights reserved. No open-source license is granted.
 
@@ -41,7 +46,7 @@ npm run catalog:build            # regenerate content/catalog/provisional-u11.js
 npm run smoke:week               # headless: opening → first two campaign weeks (trainings, crossbar, juggling, a hobby)
 npm run smoke:season -- 11       # headless: a full U11 season (leagues, tournaments, season end, tryouts, transfer) for seed 11
 npm run perf                     # headless CPU budget check (docs/PERFORMANCE.md)
-npm run pace -- 4 CM all         # real-time pace check: complete 60-minute matches in 6–8 real minutes with 18–25 moments
+npm run pace -- 4 CM all         # real-time pace check of the current runtime (6–8 real minutes, 18–25 moments); spec §9 target after the cinematic decision-match PR is 5–7 minutes with 12–18 direct-involvement moments
 npm run story:tones              # editorial mix of authored scenes vs the 30/15/55 target (spec §6)
 npm run build     # static build → dist/
 ```

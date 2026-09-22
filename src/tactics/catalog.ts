@@ -28,6 +28,7 @@ export type Intent =
   | "overlap"
   | "support_underneath"
   | "hold_width"
+  | "narrow_inside"
   | "hold_position"
   | "press"
   | "delay"
@@ -57,6 +58,7 @@ export const INTENTS: readonly Intent[] = [
   "overlap",
   "support_underneath",
   "hold_width",
+  "narrow_inside",
   "hold_position",
   "press",
   "delay",
@@ -87,6 +89,7 @@ export const DRAWN_INTENTS: ReadonlySet<Intent> = new Set<Intent>([
   "overlap",
   "support_underneath",
   "hold_width",
+  "narrow_inside",
   "keeper_distribute_short",
   "keeper_distribute_long",
 ]);
@@ -290,6 +293,10 @@ export const NEUTRAL_READ: FieldRead = {
   minute: 10,
   carrierPressure: 0,
   teammateCarrierDist: 999,
+  widthProvidedMyFlank: 0,
+  farPostSpace: 0,
+  restDefenseCount: 0,
+  secondNineOn: 0,
 };
 
 export function withDefaults(partial: Partial<FieldRead>): FieldRead {
