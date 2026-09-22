@@ -447,6 +447,38 @@ describe("match runtime: save and reload", () => {
     );
   });
 
+  it("round-trips mid-feedback: the restored runtime opens already in feedback with the same graded record and coaching lines, and Continue plays on", () => {
+    const rt = runtimeFor(9, "CM");
+    untilMoment(rt);
+    toQuestion(rt);
+    answer(rt, rt.active!.moment.options[0]!.id);
+    for (let guard = 0; guard < 20_000 && rt.phase !== "feedback"; guard++) frame(rt, FRAME);
+    expect(rt.phase).toBe("feedback");
+    const rec = rt.active!.record!;
+    expect(rt.active!.feedback?.length ?? 0).toBeGreaterThan(0);
+    const save = JSON.parse(JSON.stringify(serializeRuntime(rt))) as ReturnType<typeof serializeRuntime>;
+    const back = restoreRuntime(save, catalog);
+    expect(back.phase).toBe("feedback");
+    expect(back.active?.record).toBeTruthy();
+    expect(back.active!.record!.moment.id).toBe(rec.moment.id);
+    expect(back.active!.record!.decision).toEqual(rec.decision);
+    expect(back.active!.record!.execution).toEqual(rec.execution);
+    expect(back.active!.record!.outcome).toEqual(rec.outcome);
+    expect(back.active!.feedback).toEqual(rt.active!.feedback);
+    // the restored record is the very object held in the session list, so the screen can key its repaint on identity
+    expect(back.session.records.includes(back.active!.record!)).toBe(true);
+    expect(back.state.clock.tick).toBe(rt.state.clock.tick);
+    expect(back.state.score).toEqual(rt.state.score);
+    continueNow(back);
+    expect(back.phase).toBe("routine");
+    expect(back.active).toBeNull();
+    continueNow(rt);
+    playToFullTime(rt, (o) => o[0]!, FRAME);
+    playToFullTime(back, (o) => o[0]!, FRAME);
+    expect(back.state.score).toEqual(rt.state.score);
+    expect(back.session.records.length).toBe(rt.session.records.length);
+  });
+
   it("round-trips during routine skipping and with open (unsettled) outcomes", () => {
     const rt = runtimeFor(10, "DM");
     untilMoment(rt);

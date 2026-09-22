@@ -1317,6 +1317,30 @@ button:focus-visible {
   }
 }
 
+/* Narrow phones: the club abbreviations, score and clock must all fit in one row without truncation. */
+@media (max-width: 400px) {
+  .hud {
+    grid-template-columns: minmax(max-content, 1fr) auto 1fr;
+    gap: 0.4rem;
+    padding-left: calc(0.6rem + env(safe-area-inset-left));
+    padding-right: calc(0.6rem + env(safe-area-inset-right));
+    font-size: 0.82rem;
+  }
+
+  .hud .score {
+    gap: 0.35rem;
+  }
+
+  .hud .score .num {
+    font-size: 1rem;
+  }
+
+  .hud .speed {
+    padding: 0.1rem 0.35rem;
+    font-size: 0.75rem;
+  }
+}
+
 /* Phones in landscape: keep every band as thin as possible so the pitch has the height. */
 @media (orientation: landscape) and (max-height: 500px) {
   .hud {

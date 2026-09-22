@@ -206,6 +206,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
 
   /** Moment whose question is currently painted; the timer is only armed once for it. */
   let shownMoment: TacticalMoment | null = null;
+  let shownFeedback: MomentRecord | null = null;
   let paintFramesLeft = 0;
   let readAloud = localStorage.getItem(READ_ALOUD_KEY) === "1";
   let speaking: SpeechSynthesisUtterance | null = null;
@@ -346,6 +347,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
   };
 
   const showFeedback = (rec: MomentRecord, lines: string[]): void => {
+    shownFeedback = rec;
     if (rec.outcome) pulse(runtime.state.ball.pos, outcomeTone(rec.outcome.result));
     const engine = rec.acted?.actor === "engine";
     const head = engine ? `${escapeHtml(rec.moment.title)} <span class="tag engine">engine played on</span>` : escapeHtml(rec.moment.title);
@@ -505,11 +507,14 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       lastPhase = runtime.phase;
       onPhaseChange(from, runtime.phase);
     }
-    // a moment that was restored mid-question paints without a phase change
+    // a moment that was restored mid-question or mid-feedback paints without a phase change
     if (runtime.phase === "question" && runtime.active && shownMoment !== runtime.active.moment) {
       shownMoment = runtime.active.moment;
       renderQuestion(runtime.active.moment);
       paintFramesLeft = PAINT_FRAMES;
+    }
+    if (runtime.phase === "feedback" && runtime.active?.record && shownFeedback !== runtime.active.record) {
+      showFeedback(runtime.active.record, runtime.active.feedback ?? []);
     }
     if (runtime.phase === "question" && runtime.active && paintFramesLeft > 0 && !runtime.paused) {
       if (--paintFramesLeft === 0) {

@@ -637,6 +637,13 @@ describe("spec §24 acceptance checks", () => {
     // a plain reload resumes the campaign match: the screen checkpoints at every safe point and the app persists it
     expect(screen).toMatch(/to === "question" \|\| to === "feedback" \|\| to === "halftime"\) checkpoint\(\)/);
     expect(screen).toMatch(/addEventListener\("pagehide", checkpoint\)/);
+    // a runtime restored already in feedback has no phase transition to paint from: the frame loop repaints the card once
+    expect(screen).toMatch(
+      /runtime\.phase === "feedback" && runtime\.active\?\.record && shownFeedback !== runtime\.active\.record\) {\s*showFeedback\(runtime\.active\.record, runtime\.active\.feedback \?\? \[\]\)/,
+    );
+    // narrow phones (375 px and below): the club abbreviations get their full width instead of an ellipsis
+    const narrow = css.match(/@media \(max-width: 400px\) {([\s\S]*?)\n}/)![1]!;
+    expect(narrow).toMatch(/\.hud\s*{[^}]*grid-template-columns:\s*minmax\(max-content, 1fr\) auto 1fr/);
     const app = readFileSync(join(ROOT, "src/main.ts"), "utf8");
     expect(app).toMatch(/onCheckpoint: \(save\) => {\s*if \(checkpointMatch\(c, save\)\) s\.save\(\);/);
 
