@@ -632,6 +632,13 @@ describe("spec §24 acceptance checks", () => {
     expect(css).toMatch(/\[hidden\]\s*{\s*display:\s*none\s*!important;\s*}/);
     // the countdown label sits below the thin bar: the bar's container must not clip it
     expect(css.match(/\.timer\s*{([^}]*)}/)![1]).not.toMatch(/overflow:\s*hidden/);
+    // reduced motion: the screen skips the moving lead-in and opens on the frozen touch
+    expect(screen).toMatch(/if \(reducedMotion\) {\s*skipLeadIn\(runtime\)/);
+    // a plain reload resumes the campaign match: the screen checkpoints at every safe point and the app persists it
+    expect(screen).toMatch(/to === "question" \|\| to === "feedback" \|\| to === "halftime"\) checkpoint\(\)/);
+    expect(screen).toMatch(/addEventListener\("pagehide", checkpoint\)/);
+    const app = readFileSync(join(ROOT, "src/main.ts"), "utf8");
+    expect(app).toMatch(/onCheckpoint: \(save\) => {\s*if \(checkpointMatch\(c, save\)\) s\.save\(\);/);
 
     // the runtime side of the same contract: no timer before ready(), pause stops it, answer ends it
     const s = joinedSession();
@@ -680,6 +687,13 @@ describe("spec §24 acceptance checks", () => {
     // touch targets ≥ 44 CSS px
     const minHeight = Number(rule(".option").match(/min-height:\s*([\d.]+)rem/)![1]);
     expect(minHeight * 16).toBeGreaterThanOrEqual(44);
+    // the utility controls (read aloud, pause, save) are touch targets too, and the save control is a themed .toggle, not a native button
+    expect(Number(rule(".toggle").match(/min-height:\s*([\d.]+)rem/)![1]) * 16).toBeGreaterThanOrEqual(44);
+    for (const m of css.matchAll(/\.toggle\s*{([^}]*)}/g)) {
+      const mh = m[1]!.match(/min-height:\s*([\d.]+)rem/);
+      if (mh) expect(Number(mh[1]) * 16).toBeGreaterThanOrEqual(44); // no media override shrinks it
+    }
+    expect(readFileSync(join(ROOT, "src/ui/matchScreen.ts"), "utf8")).toMatch(/class="toggle save"/);
     // the timer bar and countdown stay legible over the pitch
     expect(rule(".timer .left")).toMatch(/text-shadow/);
     // nothing in the theme shrinks match text below ~12px

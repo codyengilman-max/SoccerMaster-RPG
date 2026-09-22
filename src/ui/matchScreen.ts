@@ -10,6 +10,7 @@ import {
   questionOpen,
   ready,
   serializeRuntime,
+  skipLeadIn,
   timerProgress,
   timerRemaining,
   totalRealMs,
@@ -65,6 +66,8 @@ export interface MatchScreenOptions {
   lesson?: { entryIds: readonly string[]; cue: string };
   /** When given, a "Save and leave" control stores the match mid-flight and leaves the screen. */
   onSave?: (save: RuntimeSave) => void;
+  /** Called with the serialized match at every safe point (frozen question, closed moment, half time, page hide) so a plain reload resumes where it was. */
+  onCheckpoint?: (save: RuntimeSave) => void;
 }
 
 /** `onExit` is called once the user leaves the full-time summary; the runtime holds the finished state and records. */
@@ -102,7 +105,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
           <footer class="controls">
             <button type="button" class="toggle readaloud" aria-pressed="false" title="Read each question and its answers aloud before the timer starts">Read aloud</button>
             <button type="button" class="toggle pause" aria-pressed="false">Pause</button>
-            ${opts.onSave ? `<button type="button" class="save">Save and leave</button>` : ""}
+            ${opts.onSave ? `<button type="button" class="toggle save">Save and leave</button>` : ""}
             <span class="provisional" title="Tactical content is provisional and not coach-reviewed"${debug ? "" : " hidden"}>provisional</span>
           </footer>
         </div>
@@ -308,6 +311,11 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     const a = runtime.active;
     if (to === "lead_in" && a) {
       momentOpenedAt = performance.now();
+      if (reducedMotion) {
+        skipLeadIn(runtime);
+        showBanner(a.moment.major ? "Big moment — frozen at your touch" : "Frozen at your touch", 1400);
+        return;
+      }
       showBanner(a.moment.major ? "Big moment — watch it develop" : "Watch the play develop", 1400);
     }
     if (to === "question" && a && shownMoment !== a.moment) {
@@ -329,6 +337,12 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
     if (from === "feedback" && to !== "feedback") feedbackEl.hidden = true;
     if (to === "halftime") showBanner(`Half time · ${scorelineLine(runtime.state)}`, 2400);
     if (to === "routine") shownMoment = null;
+    if (to === "question" || to === "feedback" || to === "halftime") checkpoint();
+  };
+
+  const checkpoint = (): void => {
+    if (!opts.onCheckpoint || runtime.phase === "finished") return;
+    opts.onCheckpoint(serializeRuntime(runtime));
   };
 
   const showFeedback = (rec: MomentRecord, lines: string[]): void => {
@@ -408,9 +422,13 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
   /** Backgrounded tab: the timer must not run while the player cannot see the question. */
   const onVisibility = (): void => {
     last = 0;
-    if (document.hidden && questionOpen(runtime)) setPaused(true);
+    if (document.hidden) {
+      if (questionOpen(runtime)) setPaused(true);
+      checkpoint();
+    }
   };
   document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("pagehide", checkpoint);
 
   const padHeld: boolean[] = [];
   let padAxisHeld = false;
@@ -598,6 +616,7 @@ export function mountMatchScreen(root: HTMLElement, runtime: MatchRuntime, onExi
       ro.disconnect();
       stopSpeaking();
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", checkpoint);
       document.removeEventListener("keydown", onKey);
       window.clearTimeout(bannerTimer);
       root.classList.remove("in-match");

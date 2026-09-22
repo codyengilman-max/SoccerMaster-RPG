@@ -1091,14 +1091,21 @@ button:focus-visible {
 }
 
 .toggle {
-  min-height: 2.3rem;
+  min-height: 2.75rem;
   padding: 0.3rem 0.8rem;
   border-radius: 999px;
   border: 1px solid rgba(125, 230, 255, 0.3);
   background: transparent;
+  color: var(--text);
   cursor: pointer;
   font-size: 0.85rem;
   white-space: nowrap;
+}
+
+.toggle.save {
+  margin-left: auto;
+  border-color: rgba(255, 184, 92, 0.6);
+  color: var(--amber);
 }
 
 .toggle[aria-pressed="true"] {
@@ -1366,7 +1373,6 @@ button:focus-visible {
   }
 
   .toggle {
-    min-height: 2rem;
     padding: 0.2rem 0.7rem;
     font-size: 0.8rem;
   }

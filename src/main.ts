@@ -186,6 +186,9 @@ function showPending(s: Session, p: PendingActivity): void {
             s.save();
             showCampaign(s);
           },
+          onCheckpoint: (save) => {
+            if (checkpointMatch(c, save)) s.save();
+          },
         },
       );
       return;
