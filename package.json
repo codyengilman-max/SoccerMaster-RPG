@@ -22,7 +22,9 @@
     "smoke:season": "tsx tools/smokeSeason.ts",
     "story:tones": "tsx tools/storyTones.ts",
     "pace": "tsx tools/paceBench.ts",
-    "sprites": "tsx tools/spriteGen.ts"
+    "sprites": "tsx tools/spriteGen.ts",
+    "native:fixtures": "tsx tools/nativeFixtures.ts",
+    "native:parity": "dotnet run --project unity/Tools/ParityCheck -c Release"
   },
   "devDependencies": {
     "@types/node": "20.19.43",

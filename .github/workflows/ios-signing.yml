@@ -1,0 +1,207 @@
+# Cloud-only creation of the App Store distribution signing set and hand-off to Unity Build Automation.
+#
+# Why: TestFlight needs an *App Store distribution* certificate + App Store provisioning profile, and Unity
+# Build Automation wants them as a password-protected .p12 + .mobileprovision in its credential store.
+# Normally that means Keychain Access on a Mac. Here the whole thing happens on an ephemeral GitHub macOS
+# runner using the App Store Connect API key:
+#
+#   1. fastlane produce  - make sure the App ID (bundle id) and the App Store Connect app record exist
+#   2. fastlane cert     - generate a private key + CSR on the runner, have Apple issue the distribution cert
+#   3. openssl           - wrap key + cert into a .p12 with a random single-use password
+#   4. fastlane sigh     - create/download the App Store provisioning profile for the bundle id
+#   5. UBA API           - upload .p12 + password + .mobileprovision as a named credential set
+#      (optionally attach it to the named build target)
+#
+# The private key never leaves the runner and nothing is written to an artifact, the log, or the repo.
+# The .p12 password is generated here and given only to UBA; rerun this workflow instead of trying to recover it.
+# Apple caps distribution certificates per team (typically 2-3); a rerun creates another one, so revoke stale
+# certificates in the developer portal before rerunning if Apple refuses.
+#
+# Required secrets:
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_API_KEY_P8   App Store Connect API key with the *Admin* role
+#                                              (App Manager cannot create certificates)
+#   UNITY_BUILD_API_KEY, UNITY_ORG_ID          Unity Build Automation API key + organization id
+name: iOS signing (cloud)
+
+on:
+  workflow_dispatch:
+    inputs:
+      credential_label:
+        description: "Name for the credential set in Unity Build Automation"
+        required: true
+        default: "SoccerMaster App Store"
+      uba_buildtarget:
+        description: "Optional: UBA build target id to attach the new credentials to (leave empty to pick it in the dashboard)"
+        required: false
+        default: ""
+      create_app_record:
+        description: "Also create the App Store Connect app record if missing (needed once before TestFlight upload)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ios-signing
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  UNITY_PROJECT_ID: 32575c1e-2193-4caf-ab3f-c6fd811b1f51   # Unity Cloud project "SoccerMaster rpg"
+  BUNDLE_ID: com.codyengilman.soccermaster
+  APP_NAME: SoccerMaster
+  UBA_API: https://build-api.cloud.unity3d.com
+  FASTLANE_SKIP_UPDATE_CHECK: "1"
+  FASTLANE_HIDE_CHANGELOG: "1"
+
+jobs:
+  provision:
+    name: Create distribution certificate + App Store profile, store in UBA
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Check secrets are configured
+        env:
+          UNITY_BUILD_API_KEY: ${{ secrets.UNITY_BUILD_API_KEY }}
+          UNITY_ORG_ID: ${{ secrets.UNITY_ORG_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          missing=""
+          for v in UNITY_BUILD_API_KEY UNITY_ORG_ID ASC_KEY_ID ASC_ISSUER_ID ASC_API_KEY_P8; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::missing repository secrets:$missing"; exit 1
+          fi
+
+      - name: Write App Store Connect API key (runner-local, deleted at the end)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/signing"
+          jq -n --arg k "$ASC_KEY_ID" --arg i "$ASC_ISSUER_ID" --arg p "$ASC_API_KEY_P8" \
+            '{key_id:$k, issuer_id:$i, key:$p, in_house:false}' > "$RUNNER_TEMP/asc_key.json"
+
+      - name: Ensure App ID and App Store Connect app record exist
+        env:
+          CREATE_APP: ${{ inputs.create_app_record }}
+        run: |
+          set -euo pipefail
+          args=(--api_key_path "$RUNNER_TEMP/asc_key.json" --app_identifier "$BUNDLE_ID" --app_name "$APP_NAME" --language en-US --sku soccermaster-ios)
+          if [ "$CREATE_APP" = "true" ]; then
+            fastlane produce "${args[@]}"
+          else
+            fastlane produce "${args[@]}" --skip_itc
+          fi
+
+      - name: Issue Apple Distribution certificate (key generated on this runner)
+        run: |
+          set -euo pipefail
+          security create-keychain -p runner-temp "$RUNNER_TEMP/tmp.keychain-db"
+          security unlock-keychain -p runner-temp "$RUNNER_TEMP/tmp.keychain-db"
+          # cert writes <certId>.p12 (the PEM private key it generated) and distribution.cer (DER)
+          fastlane cert --api_key_path "$RUNNER_TEMP/asc_key.json" \
+            --platform ios --output_path "$RUNNER_TEMP/signing" --filename distribution \
+            --keychain_path "$RUNNER_TEMP/tmp.keychain-db" --keychain_password runner-temp
+          ls "$RUNNER_TEMP/signing"
+          openssl x509 -in "$RUNNER_TEMP/signing/distribution.cer" -inform der -noout -subject -enddate
+
+      - name: Package .p12 with a single-use random password
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/signing"
+          P12_PASSWORD="$(openssl rand -base64 30 | tr -d '/+=')"
+          echo "::add-mask::$P12_PASSWORD"
+          umask 077
+          printf '%s' "$P12_PASSWORD" > p12.pass
+          key="$(ls -- *.p12 | head -1)"
+          openssl pkey -in "$key" -noout || { echo "::error::no private key from cert"; exit 1; }
+          openssl x509 -in distribution.cer -inform der -out distribution.pem
+          openssl pkcs12 -export -inkey "$key" -in distribution.pem \
+            -name "Apple Distribution" \
+            -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1 \
+            -passout file:p12.pass -out uba.p12
+          openssl pkcs12 -in uba.p12 -passin file:p12.pass -noout -info 2>&1 | head -5
+
+      - name: Create App Store provisioning profile
+        run: |
+          set -euo pipefail
+          fastlane sigh --api_key_path "$RUNNER_TEMP/asc_key.json" \
+            --app_identifier "$BUNDLE_ID" --platform ios \
+            --output_path "$RUNNER_TEMP/signing" --filename appstore.mobileprovision \
+            --skip_install --skip_certificate_verification
+          security cms -D -i "$RUNNER_TEMP/signing/appstore.mobileprovision" > "$RUNNER_TEMP/signing/profile.plist"
+          /usr/libexec/PlistBuddy -c 'Print :Name' -c 'Print :TeamIdentifier:0' -c 'Print :ExpirationDate' "$RUNNER_TEMP/signing/profile.plist"
+          if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$RUNNER_TEMP/signing/profile.plist" >/dev/null 2>&1; then
+            echo "::error::profile lists devices (ad-hoc), expected App Store distribution"; exit 1
+          fi
+
+      - name: Upload credential set to Unity Build Automation
+        id: uba
+        env:
+          UNITY_BUILD_API_KEY: ${{ secrets.UNITY_BUILD_API_KEY }}
+          UNITY_ORG_ID: ${{ secrets.UNITY_ORG_ID }}
+          LABEL: ${{ inputs.credential_label }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/signing"
+          curl -fsSL -X POST \
+            -H "Authorization: Basic $UNITY_BUILD_API_KEY" \
+            -F "label=$LABEL" \
+            -F "fileCertificate=@uba.p12;type=application/x-pkcs12" \
+            -F "fileProvisioningProfile=@appstore.mobileprovision" \
+            -F "certificatePass=<p12.pass" \
+            "$UBA_API/api/v1/orgs/$UNITY_ORG_ID/projects/$UNITY_PROJECT_ID/credentials/signing/ios" > uba.json
+          jq '{credentialid, label, certificate: {teamId: .certificate.teamId, certName: .certificate.certName, expiration: .certificate.expiration, isDistribution: .certificate.isDistribution}, provisioningProfile: {teamId: .provisioningProfile.teamId, expiration: .provisioningProfile.expiration, isEnterpriseProfile: .provisioningProfile.isEnterpriseProfile}}' uba.json
+          echo "credentialid=$(jq -r .credentialid uba.json)" >> "$GITHUB_OUTPUT"
+          echo "team=$(jq -r .certificate.teamId uba.json)" >> "$GITHUB_OUTPUT"
+          echo "expires=$(jq -r .certificate.expiration uba.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Attach credentials to the build target
+        if: inputs.uba_buildtarget != ''
+        env:
+          UNITY_BUILD_API_KEY: ${{ secrets.UNITY_BUILD_API_KEY }}
+          UNITY_ORG_ID: ${{ secrets.UNITY_ORG_ID }}
+          TARGET: ${{ inputs.uba_buildtarget }}
+          CRED: ${{ steps.uba.outputs.credentialid }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -X PUT -H "Authorization: Basic $UNITY_BUILD_API_KEY" -H "Content-Type: application/json" \
+            -d "$(jq -n --arg c "$CRED" '{credentials:{signing:{credentialid:$c}}}')" \
+            "$UBA_API/api/v1/orgs/$UNITY_ORG_ID/projects/$UNITY_PROJECT_ID/buildtargets/$TARGET" \
+            | jq '{buildtargetid, name, platform, credentials}'
+
+      - name: Scrub runner-local secrets
+        if: always()
+        run: |
+          rm -rf "$RUNNER_TEMP/signing" "$RUNNER_TEMP/asc_key.json"
+          security delete-keychain "$RUNNER_TEMP/tmp.keychain-db" 2>/dev/null || true
+
+      - name: Summary
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+          CRED: ${{ steps.uba.outputs.credentialid }}
+          TEAM: ${{ steps.uba.outputs.team }}
+          EXPIRES: ${{ steps.uba.outputs.expires }}
+          TARGET: ${{ inputs.uba_buildtarget }}
+        run: |
+          {
+            echo "## iOS signing provisioning — $RESULT"
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Bundle id | $BUNDLE_ID |"
+            echo "| Apple team | ${TEAM:-?} |"
+            echo "| Certificate expires | ${EXPIRES:-?} |"
+            echo "| UBA credential id | ${CRED:-not created} |"
+            echo "| Attached to build target | ${TARGET:-no (select it in the UBA dashboard)} |"
+            echo
+            echo "Signing type: App Store distribution (TestFlight). Not ad-hoc: this profile cannot side-load to a device directly."
+          } >> "$GITHUB_STEP_SUMMARY"

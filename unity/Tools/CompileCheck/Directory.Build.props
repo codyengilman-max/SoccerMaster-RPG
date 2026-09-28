@@ -1,0 +1,40 @@
+<Project>
+  <!--
+    Compiles the Unity assemblies (asmdef by asmdef) with the .NET SDK against the real
+    UnityEngine/UnityEditor DLLs of the pinned Editor and the real package sources, so
+    compile errors surface without an Editor license. This is a compile check only: it does not
+    import assets, generate .meta files, run tests or build a player.
+
+    Inputs (environment or MSBuild properties):
+      UNITY_EDITOR_DIR  root of the Editor install (contains Data/Managed/UnityEngine)
+      UNITY_PKG_SRC     directory holding extracted registry packages (unity/build/pkgcache/src)
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)../../build/compilecheck/obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <OutputPath>$(MSBuildThisFileDirectory)../../build/compilecheck/bin/$(MSBuildProjectName)/</OutputPath>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591;CS0618;CS0612;CS0169;CS0414;CS0649;CS0108;CS0109;CS0114;CS0628;CS0659;CS0661;CS8632;CS0105;CS0162;CS0168;CS0219;CS0067;CS0436</NoWarn>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <DisableImplicitFrameworkReferences>false</DisableImplicitFrameworkReferences>
+    <UnityEditorDir Condition="'$(UnityEditorDir)' == ''">$(UNITY_EDITOR_DIR)</UnityEditorDir>
+    <UnityPkgSrc Condition="'$(UnityPkgSrc)' == ''">$(UNITY_PKG_SRC)</UnityPkgSrc>
+    <UnityManaged>$(UnityEditorDir)/Data/Managed</UnityManaged>
+    <UnityBuiltIn>$(UnityEditorDir)/Data/Resources/PackageManager/BuiltInPackages</UnityBuiltIn>
+    <UnityAssets>$(MSBuildThisFileDirectory)../../Assets</UnityAssets>
+    <!-- Player-style define set for Unity 6000.3 iOS + Input System; editor assemblies add UNITY_EDITOR. -->
+    <UnityVersionDefines>UNITY_6000_3;UNITY_6000_3_OR_NEWER;UNITY_6000_2_OR_NEWER;UNITY_6000_1_OR_NEWER;UNITY_6000_0_OR_NEWER;UNITY_2023_3_OR_NEWER;UNITY_2023_2_OR_NEWER;UNITY_2023_1_OR_NEWER;UNITY_2022_3_OR_NEWER;UNITY_2022_2_OR_NEWER;UNITY_2022_1_OR_NEWER;UNITY_2021_3_OR_NEWER;UNITY_2021_2_OR_NEWER;UNITY_2021_1_OR_NEWER;UNITY_2020_3_OR_NEWER;UNITY_2020_2_OR_NEWER;UNITY_2020_1_OR_NEWER;UNITY_2019_4_OR_NEWER;UNITY_2019_3_OR_NEWER;UNITY_2019_2_OR_NEWER;UNITY_2019_1_OR_NEWER;UNITY_2018_4_OR_NEWER;UNITY_2018_3_OR_NEWER;UNITY_2018_2_OR_NEWER;UNITY_2018_1_OR_NEWER;UNITY_2017_4_OR_NEWER;UNITY_2017_3_OR_NEWER;UNITY_2017_2_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_3_OR_NEWER;UNITY_5_OR_NEWER;UNITY_5_3;UNITY_5;UNITY_IOS;UNITY_IPHONE;UNITY_IPHONE_API;ENABLE_IL2CPP;ENABLE_INPUT_SYSTEM;ENABLE_MONO;NET_STANDARD_2_1;NET_STANDARD;NET_4_6;CSHARP_7_3_OR_NEWER;UNITY_ASSERTIONS;PLATFORM_ARCH_64;UNITY_64;ENABLE_AUDIO;ENABLE_PHYSICS;ENABLE_UNITYWEBREQUEST;UNITY_INPUT_SYSTEM_ENABLE_UI;UNITY_INPUT_SYSTEM_ENABLE_PHYSICS;UNITY_INPUT_SYSTEM_PLATFORM_SCROLL_DELTA;UNITY_INPUT_SYSTEM_INPUT_MODULE_SCROLL_DELTA;UNITY_INPUT_SYSTEM_INPUT_MODULE_NAVIGATION_DEVICE_TYPE;UNITY_INPUT_SYSTEM_SENDPOINTERHOVERTOPARENT;UNITY_INPUT_SYSTEM_PLATFORM_POLLING_FREQUENCY;PACKAGE_PHYSICS;PACKAGE_ANIMATION;PACKAGE_UITOOLKIT;PACKAGE_INPUTSYSTEM;UNITY_TESTS_FRAMEWORK</UnityVersionDefines>
+    <DefineConstants>$(DefineConstants);$(UnityVersionDefines)</DefineConstants>
+  </PropertyGroup>
+
+  <Target Name="RequireUnityInputs" BeforeTargets="CoreCompile">
+    <Error Condition="!Exists('$(UnityManaged)/UnityEngine/UnityEngine.CoreModule.dll')" Text="UNITY_EDITOR_DIR must point at a Unity 6000.3.24f1 Editor install (missing $(UnityManaged)/UnityEngine/UnityEngine.CoreModule.dll)" />
+  </Target>
+</Project>

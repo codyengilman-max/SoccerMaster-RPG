@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>UnityEngine.TestRunner</AssemblyName>
+    <RootNamespace></RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEngine.dll" Private="false" />
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEngine.*Module.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityBuiltIn)/com.unity.ext.nunit/net40/unity-custom/nunit.framework.dll" Private="false" />
+    <Compile Include="$(UnityBuiltIn)/com.unity.test-framework/UnityEngine.TestRunner/**/*.cs" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SoccerMaster.Tests.EditMode</AssemblyName>
+    <RootNamespace></RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_LINUX;UNITY_INCLUDE_TESTS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEngine.dll" Private="false" />
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEngine.*Module.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEditor.dll" Private="false" />
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEditor.*Module.dll" Private="false" />
+    <Reference Include="$(UnityEditorDir)/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.dll" Private="false" Condition="Exists('$(UnityEditorDir)/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.dll')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityBuiltIn)/com.unity.ext.nunit/net40/unity-custom/nunit.framework.dll" Private="false" />
+    <ProjectReference Include="SoccerMaster.Core.csproj" Private="false" />
+    <ProjectReference Include="SoccerMaster.View.csproj" Private="false" />
+    <ProjectReference Include="SoccerMaster.Editor.csproj" Private="false" />
+    <ProjectReference Include="UnityEngine.TestRunner.csproj" Private="false" />
+    <Compile Include="$(UnityAssets)/SoccerMaster/Tests/EditMode/**/*.cs" />
+  </ItemGroup>
+</Project>

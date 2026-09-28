@@ -1,0 +1,192 @@
+# Explicit TestFlight upload trigger (cloud only — GitHub macOS runner, no local Mac).
+#
+# Flow:  Unity Build Automation (signed App Store archive)  ->  this workflow  ->  App Store Connect  ->  TestFlight
+#
+# Nothing runs automatically: a person starts it from Actions -> "TestFlight upload" -> Run workflow and names
+# the finished UBA build number. The job downloads that IPA through the UBA API, proves it is an App Store
+# distribution build (not ad-hoc/development) for the expected bundle id and build number, uploads it with the
+# App Store Connect API key, and waits for Apple processing so the run's result reflects processing, not just
+# transfer. Every credential comes from GitHub Actions secrets; none is echoed, committed or uploaded as an artifact.
+#
+# Required secrets (Settings -> Secrets and variables -> Actions):
+#   UNITY_BUILD_API_KEY   Unity Cloud -> DevOps -> Build Automation -> Settings -> API key (sent as `Authorization: Basic <key>` per the UBA API docs)
+#   UNITY_ORG_ID          Unity Cloud organization id (the "orgid" segment of the Build Automation API)
+#   ASC_KEY_ID            App Store Connect -> Users and Access -> Integrations -> Team Keys: Key ID
+#   ASC_ISSUER_ID         same page: Issuer ID
+#   ASC_API_KEY_P8        full contents of the downloaded AuthKey_<KEY_ID>.p8 (single download; keep it only here)
+name: TestFlight upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      uba_build_number:
+        description: "Finished Unity Build Automation build number to upload (from the UBA build page)"
+        required: true
+      uba_buildtarget:
+        description: "UBA build target id"
+        required: true
+        default: ios-testflight
+      expected_sha:
+        description: "Optional: git commit the UBA build must have been made from (guards against uploading a stale build)"
+        required: false
+        default: ""
+
+concurrency:
+  group: testflight-upload
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  UNITY_PROJECT_ID: 32575c1e-2193-4caf-ab3f-c6fd811b1f51   # Unity Cloud project "SoccerMaster rpg"
+  EXPECTED_BUNDLE_ID: com.codyengilman.soccermaster
+  UBA_API: https://build-api.cloud.unity3d.com
+
+jobs:
+  upload:
+    name: Verify signed IPA and upload to App Store Connect
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets are configured
+        env:
+          UNITY_BUILD_API_KEY: ${{ secrets.UNITY_BUILD_API_KEY }}
+          UNITY_ORG_ID: ${{ secrets.UNITY_ORG_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          missing=""
+          for v in UNITY_BUILD_API_KEY UNITY_ORG_ID ASC_KEY_ID ASC_ISSUER_ID ASC_API_KEY_P8; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::missing repository secrets:$missing"; exit 1
+          fi
+
+      - name: Fetch UBA build record
+        id: uba
+        env:
+          UNITY_BUILD_API_KEY: ${{ secrets.UNITY_BUILD_API_KEY }}
+          UNITY_ORG_ID: ${{ secrets.UNITY_ORG_ID }}
+          TARGET: ${{ inputs.uba_buildtarget }}
+          NUMBER: ${{ inputs.uba_build_number }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          url="$UBA_API/api/v1/orgs/$UNITY_ORG_ID/projects/$UNITY_PROJECT_ID/buildtargets/$TARGET/builds/$NUMBER"
+          curl -fsSL -H "Authorization: Basic $UNITY_BUILD_API_KEY" -H "Accept: application/json" "$url" > "$RUNNER_TEMP/build.json"
+          status=$(jq -r '.buildStatus' "$RUNNER_TEMP/build.json")
+          sha=$(jq -r '.lastBuiltRevision // ""' "$RUNNER_TEMP/build.json")
+          href=$(jq -r '.links.download_primary.href // ""' "$RUNNER_TEMP/build.json")
+          echo "UBA build $TARGET#$NUMBER status=$status revision=$sha"
+          [ "$status" = "success" ] || { echo "::error::UBA build status is '$status', not success"; exit 1; }
+          [ -n "$href" ] || { echo "::error::UBA build has no download_primary link (was the archive kept?)"; exit 1; }
+          if [ -n "$EXPECTED_SHA" ] && [ "$sha" != "$EXPECTED_SHA" ]; then
+            echo "::error::UBA build was made from $sha, expected $EXPECTED_SHA"; exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "href=$href" >> "$GITHUB_OUTPUT"
+
+      - name: Download IPA
+        env:
+          UNITY_BUILD_API_KEY: ${{ secrets.UNITY_BUILD_API_KEY }}
+          HREF: ${{ steps.uba.outputs.href }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ipa"
+          case "$HREF" in
+            http*) curl -fsSL "$HREF" -o "$RUNNER_TEMP/ipa/app.ipa" ;;
+            *)     curl -fsSL -H "Authorization: Basic $UNITY_BUILD_API_KEY" "$UBA_API$HREF" -o "$RUNNER_TEMP/ipa/app.ipa" ;;
+          esac
+          ls -l "$RUNNER_TEMP/ipa/app.ipa"
+          unzip -tq "$RUNNER_TEMP/ipa/app.ipa" >/dev/null
+
+      - name: Verify bundle id, build number and App Store distribution signing
+        id: verify
+        env:
+          NUMBER: ${{ inputs.uba_build_number }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/ipa"
+          unzip -qo app.ipa
+          app=$(ls -d Payload/*.app | head -1)
+          plist="$app/Info.plist"
+          bundle=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")
+          build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")
+          echo "IPA: bundle=$bundle version=$version build=$build"
+          [ "$bundle" = "$EXPECTED_BUNDLE_ID" ] || { echo "::error::bundle id $bundle != $EXPECTED_BUNDLE_ID"; exit 1; }
+          [ "$build" = "$NUMBER" ] || { echo "::error::CFBundleVersion $build != UBA build number $NUMBER (build numbering not applied)"; exit 1; }
+
+          codesign --verify --deep --strict "$app"
+          codesign -d --entitlements :- "$app" > entitlements.plist 2>/dev/null
+          if /usr/libexec/PlistBuddy -c 'Print :get-task-allow' entitlements.plist 2>/dev/null | grep -q true; then
+            echo "::error::get-task-allow=true: this is a development build, not App Store distribution"; exit 1
+          fi
+          security cms -D -i "$app/embedded.mobileprovision" > profile.plist
+          if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' profile.plist >/dev/null 2>&1; then
+            echo "::error::provisioning profile lists devices: ad-hoc/development profile. TestFlight needs an App Store distribution profile."; exit 1
+          fi
+          if /usr/libexec/PlistBuddy -c 'Print :ProvisionsAllDevices' profile.plist 2>/dev/null | grep -q true; then
+            echo "::error::enterprise (in-house) profile; not accepted by TestFlight"; exit 1
+          fi
+          team=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' profile.plist)
+          profile=$(/usr/libexec/PlistBuddy -c 'Print :Name' profile.plist)
+          echo "signing: App Store distribution profile '$profile' team $team"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "team=$team" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to App Store Connect and wait for processing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_HIDE_CHANGELOG: "1"
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/asc_key.json"
+          umask 077
+          jq -n --arg k "$ASC_KEY_ID" --arg i "$ASC_ISSUER_ID" --arg p "$ASC_API_KEY_P8" \
+            '{key_id:$k, issuer_id:$i, key:$p, in_house:false}' > "$key"
+          fastlane pilot upload \
+            --ipa "$RUNNER_TEMP/ipa/app.ipa" \
+            --api_key_path "$key" \
+            --skip_submission true \
+            --distribute_external false \
+            --skip_waiting_for_build_processing false
+          rm -f "$key"
+
+      - name: Summary
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+          NUMBER: ${{ inputs.uba_build_number }}
+          TARGET: ${{ inputs.uba_buildtarget }}
+          SHA: ${{ steps.uba.outputs.sha }}
+          VERSION: ${{ steps.verify.outputs.version }}
+          BUILD: ${{ steps.verify.outputs.build }}
+          TEAM: ${{ steps.verify.outputs.team }}
+        run: |
+          {
+            echo "## TestFlight upload — $RESULT"
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| UBA build | $TARGET #$NUMBER |"
+            echo "| Commit | $SHA |"
+            echo "| Bundle id | $EXPECTED_BUNDLE_ID |"
+            echo "| Version (build) | ${VERSION:-?} (${BUILD:-?}) |"
+            echo "| Apple team | ${TEAM:-?} |"
+            echo
+            if [ "$RESULT" = "success" ]; then
+              echo "Apple finished processing this build. Next: App Store Connect -> TestFlight -> add the build to an internal tester group; the TestFlight app on the iPhone then lists it."
+            else
+              echo "Upload did not complete; see the failing step above. Nothing has reached TestFlight from this run."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

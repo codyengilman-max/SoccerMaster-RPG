@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SoccerMaster.View</AssemblyName>
+    <RootNamespace></RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEngine.dll" Private="false" />
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEngine.*Module.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="SoccerMaster.Core.csproj" Private="false" />
+    <ProjectReference Include="UnityEngine.UI.csproj" Private="false" />
+    <ProjectReference Include="Unity.InputSystem.csproj" Private="false" />
+    <Compile Include="$(UnityAssets)/SoccerMaster/Runtime/View/**/*.cs" />
+  </ItemGroup>
+</Project>

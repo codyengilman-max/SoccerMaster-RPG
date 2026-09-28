@@ -1,0 +1,19 @@
+{
+    "name": "SoccerMaster.Editor",
+    "rootNamespace": "SoccerMaster.Editor",
+    "references": [
+        "SoccerMaster.Core",
+        "SoccerMaster.View"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

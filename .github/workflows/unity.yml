@@ -1,0 +1,216 @@
+name: Unity
+# Native validation environment (Linux, GameCI editor image unityci/editor:ubuntu-6000.3.24f1-*).
+# Runs only when the repository has a Unity license secret; without it every job is skipped, never faked.
+#   UNITY_LICENSE  - contents of a Unity_lic.ulf produced by Unity Hub (Personal) ... or
+#   UNITY_SERIAL + UNITY_EMAIL + UNITY_PASSWORD  - Pro/Plus seat
+# Evidence gates produced here: import (packages-lock), EditMode XML, PlayMode XML, scene YAML,
+# iOS Xcode-project export. Signing, archiving and App Store Connect upload are NOT done here
+# (Unity Build Automation builds/signs; .github/workflows/testflight.yml uploads).
+# Always-on, license-free gates: project-file checks and a C# compile of every asmdef against the real
+# 6000.3.24f1 Editor assemblies inside the GameCI image (compiles != imports; see unity/README.md).
+on:
+  pull_request:
+    paths:
+      - "unity/**"
+      - "tools/nativeFixtures.ts"
+      - "src/training/**"
+      - "src/gesture/**"
+      - "src/sim/**"
+      - ".github/workflows/unity.yml"
+  workflow_dispatch:
+    inputs:
+      commit_generated:
+        description: "Commit Unity-generated files (packages-lock, .meta, ProjectSettings, scene) back to the branch"
+        type: boolean
+        default: false
+      ios_export:
+        description: "Also export the iOS Xcode project (unsigned)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: unity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      licensed: ${{ steps.check.outputs.licensed }}
+    steps:
+      - id: check
+        env:
+          HAS_ULF: ${{ secrets.UNITY_LICENSE != '' }}
+          HAS_SERIAL: ${{ secrets.UNITY_SERIAL != '' && secrets.UNITY_EMAIL != '' && secrets.UNITY_PASSWORD != '' }}
+        run: |
+          if [ "$HAS_ULF" = "true" ] || [ "$HAS_SERIAL" = "true" ]; then
+            echo "licensed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "licensed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No Unity license secret configured (UNITY_LICENSE or UNITY_SERIAL/UNITY_EMAIL/UNITY_PASSWORD); Unity jobs skipped."
+          fi
+
+  project-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every asset has a .meta, no stray .meta
+        run: python3 unity/build/gen_meta.py --check
+      - name: Build settings, scene and pinned versions agree
+        run: python3 unity/build/check_project.py
+
+  compile-check:
+    # unityci/editor ships the Editor's managed assemblies; compiling needs no license, only importing does.
+    runs-on: ubuntu-latest
+    container: unityci/editor:ubuntu-6000.3.24f1-ios-3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/cache@v4
+        with:
+          path: unity/build/pkgcache
+          key: unity-pkgcache-${{ hashFiles('unity/Packages/manifest.json') }}
+      - name: Compile all SoccerMaster assemblies against Unity 6000.3.24f1 + pinned packages
+        run: UNITY_EDITOR_DIR=/opt/unity/Editor unity/build/compile_check.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unity-compile-check-log
+          path: unity/build/logs/compile-check.log
+
+  fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: Regenerate parity fixture from the web implementation and confirm it is committed
+        run: |
+          npm run native:fixtures
+          git diff --exit-code -- unity/Assets/SoccerMaster/Tests/Fixtures/first_touch_parity.json
+      - name: .NET pre-check of the C# port against the fixture (not Unity evidence)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet run --project unity/Tools/ParityCheck -c Release
+
+  tests:
+    needs: [gate, fixtures, project-files, compile-check]
+    if: needs.gate.outputs.licensed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/cache@v4
+        with:
+          path: unity/Library
+          key: unity-library-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}
+      - name: Import project and re-save the FirstTouch scene (normalizes the committed YAML, adds nothing)
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: unity
+          targetPlatform: StandaloneLinux64
+          buildMethod: SoccerMaster.Editor.FirstTouchSceneBuilder.Build
+          allowDirtyBuild: true
+      - name: Show what Unity generated on import
+        run: |
+          cd unity
+          git status --short
+          test -f Packages/packages-lock.json && echo "packages-lock.json present" || echo "::error::packages-lock.json missing"
+          echo "--- scene diff after Editor re-save (expected: serialization only) ---"
+          git diff --stat -- Assets/SoccerMaster/Scenes/FirstTouch.unity
+          echo "--- scene GameObjects ---"; grep -c "^--- !u!1 " Assets/SoccerMaster/Scenes/FirstTouch.unity || true
+          echo "--- .meta files changed by the Editor ---"; git status --short -- Assets | grep '\.meta' || echo none
+      - name: EditMode tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: unity
+          testMode: editmode
+          artifactsPath: unity-editmode
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Unity EditMode
+      - name: PlayMode tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: unity
+          testMode: playmode
+          artifactsPath: unity-playmode
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Unity PlayMode
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unity-test-results
+          path: |
+            unity-editmode
+            unity-playmode
+            unity/Assets/SoccerMaster/Scenes/FirstTouch.unity
+            unity/Packages/packages-lock.json
+      - name: Commit Unity-generated files back to the branch
+        if: github.event_name == 'workflow_dispatch' && inputs.commit_generated
+        run: |
+          cd unity
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A Assets Packages/packages-lock.json ProjectSettings
+          git diff --cached --quiet && { echo "nothing generated"; exit 0; }
+          git commit -m "unity: commit Editor-normalized files (packages-lock, ProjectSettings, FirstTouch scene)"
+          git push
+
+  ios-export:
+    needs: [gate, tests]
+    if: needs.gate.outputs.licensed == 'true' && github.event_name == 'workflow_dispatch' && inputs.ios_export
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/cache@v4
+        with:
+          path: unity/Library
+          key: unity-library-ios-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}
+      - name: Export unsigned iOS Xcode project
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          SM_BUILD_NUMBER: ${{ github.run_number }}
+          SM_GIT_SHA: ${{ github.sha }}
+          SM_IOS_OUTPUT: build/output/ios
+        with:
+          projectPath: unity
+          targetPlatform: iOS
+          buildMethod: SoccerMaster.Editor.IosBuild.Build
+          allowDirtyBuild: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-xcode-project
+          path: unity/build/output/ios
