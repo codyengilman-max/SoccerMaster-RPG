@@ -50,6 +50,19 @@ namespace SoccerMaster.View
             Mirror();
         }
 
+        /// <summary>Attach scene objects (normally from <see cref="FirstTouchRig"/>) and mirror the current state onto them.</summary>
+        public void Bind(Camera camera, Transform ballT, Transform playerT, Transform defenderT, Transform[] gates, Text status, Image bar)
+        {
+            worldCamera = camera;
+            ball = ballT;
+            player = playerT;
+            defender = defenderT;
+            gateMarkers = gates ?? new Transform[0];
+            statusText = status;
+            windowBar = bar;
+            Mirror();
+        }
+
         private void Awake()
         {
             if (worldCamera == null) worldCamera = Camera.main;

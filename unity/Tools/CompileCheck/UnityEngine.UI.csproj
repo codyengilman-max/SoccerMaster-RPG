@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>UnityEngine.UI</AssemblyName>
+    <RootNamespace></RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEngine.dll" Private="false" />
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEngine.*Module.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(UnityBuiltIn)/com.unity.ugui/Runtime/UGUI/**/*.cs" />
+  </ItemGroup>
+</Project>

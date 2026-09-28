@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SoccerMaster.Core</AssemblyName>
+    <RootNamespace></RootNamespace>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <Compile Include="$(UnityAssets)/SoccerMaster/Runtime/Core/**/*.cs" />
+  </ItemGroup>
+</Project>

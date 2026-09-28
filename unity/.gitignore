@@ -3,6 +3,9 @@
 /[Tt]emp/
 /[Oo]bj/
 /[Bb]uild/[Oo]utput/
+/build/logs/
+/build/pkgcache/
+/build/compilecheck/
 /[Bb]uilds/
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
@@ -51,3 +54,4 @@ Tools/**/obj/
 # Generated at build time by SoccerMaster.Editor.BuildInfo
 /Assets/SoccerMaster/Resources/build_info.json
 /Assets/SoccerMaster/Resources/build_info.json.meta
+__pycache__/

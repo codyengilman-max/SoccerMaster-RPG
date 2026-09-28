@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SoccerMaster.Editor</AssemblyName>
+    <RootNamespace></RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_LINUX</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEngine.dll" Private="false" />
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEngine.*Module.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEditor.dll" Private="false" />
+    <Reference Include="$(UnityManaged)/UnityEngine/UnityEditor.*Module.dll" Private="false" />
+    <Reference Include="$(UnityEditorDir)/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.dll" Private="false" Condition="Exists('$(UnityEditorDir)/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.dll')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="SoccerMaster.Core.csproj" Private="false" />
+    <ProjectReference Include="SoccerMaster.View.csproj" Private="false" />
+    <ProjectReference Include="UnityEngine.UI.csproj" Private="false" />
+    <Compile Include="$(UnityAssets)/SoccerMaster/Editor/**/*.cs" />
+  </ItemGroup>
+</Project>
