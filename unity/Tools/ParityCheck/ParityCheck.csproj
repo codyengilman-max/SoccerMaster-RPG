@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Engine-free pre-check of the C# core against the web-generated parity fixture.
+    Compiles the same source files Unity compiles (Runtime/Core + Tests/EditMode/Parity) with the
+    plain .NET SDK, so the port can be verified on any machine before the Unity EditMode run.
+    This is a development aid, not a substitute for the Unity test evidence.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <LangVersion>9.0</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>SoccerMaster.Tools.ParityCheck</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="../../Assets/SoccerMaster/Runtime/Core/**/*.cs" />
+    <Compile Include="../../Assets/SoccerMaster/Tests/EditMode/Parity/*.cs" />
+  </ItemGroup>
+</Project>

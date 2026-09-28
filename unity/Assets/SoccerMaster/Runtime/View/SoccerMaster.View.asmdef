@@ -1,0 +1,17 @@
+{
+    "name": "SoccerMaster.View",
+    "rootNamespace": "SoccerMaster.View",
+    "references": [
+        "SoccerMaster.Core",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
