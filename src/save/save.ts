@@ -1,3 +1,5 @@
+import { object, text, integer, number, strings, jsonData } from "../validation/data";
+import { TRACKS } from "../story/progression";
 import competitionsFile from "../../content/rules/competitions-u11.json";
 import castFile from "../../content/story/cast.json";
 import clubsFile from "../../content/story/clubs.json";
@@ -130,6 +132,7 @@ export function serialize(campaign: CampaignState, slot: string, now = new Date(
 
 export function migrate(raw: Record<string, unknown>): Record<string, unknown> {
   let v = typeof raw.version === "number" ? raw.version : 0;
+  if (!Number.isSafeInteger(v)) throw new SaveError("invalid save version", "unsupported_version");
   if (v < 1) throw new SaveError(`save version ${v} is not supported`, "unsupported_version");
   if (v > SAVE_VERSION) throw new SaveError(`save version ${v} is newer than this build (${SAVE_VERSION})`, "unsupported_version");
   let cur = raw;
@@ -148,6 +151,19 @@ function validate(file: Record<string, unknown>): SaveFile {
   const need: (keyof CampaignState)[] = ["id", "seed", "kind", "player", "ageGroup", "day", "revision", "schedule", "competitions", "roster", "story", "progression", "reports", "scene", "slot", "pending", "tryouts"];
   for (const k of need) if (!(k in c)) throw new SaveError(`campaign.${k} missing`, "invalid_shape");
   if (typeof file.savedAt !== "string" || typeof file.slot !== "string") throw new SaveError("bad header", "invalid_shape");
+  if (!jsonData(file) || !text(c.id) || !Number.isSafeInteger(c.seed) || !integer(c.day) || !integer(c.revision) || !['boys','girls'].includes(c.kind as string) || !['U11','U12','U13','U14','U15','U16'].includes(c.ageGroup as string)) throw new SaveError('invalid campaign header','invalid_shape');
+  const p=c.player, g=c.progression;
+  if (!object(p) || !text(p.name) || !integer(p.appearance) || !['left','right'].includes(p.foot as string) || !integer(p.birthMonth,1,12) || ![1,2,3,4,6,8,7,9,11].includes(p.position as number)) throw new SaveError('invalid player','invalid_shape');
+  if (!object(g) || !object(g.tracks) || !TRACKS.every(k=>number((g.tracks as Record<string,unknown>)[k],0,100)) || !strings(g.unlocked)) throw new SaveError('invalid progression','invalid_shape');
+  for (const [key,min,max] of [['relationships',-100,100],['selfReported',0,Number.MAX_SAFE_INTEGER],['verified',0,Number.MAX_SAFE_INTEGER]] as const) {
+    const values=g[key]; if (!object(values) || !Object.values(values).every(v=>number(v,min,max))) throw new SaveError('invalid progression map','invalid_shape');
+  }
+  for (const key of ['schedule','competitions','roster','story','tryouts']) if (!object(c[key])) throw new SaveError('invalid '+key,'invalid_shape');
+  for (const [parent,key] of [['schedule','commitments'],['schedule','conflicts'],['competitions','fixtures'],['competitions','leagues'],['competitions','tournaments'],['roster','people'],['roster','clubs'],['roster','rosters']] as const) {
+    const a=(c[parent] as Record<string,unknown>)[key]; if (!Array.isArray(a) || !a.every(object)) throw new SaveError('invalid '+parent+'.'+key,'invalid_shape');
+  }
+  if (!Array.isArray(c.reports) || !c.reports.every(object) || (c.scene!==null && !text(c.scene)) || !['morning','school','afternoon','evening'].includes(c.slot as string) || (c.pending!==null && !object(c.pending))) throw new SaveError('invalid campaign state','invalid_shape');
+  if (!text(file.slot) || !Number.isFinite(Date.parse(file.savedAt as string))) throw new SaveError('invalid save header','invalid_shape');
   quarantine(c);
   return { version: SAVE_VERSION, savedAt: file.savedAt, slot: file.slot, campaign: c as unknown as CampaignState };
 }
@@ -163,6 +179,7 @@ function quarantine(c: Record<string, unknown>): void {
   const ledger = Array.isArray(story.ledger) ? story.ledger : [];
   const problems = validateLedger(ledger);
   const dropped = Array.isArray(story.dropped) ? (story.dropped as unknown[]) : [];
+  if (problems.some(p=>p.problem==='out_of_order' || p.problem==='unfinished_result')) throw new SaveError('ledger chronology/lifecycle requires recovery from original save','invalid_shape');
   if (problems.length) {
     const bad = new Set(problems.filter((p) => p.problem === "invalid" || p.problem === "duplicate_id").map((p) => p.index));
     story.ledger = ledger.filter((_, i) => !bad.has(i));
@@ -179,6 +196,7 @@ function quarantine(c: Record<string, unknown>): void {
 }
 
 export function deserialize(json: string): SaveFile {
+  if (typeof json!=="string" || json.length>8_000_000) throw new SaveError("save too large", "corrupt");
   let raw: unknown;
   try {
     raw = JSON.parse(json);
@@ -203,8 +221,10 @@ export function summarize(file: SaveFile): SaveSummary {
 
 export function saveCampaign(store: SaveStore, slot: string, campaign: CampaignState, now = new Date()): SaveSummary {
   const json = serialize(campaign, slot, now);
-  store.write(slot, json);
-  return summarize(deserialize(json));
+  const validated=deserialize(json);
+  const summary=summarize(validated);
+  store.write(slot, JSON.stringify(validated));
+  return summary;
 }
 
 export function loadCampaign(store: SaveStore, slot: string): CampaignState | null {

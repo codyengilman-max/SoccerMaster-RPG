@@ -46,7 +46,7 @@ function show(root: HTMLElement, h: RecoveryHandlers, err: Error): void {
     <section class="screen recovery">
       <div class="card">
         <h1>Something went wrong</h1>
-        <p>The game hit an error and stopped this screen. Your saved campaign is safe.</p>
+        <p>The game hit an error and stopped this screen. Your previous save may be available. Return to the start screen to check it.</p>
         <pre>${escapeHtml(err.message)}</pre>
         <div class="actions">
           <button class="primary restart" type="button">Back to start</button>

@@ -70,8 +70,8 @@ describe("story event ledger", () => {
     expect(validateEntry({ id: "", day: 1, kind: "minigame", source: "minigame_engine", payload: result() })).toBe(false);
     expect(validateEntry({ id: "x", day: 1, kind: "minigame", source: "dialogue", payload: result() })).toBe(false);
     expect(validateEntry({ id: "x", day: 1, kind: "rumour", source: "minigame_engine", payload: result() })).toBe(false);
-    expect(validateEntry({ id: "m", day: 1, kind: "match", source: "soccer_engine", payload: { eventId: "e", fixtureId: "f", score: { home: 1, away: 0 }, moments: [] } })).toBe(true);
-    expect(validateEntry({ id: "m", day: 1, kind: "match", source: "minigame_engine", payload: { eventId: "e", fixtureId: "f", score: { home: 1, away: 0 }, moments: [] } })).toBe(false);
+    expect(validateEntry({ id: "m", day: 1, kind: "match", source: "soccer_engine", payload: { eventId: "e", fixtureId: "f", home: "a", away: "b", role: "CM", score: { home: 1, away: 0 }, moments: [] } })).toBe(true);
+    expect(validateEntry({ id: "m", day: 1, kind: "match", source: "minigame_engine", payload: { eventId: "e", fixtureId: "f", home: "a", away: "b", role: "CM", score: { home: 1, away: 0 }, moments: [] } })).toBe(false);
     expect(ledger).toHaveLength(0);
   });
 

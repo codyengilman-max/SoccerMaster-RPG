@@ -1,3 +1,5 @@
+import { object, text, number, integer, strings, scalar, jsonData } from "../validation/data";
+import { RELATION_DIMENSIONS } from "../story/memory";
 import type { CampaignDay } from "../calendar/date";
 import type { LocationId } from "../story/scenes";
 import type { RelationDimension } from "../story/memory";
@@ -177,5 +179,12 @@ export function validateResult(x: unknown): x is MinigameResult {
   if (typeof r.startedAt !== "number" || typeof r.seed !== "number" || typeof r.day !== "number") return false;
   if (r.resolvedAt !== null && typeof r.resolvedAt !== "number") return false;
   if (typeof r.summary !== "object" || r.summary === null) return false;
+  if (!jsonData(r) || !['U11-U12','U13-U14','U15-U16'].includes(r.ageBand as string)) return false;
+  if (!text(r.episodeId) || !text(r.locationId) || !text(r.ruleVariant) || !strings(r.participantIds) || new Set(r.participantIds).size !== r.participantIds.length) return false;
+  if (!integer(r.seed,0,4294967295) || !integer(r.day) || !number(r.startedAt) || (r.resolvedAt !== null && !number(r.resolvedAt,r.startedAt))) return false;
+  if (!object(r.summary) || !Object.values(r.summary).every(scalar)) return false;
+  if (!r.verifiedActions.every(a=>object(a) && number(a.atMs) && text(a.kind) && text(a.actorId) && (a.quality===undefined || ['strong','acceptable','weak'].includes(a.quality as string)) && (a.detail===undefined || (object(a.detail) && Object.values(a.detail).every(scalar))))) return false;
+  if (!r.witnessedBehavior.every(a=>object(a) && text(a.tag) && text(a.actorId) && strings(a.witnessIds) && number(a.atMs))) return false;
+  if (!r.relationshipEffects.every(a=>object(a) && text(a.personId) && (RELATION_DIMENSIONS as readonly unknown[]).includes(a.dimension) && number(a.delta,-40,40) && text(a.reason))) return false;
   return true;
 }
