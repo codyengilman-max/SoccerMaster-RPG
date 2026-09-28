@@ -1,3 +1,4 @@
+import { object, text, integer, strings } from "../validation/data";
 import type { CampaignDay } from "../calendar/date";
 import { validateResult, type MinigameResult } from "../minigame/contract";
 
@@ -37,12 +38,12 @@ export function appendEntry(ledger: LedgerEntry[], e: LedgerEntry): AppendResult
 export function validateEntry(x: unknown): x is LedgerEntry {
   if (typeof x !== "object" || x === null) return false;
   const e = x as Record<string, unknown>;
-  if (typeof e.id !== "string" || e.id.length === 0 || typeof e.day !== "number") return false;
+  if (!text(e.id) || !integer(e.day)) return false;
   if (e.kind === "minigame") return e.source === "minigame_engine" && validateResult(e.payload);
   if (e.kind === "match") {
     if (e.source !== "soccer_engine" || typeof e.payload !== "object" || e.payload === null) return false;
     const p = e.payload as Record<string, unknown>;
-    return typeof p.eventId === "string" && typeof p.fixtureId === "string" && typeof p.score === "object" && p.score !== null && Array.isArray(p.moments);
+    return text(p.eventId) && text(p.fixtureId) && text(p.home) && text(p.away) && p.home !== p.away && ["GK","RB","LB","CB","DM","CM","RW","ST","LW"].includes(p.role as string) && object(p.score) && integer(p.score.home,0,999) && integer(p.score.away,0,999) && strings(p.moments);
   }
   return false;
 }

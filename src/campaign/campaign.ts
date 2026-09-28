@@ -404,19 +404,20 @@ export const nextDayOf = (c: CampaignState, w: Parameters<typeof nextWeekday>[1]
 
 /** Record a finished match: standings/idempotency via the competition module, evidence kept for postgame. */
 export function recordMatch(c: CampaignState, report: MatchReport): IngestResult | { ok: true; fixture: null } {
-  if (!c.reports.some((r) => r.eventId === report.eventId)) c.reports.push(report);
-  if (!report.fixtureId) {
-    touch(c);
-    return { ok: true, fixture: null };
+  if (!report || typeof report.eventId!=="string" || !report.eventId.trim() || !report.finished || !report.score || !Number.isSafeInteger(report.score.home) || !Number.isSafeInteger(report.score.away) || report.score.home<0 || report.score.away<0) throw new Error('invalid match report');
+  const existing=c.reports.find(r=>r.eventId===report.eventId);
+  if (existing) {
+    if (JSON.stringify(existing)!==JSON.stringify(report)) throw new Error('conflicting match replay');
+    if (!report.fixtureId) return {ok:true,fixture:null};
+    const fixture=c.competitions.fixtures.find(f=>f.id===report.fixtureId);
+    if (!fixture) return {ok:false,reason:'unknown_fixture'};
+    return {ok:false,reason:"duplicate_event"};
   }
-  const r = ingestResult(
-    c.competitions,
-    report.fixtureId,
-    { eventId: report.eventId, homeGoals: report.score.home, awayGoals: report.score.away },
-    { homeClubId: report.home.clubId, awayClubId: report.away.clubId },
-  );
-  if (r.ok) touch(c);
-  return r;
+  const candidate=structuredClone(c.competitions);
+  const r=report.fixtureId ? ingestResult(candidate,report.fixtureId,{eventId:report.eventId,homeGoals:report.score.home,awayGoals:report.score.away},{homeClubId:report.home.clubId,awayClubId:report.away.clubId}) : {ok:true as const,fixture:null};
+  if (!r.ok) return r;
+  const copy=structuredClone(report);
+  c.competitions=candidate;c.reports.push(copy);touch(c);return r;
 }
 
 export function eligibilityNow(c: CampaignState): Eligibility[] {

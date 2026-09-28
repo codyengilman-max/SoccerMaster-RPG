@@ -79,7 +79,7 @@ export function mountSceneScreen(root: HTMLElement, session: Session, h: SceneHa
 
   const showEnd = (v: SceneView): void => {
     if (v.choices.length) {
-      actions.innerHTML = `<div class="choices">${v.choices.map((ch) => `<button type="button" class="choice" data-id="${ch.id}">${escapeHtml(ch.label)}</button>`).join("")}</div>`;
+      actions.innerHTML = `<div class="choices">${v.choices.map((ch) => `<button type="button" class="choice" data-id="${escapeHtml(ch.id)}">${escapeHtml(ch.label)}</button>`).join("")}</div>`;
       for (const b of actions.querySelectorAll<HTMLButtonElement>("button.choice")) {
         b.addEventListener("click", () => {
           const r = chooseInScene(c, session.scenes, b.dataset["id"]!);
