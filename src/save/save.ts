@@ -151,7 +151,7 @@ function validate(file: Record<string, unknown>): SaveFile {
   const need: (keyof CampaignState)[] = ["id", "seed", "kind", "player", "ageGroup", "day", "revision", "schedule", "competitions", "roster", "story", "progression", "reports", "scene", "slot", "pending", "tryouts"];
   for (const k of need) if (!(k in c)) throw new SaveError(`campaign.${k} missing`, "invalid_shape");
   if (typeof file.savedAt !== "string" || typeof file.slot !== "string") throw new SaveError("bad header", "invalid_shape");
-  if (!jsonData(file) || !text(c.id) || !integer(c.seed,0,4294967295) || !integer(c.day) || !integer(c.revision) || !['boys','girls'].includes(c.kind as string) || !['U11','U12','U13','U14','U15','U16'].includes(c.ageGroup as string)) throw new SaveError('invalid campaign header','invalid_shape');
+  if (!jsonData(file) || !text(c.id) || !Number.isSafeInteger(c.seed) || !integer(c.day) || !integer(c.revision) || !['boys','girls'].includes(c.kind as string) || !['U11','U12','U13','U14','U15','U16'].includes(c.ageGroup as string)) throw new SaveError('invalid campaign header','invalid_shape');
   const p=c.player, g=c.progression;
   if (!object(p) || !text(p.name) || !integer(p.appearance) || !['left','right'].includes(p.foot as string) || !integer(p.birthMonth,1,12) || ![1,2,3,4,6,8,7,9,11].includes(p.position as number)) throw new SaveError('invalid player','invalid_shape');
   if (!object(g) || !object(g.tracks) || !TRACKS.every(k=>number((g.tracks as Record<string,unknown>)[k],0,100)) || !strings(g.unlocked)) throw new SaveError('invalid progression','invalid_shape');
