@@ -17,7 +17,9 @@
 # Apple caps distribution certificates per team (typically 2-3); a rerun creates another one, so revoke stale
 # certificates in the developer portal before rerunning if Apple refuses.
 #
-# Required secrets:
+# Required secrets — stored on the GitHub *environment* `ios-release` (Settings -> Environments), not at
+# repository level, so PR/CI workflows can never read them and the environment's required reviewers gate
+# every run:
 #   ASC_KEY_ID, ASC_ISSUER_ID, ASC_API_KEY_P8   App Store Connect API key with the *Admin* role
 #                                              (App Manager cannot create certificates)
 #   UNITY_BUILD_API_KEY, UNITY_ORG_ID          Unity Build Automation API key + organization id
@@ -33,11 +35,15 @@ on:
       uba_buildtarget:
         description: "Optional: UBA build target id to attach the new credentials to (leave empty to pick it in the dashboard)"
         required: false
-        default: ""
+        default: "soccermaster-ios-testflight"
       create_app_record:
         description: "Also create the App Store Connect app record if missing (needed once before TestFlight upload)"
         type: boolean
         default: true
+      check_only:
+        description: "Only report whether the bundle id is registered to the team (creates no certificate, profile, App ID or app record)"
+        type: boolean
+        default: false
 
 concurrency:
   group: ios-signing
@@ -55,10 +61,58 @@ env:
   FASTLANE_HIDE_CHANGELOG: "1"
 
 jobs:
+  check:
+    name: Bundle id availability (read-only)
+    runs-on: macos-15
+    timeout-minutes: 15
+    environment: ios-release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: unity/release
+
+      - name: Check App Store Connect secrets are configured
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          missing=""
+          for v in ASC_KEY_ID ASC_ISSUER_ID ASC_API_KEY_P8; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::missing secrets on the ios-release environment:$missing"; exit 1
+          fi
+
+      - name: Query bundle id registration and app record
+        id: bundle
+        working-directory: unity/release
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          fastlane ios check_bundle_id bundle_id:"$BUNDLE_ID" out:"$RUNNER_TEMP/bundle.json"
+          echo "registered=$(jq -r .registeredToTeam "$RUNNER_TEMP/bundle.json")" >> "$GITHUB_OUTPUT"
+          echo "app=$(jq -r '.appRecord.name // ""' "$RUNNER_TEMP/bundle.json")" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Bundle id check — $BUNDLE_ID"
+            echo
+            echo '```json'; cat "$RUNNER_TEMP/bundle.json"; echo; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+    outputs:
+      registered: ${{ steps.bundle.outputs.registered }}
+      app: ${{ steps.bundle.outputs.app }}
+
   provision:
     name: Create distribution certificate + App Store profile, store in UBA
+    if: ${{ !inputs.check_only }}
+    needs: check
     runs-on: macos-15
     timeout-minutes: 30
+    environment: ios-release
     steps:
       - name: Check secrets are configured
         env:
@@ -73,8 +127,9 @@ jobs:
             [ -n "${!v}" ] || missing="$missing $v"
           done
           if [ -n "$missing" ]; then
-            echo "::error::missing repository secrets:$missing"; exit 1
+            echo "::error::missing secrets on the ios-release environment:$missing"; exit 1
           fi
+          echo "bundle id registered to team before this run: ${{ needs.check.outputs.registered }} (app record: '${{ needs.check.outputs.app }}')"
 
       - name: Write App Store Connect API key (runner-local, deleted at the end)
         env:

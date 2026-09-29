@@ -32,6 +32,11 @@ export interface DirectPolicy {
   maxPerEntry: number;
   /** On-ball moments open within this many ticks of the first controlled contact (unless behind schedule). */
   firstContactTicks: number;
+  /**
+   * When an entry supports fewer than `minOptions` answers in the current state, fill the window with
+   * the role's other catalog plays that are legitimate right now (fixed-size answer windows).
+   */
+  fillFromRole?: boolean;
 }
 
 export interface PacingConfig {
@@ -88,6 +93,15 @@ export const GK_DIRECT_PACING: PacingConfig = {
 /** Official-match pacing for a role. */
 export function pacingFor(role: RoleId): PacingConfig {
   return role === "GK" ? GK_DIRECT_PACING : DIRECT_PACING;
+}
+
+/**
+ * Fixed four-answer window (the native app's contract): the same direct-involvement policy with the
+ * window pinned to four, filled from the role's other legitimate plays when the entry offers fewer.
+ */
+export function fourAnswerPacingFor(role: RoleId): PacingConfig {
+  const base = pacingFor(role);
+  return { ...base, direct: { ...base.direct!, minOptions: 4, maxOptions: 4, fillFromRole: true } };
 }
 
 /** The metered mix used before direct involvement; kept for tools that still compare against it. */
@@ -333,7 +347,8 @@ export function recognize(state: MatchState, catalog: Catalog, rec: RecognizerSt
     sawTrigger = true;
     const last = rec.lastByEntry[entry.id];
     const recent = last !== undefined && state.clock.tick - last < repeatTicks;
-    const options = buildOptions(state, p, entry, read, momentId);
+    let options = buildOptions(state, p, entry, read, momentId);
+    if (direct?.fillFromRole && options.length < minOptions) options = fillFromRole(state, p, entries, entry, options, read, momentId, minOptions);
     if (options.length < minOptions) continue;
     const top = Math.max(...options.map((o) => o.score));
     // prefer consequential, varied situations; on-ball moments carry the target mix
@@ -387,6 +402,38 @@ function directSalience(entry: CatalogEntry, read: FieldRead): number {
     else if (/POS|LINE/.test(entry.id)) s -= 0.3;
   }
   return s;
+}
+
+/**
+ * Top up an entry's answers with the role's other catalog plays that are legitimate in this exact
+ * state: each is instantiated against the live field and scored by its own entry's criteria, commands
+ * already shown are skipped, and the highest-scoring extras fill the shortfall. The moment stays the
+ * triggering entry's; the extras carry `sourceEntryId` so commit-time rescoring rebuilds them too.
+ */
+export function fillFromRole(
+  state: MatchState,
+  p: PlayerState,
+  entries: readonly CatalogEntry[],
+  entry: CatalogEntry,
+  options: TacticalOption[],
+  read: FieldRead,
+  momentId: string,
+  minOptions: number,
+): TacticalOption[] {
+  const seen = new Set(options.map((o) => JSON.stringify(o.command)));
+  const extra: TacticalOption[] = [];
+  for (const other of entries) {
+    if (other === entry) continue;
+    if (other.restrictions.requiresOffside && !state.rules.offside) continue;
+    for (const o of buildOptions(state, p, other, read, momentId)) {
+      const key = JSON.stringify(o.command);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      extra.push({ ...o, id: `${momentId}:${other.id}:${o.actionId}`, sourceEntryId: other.id });
+    }
+  }
+  extra.sort((a, b) => b.score - a.score);
+  return [...options, ...extra.slice(0, minOptions - options.length)];
 }
 
 /**

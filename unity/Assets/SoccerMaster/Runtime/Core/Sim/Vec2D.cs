@@ -46,8 +46,8 @@ namespace SoccerMaster.Core.Sim
 
         public static Vec2D Rotate(Vec2D a, double radians)
         {
-            double c = Math.Cos(radians);
-            double s = Math.Sin(radians);
+            double c = Fdlibm.Cos(radians);
+            double s = Fdlibm.Sin(radians);
             return new Vec2D(a.X * c - a.Y * s, a.X * s + a.Y * c);
         }
 
@@ -56,7 +56,7 @@ namespace SoccerMaster.Core.Sim
             double la = Len(a);
             double lb = Len(b);
             if (la < 1e-9 || lb < 1e-9) return 0;
-            return Math.Acos(Clamp(Dot(a, b) / (la * lb), -1, 1));
+            return Fdlibm.Acos(Clamp(Dot(a, b) / (la * lb), -1, 1));
         }
 
         /// <summary>Closest point on segment ab to p, as parameter t in [0,1] and the point.</summary>

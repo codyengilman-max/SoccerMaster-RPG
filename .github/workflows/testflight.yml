@@ -8,7 +8,15 @@
 # App Store Connect API key, and waits for Apple processing so the run's result reflects processing, not just
 # transfer. Every credential comes from GitHub Actions secrets; none is echoed, committed or uploaded as an artifact.
 #
-# Required secrets (Settings -> Secrets and variables -> Actions):
+# Gates before anything is uploaded:
+#   * the job runs in the GitHub environment `ios-release` (its required reviewers must approve the run, and
+#     the release secrets exist only there — PR/CI workflows cannot read them);
+#   * `approved_sha` is mandatory and must be reachable from `approved_ref` (default: the integration branch),
+#     and the UBA build's recorded revision must be exactly that commit;
+#   * the IPA must be App Store distribution signed for the expected bundle id with CFBundleVersion == UBA build number.
+# After upload the run stores a release record (IPA SHA-256, build, commit, team, time) as a workflow artifact.
+#
+# Required secrets (Settings -> Environments -> ios-release):
 #   UNITY_BUILD_API_KEY   Unity Cloud -> DevOps -> Build Automation -> Settings -> API key (sent as `Authorization: Basic <key>` per the UBA API docs)
 #   UNITY_ORG_ID          Unity Cloud organization id (the "orgid" segment of the Build Automation API)
 #   ASC_KEY_ID            App Store Connect -> Users and Access -> Integrations -> Team Keys: Key ID
@@ -23,13 +31,16 @@ on:
         description: "Finished Unity Build Automation build number to upload (from the UBA build page)"
         required: true
       uba_buildtarget:
-        description: "UBA build target id"
+        description: "UBA build target id (target name SoccerMaster-iOS-TestFlight)"
         required: true
-        default: ios-testflight
-      expected_sha:
-        description: "Optional: git commit the UBA build must have been made from (guards against uploading a stale build)"
-        required: false
-        default: ""
+        default: soccermaster-ios-testflight
+      approved_sha:
+        description: "Full git commit the UBA build must have been made from; must be reachable from approved_ref"
+        required: true
+      approved_ref:
+        description: "Branch the approved commit must be reachable from"
+        required: true
+        default: integration/pr1-11
 
 concurrency:
   group: testflight-upload
@@ -48,8 +59,23 @@ jobs:
     name: Verify signed IPA and upload to App Store Connect
     runs-on: macos-15
     timeout-minutes: 90
+    environment: ios-release
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Approved-commit gate
+        env:
+          SHA: ${{ inputs.approved_sha }}
+          REF: ${{ inputs.approved_ref }}
+        run: |
+          set -euo pipefail
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::approved_sha must be a full 40-hex commit, got '$SHA'"; exit 1; }
+          git cat-file -e "$SHA^{commit}" || { echo "::error::$SHA is not a commit in this repository"; exit 1; }
+          git fetch --no-tags origin "$REF"
+          git merge-base --is-ancestor "$SHA" FETCH_HEAD || { echo "::error::$SHA is not reachable from origin/$REF; merge it there before releasing"; exit 1; }
+          echo "approved: $SHA is on origin/$REF ($(git log -1 --format='%s' "$SHA"))"
 
       - name: Check secrets are configured
         env:
@@ -64,7 +90,7 @@ jobs:
             [ -n "${!v}" ] || missing="$missing $v"
           done
           if [ -n "$missing" ]; then
-            echo "::error::missing repository secrets:$missing"; exit 1
+            echo "::error::missing secrets on the ios-release environment:$missing"; exit 1
           fi
 
       - name: Fetch UBA build record
@@ -74,7 +100,7 @@ jobs:
           UNITY_ORG_ID: ${{ secrets.UNITY_ORG_ID }}
           TARGET: ${{ inputs.uba_buildtarget }}
           NUMBER: ${{ inputs.uba_build_number }}
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ inputs.approved_sha }}
         run: |
           set -euo pipefail
           url="$UBA_API/api/v1/orgs/$UNITY_ORG_ID/projects/$UNITY_PROJECT_ID/buildtargets/$TARGET/builds/$NUMBER"
@@ -85,8 +111,8 @@ jobs:
           echo "UBA build $TARGET#$NUMBER status=$status revision=$sha"
           [ "$status" = "success" ] || { echo "::error::UBA build status is '$status', not success"; exit 1; }
           [ -n "$href" ] || { echo "::error::UBA build has no download_primary link (was the archive kept?)"; exit 1; }
-          if [ -n "$EXPECTED_SHA" ] && [ "$sha" != "$EXPECTED_SHA" ]; then
-            echo "::error::UBA build was made from $sha, expected $EXPECTED_SHA"; exit 1
+          if [ "$sha" != "$EXPECTED_SHA" ]; then
+            echo "::error::UBA build was made from '$sha', not the approved commit $EXPECTED_SHA"; exit 1
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "href=$href" >> "$GITHUB_OUTPUT"
@@ -104,6 +130,7 @@ jobs:
           esac
           ls -l "$RUNNER_TEMP/ipa/app.ipa"
           unzip -tq "$RUNNER_TEMP/ipa/app.ipa" >/dev/null
+          shasum -a 256 "$RUNNER_TEMP/ipa/app.ipa" | tee "$RUNNER_TEMP/ipa/app.ipa.sha256"
 
       - name: Verify bundle id, build number and App Store distribution signing
         id: verify
@@ -142,6 +169,7 @@ jobs:
           echo "team=$team" >> "$GITHUB_OUTPUT"
 
       - name: Upload to App Store Connect and wait for processing
+        id: asc
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -161,6 +189,42 @@ jobs:
             --distribute_external false \
             --skip_waiting_for_build_processing false
           rm -f "$key"
+          echo "uploaded_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Write release record
+        if: always() && steps.verify.outcome == 'success'
+        env:
+          RESULT: ${{ job.status }}
+          NUMBER: ${{ inputs.uba_build_number }}
+          TARGET: ${{ inputs.uba_buildtarget }}
+          SHA: ${{ inputs.approved_sha }}
+          REF: ${{ inputs.approved_ref }}
+          VERSION: ${{ steps.verify.outputs.version }}
+          BUILD: ${{ steps.verify.outputs.build }}
+          TEAM: ${{ steps.verify.outputs.team }}
+          UPLOADED_AT: ${{ steps.asc.outputs.uploaded_at }}
+          UPLOAD_OUTCOME: ${{ steps.asc.outcome }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/record"
+          jq -n \
+            --arg result "$RESULT" --arg target "$TARGET" --arg number "$NUMBER" --arg sha "$SHA" --arg ref "$REF" \
+            --arg bundle "$EXPECTED_BUNDLE_ID" --arg version "$VERSION" --arg build "$BUILD" --arg team "$TEAM" \
+            --arg ipa_sha256 "$(cut -d' ' -f1 "$RUNNER_TEMP/ipa/app.ipa.sha256")" --arg ipa_bytes "$(stat -f%z "$RUNNER_TEMP/ipa/app.ipa")" \
+            --arg uploaded_at "$UPLOADED_AT" --arg upload_outcome "$UPLOAD_OUTCOME" \
+            --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{jobResult:$result, uba:{target:$target, build:($number|tonumber)}, commit:$sha, approvedRef:$ref, bundleId:$bundle,
+              version:$version, cfBundleVersion:$build, appleTeam:$team, ipa:{sha256:$ipa_sha256, bytes:($ipa_bytes|tonumber)},
+              appStoreConnect:{outcome:$upload_outcome, uploadedAtUtc:$uploaded_at}, workflowRun:$run}' \
+            | tee "$RUNNER_TEMP/record/testflight-record-$NUMBER.json"
+
+      - name: Attach release record
+        if: always() && steps.verify.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: testflight-record-${{ inputs.uba_build_number }}
+          path: ${{ runner.temp }}/record/
+          retention-days: 400
 
       - name: Summary
         if: always()
@@ -168,18 +232,21 @@ jobs:
           RESULT: ${{ job.status }}
           NUMBER: ${{ inputs.uba_build_number }}
           TARGET: ${{ inputs.uba_buildtarget }}
-          SHA: ${{ steps.uba.outputs.sha }}
+          SHA: ${{ inputs.approved_sha }}
+          REF: ${{ inputs.approved_ref }}
           VERSION: ${{ steps.verify.outputs.version }}
           BUILD: ${{ steps.verify.outputs.build }}
           TEAM: ${{ steps.verify.outputs.team }}
         run: |
+          ipa_sha=$(cut -d' ' -f1 "$RUNNER_TEMP/ipa/app.ipa.sha256" 2>/dev/null || echo "?")
           {
             echo "## TestFlight upload — $RESULT"
             echo
             echo "| Field | Value |"
             echo "|---|---|"
             echo "| UBA build | $TARGET #$NUMBER |"
-            echo "| Commit | $SHA |"
+            echo "| Commit | $SHA (approved via $REF) |"
+            echo "| IPA SHA-256 | $ipa_sha |"
             echo "| Bundle id | $EXPECTED_BUNDLE_ID |"
             echo "| Version (build) | ${VERSION:-?} (${BUILD:-?}) |"
             echo "| Apple team | ${TEAM:-?} |"

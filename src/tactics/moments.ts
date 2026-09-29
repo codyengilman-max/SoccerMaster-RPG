@@ -30,6 +30,8 @@ export interface TacticalOption {
   feasibility: number;
   reasons: string[];
   receiver?: PlayerId;
+  /** Catalog entry the action was drawn from when it is not the moment's own entry (fixed-size answer window fill). */
+  sourceEntryId?: string;
 }
 
 export interface TacticalMoment {

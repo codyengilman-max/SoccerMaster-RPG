@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/SoccerMaster/Scenes/TacticalMoment.unity
+    guid: d80fc500f6ebe3c33d886ad951a3c792
+  - enabled: 1
     path: Assets/SoccerMaster/Scenes/FirstTouch.unity
     guid: cf6320b6ea4d2cd9358e97dad38a8618
   m_configObjects: {}
