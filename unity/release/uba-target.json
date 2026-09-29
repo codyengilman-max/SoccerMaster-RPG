@@ -1,0 +1,33 @@
+{
+  "name": "SoccerMaster-iOS-TestFlight",
+  "platform": "ios",
+  "enabled": true,
+  "settings": {
+    "autoBuild": false,
+    "unityVersion": "6000_3_24f1",
+    "autoDetectUnityVersion": true,
+    "fallbackPatchVersion": true,
+    "executablename": "SoccerMaster",
+    "scm": {
+      "type": "git",
+      "repo": "https://github.com/codyengilman-max/SoccerMaster-RPG.git",
+      "branch": "devin/1790696842-unity-tactical-slice",
+      "subdirectory": "unity"
+    },
+    "platform": {
+      "bundleId": "com.codyengilman.soccermaster",
+      "xcodeVersion": "latest"
+    },
+    "advanced": {
+      "unity": {
+        "preExportMethod": "SoccerMaster.Editor.CloudBuild.PreExport",
+        "runUnitTests": true,
+        "failedUnitTestFailsBuild": true,
+        "enableLightBake": false
+      },
+      "xcode": {
+        "useArchiveAndExport": true
+      }
+    }
+  }
+}
