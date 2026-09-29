@@ -92,7 +92,7 @@ jobs:
       - name: Regenerate parity fixture from the web implementation and confirm it is committed
         run: |
           npm run native:fixtures
-          git diff --exit-code -- unity/Assets/SoccerMaster/Tests/Fixtures/first_touch_parity.json
+          git diff --exit-code -- unity/Assets/SoccerMaster/Tests/Fixtures unity/Assets/SoccerMaster/Resources/SoccerMaster/Catalog
       - name: .NET pre-check of the C# port against the fixture (not Unity evidence)
         uses: actions/setup-dotnet@v4
         with:

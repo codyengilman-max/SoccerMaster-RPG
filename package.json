@@ -23,7 +23,10 @@
     "story:tones": "tsx tools/storyTones.ts",
     "pace": "tsx tools/paceBench.ts",
     "sprites": "tsx tools/spriteGen.ts",
-    "native:fixtures": "tsx tools/nativeFixtures.ts",
+    "native:fixtures": "npm run native:fixtures:first-touch && npm run native:fixtures:tactics && npm run native:fixtures:math",
+    "native:fixtures:first-touch": "tsx tools/nativeFixtures.ts",
+    "native:fixtures:tactics": "tsx tools/nativeTacticsFixtures.ts",
+    "native:fixtures:math": "tsx tools/nativeMathFixtures.ts",
     "native:parity": "dotnet run --project unity/Tools/ParityCheck -c Release"
   },
   "devDependencies": {

@@ -27,8 +27,19 @@ export function rescoreAtCommit(state: MatchState, catalog: Catalog, moment: Tac
   if (!p) return moment.options;
   const read = readField(state, p);
   const fresh = buildOptions(state, p, entryOf(catalog, moment), read, moment.id);
+  const bySource = new Map<string, TacticalOption[]>();
   // keep original option identity; options that are no longer instantiable keep their opening score
-  return moment.options.map((o) => fresh.find((f) => f.actionId === o.actionId) ?? o);
+  return moment.options.map((o) => {
+    if (o.sourceEntryId === undefined) return fresh.find((f) => f.actionId === o.actionId) ?? o;
+    let list = bySource.get(o.sourceEntryId);
+    if (!list) {
+      const source = catalog.entries.find((e) => e.id === o.sourceEntryId);
+      list = source ? buildOptions(state, p, source, read, moment.id) : [];
+      bySource.set(o.sourceEntryId, list);
+    }
+    const f = list.find((x) => x.actionId === o.actionId);
+    return f ? { ...f, id: o.id, sourceEntryId: o.sourceEntryId } : o;
+  });
 }
 
 /**
