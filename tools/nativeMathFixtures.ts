@@ -26,7 +26,7 @@ const push = (fn: Fn, ...args: number[]) => lines.push([fn, ...args.map(str), st
 
 const scales = [1e-3, 0.1, 1, 3, 10, 100, 1e4];
 for (let i = 0; i < 1500; i++) {
-  const scale = scales[i % scales.length];
+  const scale = scales[i % scales.length] ?? 1;
   const x = (rnd() * 2 - 1) * scale;
   const y = (rnd() * 2 - 1) * scale;
   push("sin", x);

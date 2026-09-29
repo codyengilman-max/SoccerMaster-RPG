@@ -150,12 +150,20 @@ namespace SoccerMaster.Core.Serialization
             for (int i = 0; i < depth; i++) sb.Append("  ");
         }
 
-        /// <summary>JSON.stringify number semantics: non-finite becomes null, integers print without a fraction.</summary>
+        /// <summary>
+        /// JSON.stringify number semantics — non-finite becomes null, integers print without a
+        /// fraction — except that negative zero is kept as <c>-0</c> so a saved state reloads bit-identical.
+        /// </summary>
         public static void WriteNumber(StringBuilder sb, double d)
         {
             if (double.IsNaN(d) || double.IsInfinity(d))
             {
                 sb.Append("null");
+                return;
+            }
+            if (d == 0 && double.IsNegative(d))
+            {
+                sb.Append("-0");
                 return;
             }
             if (d == Math.Floor(d) && Math.Abs(d) < 1e15)

@@ -19,11 +19,18 @@ namespace SoccerMaster.Editor
         public const string DefaultBundleId = "com.codyengilman.soccermaster";
         public const string DefaultAppVersion = "0.1.0";
 
-        /// <summary>Scenes shipped in the app, in load order. Anything not listed is not built.</summary>
+        /// <summary>Scenes shipped in the app, in load order (index 0 is the entry scene). Anything not listed is not built.</summary>
         public static readonly string[] RequiredScenes =
         {
+            TacticalMomentSceneBuilder.ScenePath,
             FirstTouchSceneBuilder.ScenePath,
         };
+
+        /// <summary>Points the Editor build settings at <see cref="RequiredScenes"/> (scene builders call this after saving).</summary>
+        public static void SyncSceneList()
+        {
+            EditorBuildSettings.scenes = RequiredScenes.Select(p => new EditorBuildSettingsScene(p, true)).ToArray();
+        }
 
         public static void Build()
         {
@@ -61,7 +68,7 @@ namespace SoccerMaster.Editor
             if (buildNumber <= 0)
                 throw new BuildFailedException($"build number must be a positive integer, got {buildNumber}");
 
-            EditorBuildSettings.scenes = RequiredScenes.Select(p => new EditorBuildSettingsScene(p, true)).ToArray();
+            SyncSceneList();
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, bundleId);
             PlayerSettings.bundleVersion = appVersion;
             PlayerSettings.iOS.buildNumber = buildNumber.ToString();

@@ -30,7 +30,7 @@ namespace SoccerMaster.Editor
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
                 throw new IOException("failed to save " + ScenePath);
             AssetDatabase.Refresh();
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+            IosBuild.SyncSceneList();
             Debug.Log("[SoccerMaster] built " + ScenePath + " with " + scene.rootCount + " root objects");
         }
     }

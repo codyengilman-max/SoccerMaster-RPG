@@ -6,6 +6,7 @@ scene list vs. scene asset vs. IosBuild.RequiredScenes, script GUIDs referenced 
 iOS player settings the build script assumes, and the Editor version pinned in CI images.
 """
 import json
+import plistlib
 import os
 import re
 import sys
@@ -44,31 +45,47 @@ for wf in ("unity.yml",):
         expect(tag == version, f"{wf} pins GameCI image {tag}, ProjectVersion.txt says {version}")
 
 # --- Scenes ---------------------------------------------------------------------------------
+# Each shipped scene: (builder class, MonoBehaviours the single root object must carry). Order = load order.
+SCENES = (
+    ("TacticalMomentSceneBuilder", ("TacticalMomentController", "TacticalMomentRig")),
+    ("FirstTouchSceneBuilder", ("FirstTouchController", "FirstTouchRig")),
+)
 ios_build = read(os.path.join(ROOT, "Assets/SoccerMaster/Editor/IosBuild.cs"))
-scene_builder = read(os.path.join(ROOT, "Assets/SoccerMaster/Editor/FirstTouchSceneBuilder.cs"))
-scene_path = re.search(r'ScenePath = "([^"]+)"', scene_builder).group(1)
-expect("FirstTouchSceneBuilder.ScenePath" in ios_build, "IosBuild.RequiredScenes no longer lists FirstTouchSceneBuilder.ScenePath")
-expect(os.path.exists(os.path.join(ROOT, scene_path)), f"scene asset missing: {scene_path}")
-scene_guid = meta_guid(scene_path)
+required = re.search(r"RequiredScenes =\s*\{([^}]*)\}", ios_build, re.S).group(1)
+required_order = re.findall(r"(\w+SceneBuilder)\.ScenePath", required)
+expect(required_order == [b for b, _ in SCENES], f"IosBuild.RequiredScenes order {required_order} != {[b for b, _ in SCENES]}")
 
-ebs = read(os.path.join(ROOT, "ProjectSettings/EditorBuildSettings.asset"))
-listed = re.findall(r"- enabled: (\d)\n\s+path: (\S+)\n\s+guid: ([0-9a-f]{32})", ebs)
-expect([(p, g) for e, p, g in listed if e == "1"] == [(scene_path, scene_guid)],
-       f"EditorBuildSettings scenes {listed} != [{scene_path} {scene_guid}]")
-
-scene = read(os.path.join(ROOT, scene_path))
-script_guids = set(re.findall(r"m_Script: \{fileID: 11500000, guid: ([0-9a-f]{32}), type: 3\}", scene))
-expect(len(script_guids) >= 2, "FirstTouch scene should reference FirstTouchController and FirstTouchRig")
 known = {}
 for dirpath, _, files in os.walk(os.path.join(ROOT, "Assets")):
     for f in files:
         if f.endswith(".cs.meta"):
             known[meta_guid(os.path.relpath(os.path.join(dirpath, f[:-5]), ROOT))] = f[:-8]
-for g in script_guids:
-    expect(g in known, f"scene references script guid {g} that no .cs.meta declares")
-for cls in ("FirstTouchController", "FirstTouchRig"):
-    expect(cls in known.values() and any(known.get(g) == cls for g in script_guids), f"scene does not reference {cls}")
-expect(re.search(r"^--- !u!20 ", scene, re.M) is None, "scene should not contain a Camera; FirstTouchRig creates it at runtime")
+
+expected_list = []
+scene_paths = []
+for builder, classes in SCENES:
+    scene_builder = read(os.path.join(ROOT, f"Assets/SoccerMaster/Editor/{builder}.cs"))
+    scene_path = re.search(r'ScenePath = "([^"]+)"', scene_builder).group(1)
+    scene_paths.append(scene_path)
+    expect(os.path.exists(os.path.join(ROOT, scene_path)), f"scene asset missing: {scene_path}")
+    if not os.path.exists(os.path.join(ROOT, scene_path)):
+        continue
+    expected_list.append((scene_path, meta_guid(scene_path)))
+    scene = read(os.path.join(ROOT, scene_path))
+    script_guids = set(re.findall(r"m_Script: \{fileID: 11500000, guid: ([0-9a-f]{32}), type: 3\}", scene))
+    expect(len(script_guids) == len(classes), f"{scene_path} should reference exactly {classes}")
+    for g in script_guids:
+        expect(g in known, f"{scene_path} references script guid {g} that no .cs.meta declares")
+    for cls in classes:
+        expect(any(known.get(g) == cls for g in script_guids), f"{scene_path} does not reference {cls}")
+    expect(re.search(r"^--- !u!20 ", scene, re.M) is None, f"{scene_path} should not contain a Camera; the rig creates it at runtime")
+    roots = re.search(r"^SceneRoots:\n  m_ObjectHideFlags: 0\n  m_Roots:\n((?:  - \{fileID: \d+\}\n?)+)", scene, re.M)
+    expect(roots and len(roots.group(1).strip().splitlines()) == 1, f"{scene_path} should have exactly one root object")
+
+ebs = read(os.path.join(ROOT, "ProjectSettings/EditorBuildSettings.asset"))
+listed = re.findall(r"- enabled: (\d)\n\s+path: (\S+)\n\s+guid: ([0-9a-f]{32})", ebs)
+expect([(p, g) for e, p, g in listed if e == "1"] == expected_list,
+       f"EditorBuildSettings scenes {listed} != {expected_list}")
 
 # --- iOS player settings ---------------------------------------------------------------------
 ps = read(os.path.join(ROOT, "ProjectSettings/ProjectSettings.asset"))
@@ -83,6 +100,20 @@ for key, want in (("defaultScreenOrientation", "0"), ("targetDevice", "0"), ("ap
 expect(re.search(r"^  scriptingBackend:\n    iPhone: 1$", ps, re.M), "iOS scripting backend must be IL2CPP (1)")
 expect(re.search(r"^  platformArchitecture:\n    iPhone: 1$", ps, re.M), "iOS architecture must be ARM64 (1)")
 
+# --- Apple privacy manifest --------------------------------------------------------------------
+import plistlib
+privacy = os.path.join(ROOT, "Assets/Plugins/iOS/PrivacyInfo.xcprivacy")
+expect(os.path.exists(privacy), "Assets/Plugins/iOS/PrivacyInfo.xcprivacy missing (App Store requires a privacy manifest)")
+if os.path.exists(privacy):
+    with open(privacy, "rb") as fh:
+        pl = plistlib.load(fh)
+    expect(pl.get("NSPrivacyTracking") is False, "PrivacyInfo.xcprivacy must declare NSPrivacyTracking = false")
+    expect(any(t.get("NSPrivacyAccessedAPIType") == "NSPrivacyAccessedAPICategoryFileTimestamp" for t in pl.get("NSPrivacyAccessedAPITypes", [])),
+           "PrivacyInfo.xcprivacy must declare the file-timestamp API reason (native save files)")
+    pmeta = read(privacy + ".meta")
+    expect("PluginImporter:" in pmeta and re.search(r"iPhone: iOS\n\s+second:\n\s+enabled: 1", pmeta),
+           "PrivacyInfo.xcprivacy.meta must be a PluginImporter enabled for iOS")
+
 # --- No dangling render-pipeline references ------------------------------------------------------
 manifest = json.load(open(os.path.join(ROOT, "Packages/manifest.json")))["dependencies"]
 gfx = read(os.path.join(ROOT, "ProjectSettings/GraphicsSettings.asset"))
@@ -96,4 +127,4 @@ for pkg in ("com.unity.inputsystem", "com.unity.ugui", "com.unity.test-framework
 if errors:
     print("project check FAILED:\n  " + "\n  ".join(errors))
     sys.exit(1)
-print(f"project check OK: Unity {version}, scene {scene_path}, bundle {bundle}, {len(known)} scripts")
+print(f"project check OK: Unity {version}, scenes {scene_paths}, bundle {bundle}, {len(known)} scripts")

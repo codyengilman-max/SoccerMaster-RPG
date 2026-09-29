@@ -8,7 +8,7 @@ namespace SoccerMaster.Tools.ParityCheck
 {
     /// <summary>
     /// Engine-free replay of every web-generated parity fixture through the C# core.
-    /// `dotnet run -- [math|first_touch|tactics|all] [fixtureDir]`; defaults to `all` against the repo fixtures.
+    /// `dotnet run -- [math|first_touch|tactics|runtime|all] [fixtureDir]`; defaults to `all` against the repo fixtures.
     /// </summary>
     internal static class Program
     {
@@ -21,6 +21,7 @@ namespace SoccerMaster.Tools.ParityCheck
             if (which == "all" || which == "math") ok &= MathFns(Path.Combine(fixtures, "math_parity.json"));
             if (which == "all" || which == "first_touch") ok &= FirstTouch(Path.Combine(fixtures, "first_touch_parity.json"));
             if (which == "all" || which == "tactics") ok &= Tactics(Path.Combine(fixtures, "tactics_parity.json"), Path.Combine(root, "Resources/SoccerMaster/Catalog/provisional-u11.json"));
+            if (which == "all" || which == "runtime") ok &= Runtime(Path.Combine(root, "Resources/SoccerMaster/Catalog/provisional-u11.json"));
             Console.WriteLine(ok ? "PARITY OK" : "PARITY FAILED");
             return ok ? 0 : 1;
         }
@@ -59,6 +60,23 @@ namespace SoccerMaster.Tools.ParityCheck
             Console.WriteLine($"comparisons: {result.Comparisons}; failures: {result.Failures.Count}");
             Print(result.Failures);
             return result.Passed;
+        }
+
+        private static bool Runtime(string catalogPath)
+        {
+            if (!File.Exists(catalogPath)) { Console.Error.WriteLine($"catalog not found: {catalogPath}"); return false; }
+            string catalog = File.ReadAllText(catalogPath);
+            bool ok = true;
+            foreach ((int seed, string role) in new[] { (7, "RW"), (3, "CM"), (11, "GK") })
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                RuntimeSaveChecker.Result result = RuntimeSaveChecker.Check(catalog, seed, role);
+                Console.WriteLine($"runtime seed={seed} role={role}: frames={result.Frames} realSeconds={result.RealSeconds:F1} moments={result.Moments} timeouts={result.Timeouts} reloads={result.Reloads} events={result.Events} ({sw.ElapsedMilliseconds} ms)");
+                Console.WriteLine($"comparisons: {result.Comparisons}; failures: {result.Failures.Count}");
+                Print(result.Failures);
+                ok &= result.Passed;
+            }
+            return ok;
         }
 
         private static void Print(List<string> failures)

@@ -1,0 +1,35 @@
+# Read-only App Store Connect checks used by .github/workflows/ios-signing.yml.
+# Runs inside fastlane's own Ruby so Spaceship is available on the GitHub macOS runner.
+# Credentials arrive only through ASC_KEY_ID / ASC_ISSUER_ID / ASC_API_KEY_P8 environment variables.
+default_platform(:ios)
+
+platform :ios do
+  desc "Report whether BUNDLE_ID is registered to this Apple team and has an App Store Connect app record (creates nothing)"
+  lane :check_bundle_id do |options|
+    bundle_id = options[:bundle_id] || ENV.fetch("BUNDLE_ID")
+    out = options[:out] || "bundle_id_check.json"
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: ENV.fetch("ASC_API_KEY_P8"),
+      in_house: false
+    )
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: api_key)
+
+    registered = Spaceship::ConnectAPI::BundleId.all(filter: { identifier: bundle_id })
+                                                .find { |b| b.identifier == bundle_id }
+    app = Spaceship::ConnectAPI::App.find(bundle_id)
+    result = {
+      "bundleId" => bundle_id,
+      "registeredToTeam" => !registered.nil?,
+      "bundleIdResourceId" => registered&.id,
+      "seedId" => registered&.seed_id,
+      "appRecord" => app.nil? ? nil : { "id" => app.id, "name" => app.name, "sku" => app.sku },
+      "checkedAtUtc" => Time.now.utc.iso8601,
+      "note" => registered.nil? ? "not registered to this team; another team may still own it — creation (fastlane produce) will fail in that case" : "registered"
+    }
+    File.write(out, JSON.pretty_generate(result))
+    UI.message(JSON.pretty_generate(result))
+    result
+  end
+end
